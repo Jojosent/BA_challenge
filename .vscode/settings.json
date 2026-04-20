@@ -1,0 +1,12 @@
+{
+    "folder-color.pathColors": [
+        {
+            "folderPath": "ba_challenge_all\\ba_challenge\\",
+            "color": "foldercolorizer.color_00ff00"
+        },
+        {
+            "folderPath": "ba_challenge_all\\ba_challenge_backend\\",
+            "color": "foldercolorizer.color_5fd7ff"
+        }
+    ]
+}

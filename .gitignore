@@ -1,0 +1,31 @@
+# Секреты (Самое важное!)
+.env
+.env*.local
+*.pem
+*.jks
+*.key
+
+# Зависимости
+node_modules/
+
+# Expo / Metro
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+.metro-health-check*
+
+# Нативные папки (если ты не правишь их вручную)
+/ios/
+/android/
+
+# Логи и временные файлы
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.tsbuildinfo
+.DS_Store
+Thumbs.db
+
+# Примеры (если не нужны в репозитории)
+app-example/
