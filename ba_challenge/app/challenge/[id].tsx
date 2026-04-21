@@ -65,7 +65,7 @@ export default function ChallengeDetailScreen() {
   const isParticipant = c.participants?.some((p) => p.userId === user?.id);
   const isCreator = c.creatorId === user?.id;
 
-    const isFamilyChallenge = !!c.familyOwnerId;
+  const isFamilyChallenge = !!c.familyOwnerId;
   // Для семейного — только создатель может добавлять/менять задачи
   const canManageTasks = isCreator;
   // Для семейного — участники могут только смотреть и загружать доказательства
@@ -90,22 +90,22 @@ export default function ChallengeDetailScreen() {
   };
 
   // Добавить задачу
-const handleAddTask = async (title: string, description: string) => {
-  try {
-    setTaskLoading(true);
-    const updatedTasks = await taskService.create(Number(id), title, description);
-    setCurrentTasks(updatedTasks);
-    setTaskModalVisible(false);
-  } catch (e: any) {
-    // ✅ Показываем точное сообщение от бэкенда
-    Alert.alert(
-      'Нельзя добавить задачу',
-      e.message || 'Ошибка при добавлении задачи'
-    );
-  } finally {
-    setTaskLoading(false);
-  }
-};
+  const handleAddTask = async (title: string, description: string) => {
+    try {
+      setTaskLoading(true);
+      const updatedTasks = await taskService.create(Number(id), title, description);
+      setCurrentTasks(updatedTasks);
+      setTaskModalVisible(false);
+    } catch (e: any) {
+      // ✅ Показываем точное сообщение от бэкенда
+      Alert.alert(
+        'Нельзя добавить задачу',
+        e.message || 'Ошибка при добавлении задачи'
+      );
+    } finally {
+      setTaskLoading(false);
+    }
+  };
 
   // Изменить задачу
   const handleEditTask = async (title: string, description: string) => {
@@ -195,20 +195,20 @@ const handleAddTask = async (title: string, description: string) => {
         </View>
 
         {/* ── Кнопка вступить ── */}
-        {!isParticipant && !canEdit  && c.status !== 'completed' && (
+        {!isParticipant && !canEdit && c.status !== 'completed' && (
           <View style={styles.joinSection}>
             <Button title="🎯 Вступить в челлендж" onPress={handleJoin} isLoading={isLoading} />
           </View>
         )}
 
-        {isParticipant && !canEdit  && (
+        {isParticipant && !canEdit && (
           <View style={styles.joinedBadge}>
             <Text style={styles.joinedText}>✅ Ты участвуешь в этом челлендже</Text>
           </View>
         )}
 
         {/* ── AI генератор ── */}
-        {canEdit  && (
+        {canEdit && (
           <View style={styles.aiSection}>
             <AITaskGenerator
               challengeId={Number(id)}
@@ -219,7 +219,7 @@ const handleAddTask = async (title: string, description: string) => {
         )}
 
         {/* ── AI чат ── */}
-        {(canEdit  || isParticipant) && (
+        {(canEdit || isParticipant) && (
           <TouchableOpacity
             style={styles.aiChatBtn}
             onPress={() => router.push(`/challenge/ai-chat/${id}`)}
@@ -234,7 +234,7 @@ const handleAddTask = async (title: string, description: string) => {
         )}
         {/* ======================= */}
 
-        {canEdit  && c.visibility === 'secret' && (
+        {canEdit && c.visibility === 'secret' && !isFamilyChallenge && (
           <TouchableOpacity
             style={styles.inviteBtn}
             onPress={() => setInviteModalVisible(true)}
@@ -243,14 +243,13 @@ const handleAddTask = async (title: string, description: string) => {
             <Text style={styles.inviteBtnTxt}>Пригласить участника</Text>
           </TouchableOpacity>
         )}
-
         {/* ======================= */}
 
         {/* ── Задачи ── */}
         <View style={styles.tasksTitleRow}>
           <Text style={styles.sectionTitle}>Задачи ({currentTasks.length})</Text>
           {/* Кнопка добавить — только для создателя */}
-          {canEdit  && (
+          {canEdit && (
             <TouchableOpacity
               style={styles.addTaskBtn}
               onPress={() => {
@@ -309,7 +308,7 @@ const handleAddTask = async (title: string, description: string) => {
                     )} */}
 
                     {/* Стрелки порядка — блокируем если просрочено */}
-                    {canEdit  && (
+                    {canEdit && (
                       <View style={styles.reorderCol}>
                         <TouchableOpacity
                           style={[
@@ -350,7 +349,7 @@ const handleAddTask = async (title: string, description: string) => {
                           Alert.alert('⏰ Дедлайн прошёл', 'Время для загрузки истекло.');
                           return;
                         }
-                        if (!isParticipant && !canEdit ) {
+                        if (!isParticipant && !canEdit) {
                           Alert.alert('', 'Вступи в челлендж чтобы выполнять задачи');
                           return;
                         }
@@ -402,7 +401,7 @@ const handleAddTask = async (title: string, description: string) => {
 
                       {isExpired ? (
                         <Text style={styles.expiredHint}>🔒 Дедлайн прошёл</Text>
-                      ) : (isParticipant || canEdit ) ? (
+                      ) : (isParticipant || canEdit) ? (
                         <Text style={styles.tapHint}>Нажми чтобы загрузить доказательство →</Text>
                       ) : null}
                     </TouchableOpacity>
@@ -429,7 +428,7 @@ const handleAddTask = async (title: string, description: string) => {
                     )} */}
 
                     {/* Кнопки редактировать/удалить — скрываем если просрочено */}
-                    {canEdit  && !isExpired && (    // ✅ добавили !isExpired
+                    {canEdit && !isExpired && (    // ✅ добавили !isExpired
                       <View style={styles.taskActions}>
                         <TouchableOpacity
                           style={styles.editTaskBtn}
@@ -458,7 +457,7 @@ const handleAddTask = async (title: string, description: string) => {
           <Card style={styles.emptyCard}>
             <Text style={styles.emptyIcon}>📋</Text>
             <Text style={styles.emptyTitle}>Задачи ещё не добавлены</Text>
-            {canEdit  ? (
+            {canEdit ? (
               <Text style={styles.emptyText}>
                 Сгенерируй через AI или добавь вручную
               </Text>

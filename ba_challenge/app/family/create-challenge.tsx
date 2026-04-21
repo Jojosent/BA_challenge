@@ -7,7 +7,7 @@ import {
     Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -22,7 +22,6 @@ import { useAuthStore } from '@store/authStore';
 const schema = z.object({
     title: z.string().min(3, 'Минимум 3 символа'),
     description: z.string().min(10, 'Минимум 10 символов'),
-    betAmount: z.string().optional(),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -37,7 +36,6 @@ export default function CreateFamilyChallengeScreen() {
 
     const { control, handleSubmit, formState: { errors } } = useForm<FormData>({
         resolver: zodResolver(schema),
-        defaultValues: { betAmount: '0' },
     });
 
     const getDayCount = () => {
@@ -62,8 +60,8 @@ export default function CreateFamilyChallengeScreen() {
                 startDate,
                 endDate,
                 visibility: 'secret',
-                betAmount: parseInt(data.betAmount || '0') || 0,
-                familyOwnerId: user!.id,    // ✅ привязываем к семье текущего пользователя
+                betAmount: 0,                        // ✅ всегда бесплатно
+                familyOwnerId: user!.id,
             });
 
             Alert.alert('🎉 Семейный челлендж создан!', 'Все члены твоей семьи увидят его', [
@@ -93,7 +91,7 @@ export default function CreateFamilyChallengeScreen() {
                         <Text style={styles.infoTitle}>Только для твоей семьи</Text>
                         <Text style={styles.infoDesc}>
                             Этот челлендж будут видеть только члены твоей семьи.
-                            Изменять могут только ты.
+                            Участие бесплатное — монеты не требуются.
                         </Text>
                     </View>
                 </View>
@@ -153,19 +151,16 @@ export default function CreateFamilyChallengeScreen() {
                     </View>
                 )}
 
-                <Controller
-                    control={control}
-                    name="betAmount"
-                    render={({ field: { onChange, value } }) => (
-                        <Input
-                            label="🪙 Ставка (Rikon монет)"
-                            placeholder="0"
-                            onChangeText={onChange}
-                            value={value}
-                            keyboardType="numeric"
-                        />
-                    )}
-                />
+                {/* Бесплатно — информационный блок вместо ввода монет */}
+                <View style={styles.freeCard}>
+                    <Text style={styles.freeIcon}>✅</Text>
+                    <View style={styles.freeTexts}>
+                        <Text style={styles.freeTitle}>Бесплатное участие</Text>
+                        <Text style={styles.freeDesc}>
+                            Семейные челленджи не требуют ставки монет
+                        </Text>
+                    </View>
+                </View>
 
                 <Button
                     title="Создать семейный челлендж 👨‍👩‍👧‍👦"
@@ -212,6 +207,23 @@ const styles = StyleSheet.create({
     daysIcon: { fontSize: 16 },
     daysText: { fontSize: 14, color: Colors.textSecondary },
     daysCount: { color: Colors.primary, fontWeight: '700' },
+
+    // Карточка "бесплатно" вместо ввода монет
+    freeCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Colors.accent + '15',
+        borderRadius: 14,
+        padding: 14,
+        marginBottom: 20,
+        borderWidth: 1,
+        borderColor: Colors.accent + '30',
+        gap: 12,
+    },
+    freeIcon: { fontSize: 24 },
+    freeTexts: { flex: 1 },
+    freeTitle: { fontSize: 14, fontWeight: '700', color: Colors.accent, marginBottom: 2 },
+    freeDesc: { fontSize: 12, color: Colors.textSecondary },
 
     submitBtn: { marginTop: 8 },
 });
