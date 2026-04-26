@@ -11,7 +11,6 @@ import {
   Platform,
   KeyboardAvoidingView,
   TextInput,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,12 +26,10 @@ import { FamilyInvitesBanner } from '@components/shared/FamilyInvitesBanner';
 import { challengeService } from '@services/challengeService';
 import { InviteFamilyModal } from '@components/shared/InviteFamilyModal';
 import { useAuthStore } from '@store/authStore';
-import { voteService } from '@services/voteService';
 
-type Tab = 'tree' | 'challenges' | 'rating';
+type Tab = 'tree' | 'challenges';
 
 const EVENT_EMOJIS = ['📅', '🎂', '💍', '🏠', '✈️', '🎓', '⭐', '❤️', '🕊️', '🌟'];
-const MEDAL = ['🥇', '🥈', '🥉'];
 
 export default function FamilyScreen() {
   const router = useRouter();
@@ -49,10 +46,6 @@ export default function FamilyScreen() {
   const [otherFamilies, setOtherFamilies] = useState<any[]>([]);
   const [activeFamilyIdx, setActiveFamilyIdx] = useState<number>(0);
   const [inviteModal, setInviteModal] = useState(false);
-
-  // Рейтинг
-  const [familyRanking, setFamilyRanking] = useState<any[]>([]);
-  const [rankingLoading, setRankingLoading] = useState(false);
 
   const [eventModal, setEventModal] = useState(false);
   const [eventTitle, setEventTitle] = useState('');
@@ -90,45 +83,9 @@ export default function FamilyScreen() {
     }
   };
 
-  // Загружаем рейтинг семьи
-  const fetchFamilyRanking = async () => {
-    try {
-      setRankingLoading(true);
-
-      // Получаем глобальный рейтинг и фильтруем по членам семьи
-      const globalRanking = await voteService.getGlobalRanking();
-
-      // Собираем appUserId всех членов активной семьи
-      const familyAppUserIds = new Set<number>();
-      if (activeFamily?.ownerId) {
-        familyAppUserIds.add(activeFamily.ownerId);
-      }
-      members.forEach((m: any) => {
-        if (m.appUserId) familyAppUserIds.add(m.appUserId);
-      });
-
-      // Фильтруем глобальный рейтинг по членам семьи
-      const filtered = globalRanking.filter((u: any) =>
-        familyAppUserIds.has(u.id)
-      );
-
-      setFamilyRanking(filtered);
-    } catch (err) {
-      console.log('Family ranking error:', err);
-    } finally {
-      setRankingLoading(false);
-    }
-  };
-
   useEffect(() => {
     fetchAll();
   }, [activeFamilyIdx]);
-
-  useEffect(() => {
-    if (tab === 'rating' && members.length > 0) {
-      fetchFamilyRanking();
-    }
-  }, [tab, activeFamilyIdx, members.length]);
 
   const handleAddMember = async (params: any) => {
     try {
@@ -190,16 +147,18 @@ export default function FamilyScreen() {
       <Header
         title="🌳 Семейное дерево"
         rightElement={
-          <TouchableOpacity
-            style={styles.addBtn}
-            onPress={() => setInviteModal(true)}
-          >
-            <Ionicons name="person-add-outline" size={20} color={Colors.white} />
-          </TouchableOpacity>
+          isActiveFamilyOwner ? (
+            <TouchableOpacity
+              style={styles.addBtn}
+              onPress={() => setInviteModal(true)}
+            >
+              <Ionicons name="person-add-outline" size={20} color={Colors.white} />
+            </TouchableOpacity>
+          ) : undefined
         }
       />
 
-      {/* Переключатель семей — фиксированная высота всегда */}
+      {/* Переключатель семей */}
       <View style={styles.familyTabsWrapper}>
         {allFamilies.length > 1 && (
           <ScrollView
@@ -231,7 +190,7 @@ export default function FamilyScreen() {
         )}
       </View>
 
-      {/* Табы */}
+      {/* Табы — только два */}
       <View style={styles.tabs}>
         <TouchableOpacity
           style={[styles.tab, tab === 'tree' && styles.tabActive]}
@@ -247,14 +206,6 @@ export default function FamilyScreen() {
         >
           <Text style={[styles.tabTxt, tab === 'challenges' && styles.tabTxtActive]}>
             🏆 Челленджи
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, tab === 'rating' && styles.tabActive]}
-          onPress={() => setTab('rating')}
-        >
-          <Text style={[styles.tabTxt, tab === 'rating' && styles.tabTxtActive]}>
-            ⭐ Рейтинг
           </Text>
         </TouchableOpacity>
       </View>
@@ -328,23 +279,23 @@ export default function FamilyScreen() {
               )}
             </View>
           )}
-          {tab === 'tree' && !selectedMember && (
-        <TouchableOpacity
-          style={chatBtnStyle}
-          onPress={() =>
-            router.push(
-              `/chat?roomType=family&roomId=${activeFamily?.ownerId}&title=${encodeURIComponent(
-                activeFamily?.isOwn ? 'Чат семьи' : `Чат семьи ${activeFamily?.ownerName}`
-              )}`
-            )
-          }
-        >
-          <Ionicons name="chatbubbles" size={20} color={Colors.white} />
-          <Text style={chatBtnTxtStyle}>Семейный чат</Text>
-        </TouchableOpacity>
-      )}
+
+          {!selectedMember && (
+            <TouchableOpacity
+              style={chatBtnStyle}
+              onPress={() =>
+                router.push(
+                  `/chat?roomType=family&roomId=${activeFamily?.ownerId}&title=${encodeURIComponent(
+                    activeFamily?.isOwn ? 'Чат семьи' : `Чат семьи ${activeFamily?.ownerName}`
+                  )}`
+                )
+              }
+            >
+              <Ionicons name="chatbubbles" size={20} color={Colors.white} />
+              <Text style={chatBtnTxtStyle}>Семейный чат</Text>
+            </TouchableOpacity>
+          )}
         </View>
-        
       )}
 
       {/* ── ВКЛАДКА ЧЕЛЛЕНДЖИ ── */}
@@ -404,132 +355,6 @@ export default function FamilyScreen() {
                 <ChallengeCard challenge={challenge} />
               </View>
             ))
-          )}
-        </ScrollView>
-      )}
-
-      {/* ── ВКЛАДКА РЕЙТИНГ ── */}
-      {tab === 'rating' && (
-        <ScrollView
-          contentContainerStyle={styles.ratingContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={rankingLoading}
-              onRefresh={fetchFamilyRanking}
-              tintColor={Colors.primary}
-            />
-          }
-        >
-          {/* Заголовок */}
-          <View style={styles.ratingHeader}>
-            <Text style={styles.ratingTitle}>
-              🌳 {activeFamily?.isOwn ? 'Моя семья' : activeFamily?.ownerName ?? 'Семья'}
-            </Text>
-            <Text style={styles.ratingSubtitle}>Рейтинг участников</Text>
-          </View>
-
-          {rankingLoading ? (
-            <ActivityIndicator color={Colors.primary} style={{ marginTop: 40 }} />
-          ) : familyRanking.length === 0 ? (
-            <View style={styles.emptyRating}>
-              <Text style={styles.emptyIcon}>⭐</Text>
-              <Text style={styles.emptyTitle}>Рейтинг пуст</Text>
-              <Text style={styles.emptyText}>
-                Участники семьи должны пройти регистрацию и участвовать в челленджах
-              </Text>
-            </View>
-          ) : (
-            <>
-              {/* Подиум топ-3 */}
-              {familyRanking.length >= 3 && (
-                <View style={styles.podium}>
-                  {/* 2 место */}
-                  <View style={[styles.podiumItem, styles.podiumSecond]}>
-                    <Text style={styles.podiumMedal}>🥈</Text>
-                    <View style={styles.podiumAvatar}>
-                      <Text style={styles.podiumAvatarTxt}>
-                        {familyRanking[1].username.charAt(0).toUpperCase()}
-                      </Text>
-                    </View>
-                    <Text style={styles.podiumName} numberOfLines={1}>
-                      {familyRanking[1].username}
-                    </Text>
-                    <Text style={styles.podiumRating}>⭐ {familyRanking[1].rating}</Text>
-                    <View style={[styles.podiumBar, styles.podiumBar2]} />
-                  </View>
-
-                  {/* 1 место */}
-                  <View style={[styles.podiumItem, styles.podiumFirst]}>
-                    <Text style={styles.podiumMedal}>🥇</Text>
-                    <View style={[styles.podiumAvatar, styles.podiumAvatarFirst]}>
-                      <Text style={styles.podiumAvatarTxt}>
-                        {familyRanking[0].username.charAt(0).toUpperCase()}
-                      </Text>
-                    </View>
-                    <Text style={styles.podiumName} numberOfLines={1}>
-                      {familyRanking[0].username}
-                    </Text>
-                    <Text style={styles.podiumRating}>⭐ {familyRanking[0].rating}</Text>
-                    <View style={[styles.podiumBar, styles.podiumBar1]} />
-                  </View>
-
-                  {/* 3 место */}
-                  <View style={[styles.podiumItem, styles.podiumThird]}>
-                    <Text style={styles.podiumMedal}>🥉</Text>
-                    <View style={styles.podiumAvatar}>
-                      <Text style={styles.podiumAvatarTxt}>
-                        {familyRanking[2].username.charAt(0).toUpperCase()}
-                      </Text>
-                    </View>
-                    <Text style={styles.podiumName} numberOfLines={1}>
-                      {familyRanking[2].username}
-                    </Text>
-                    <Text style={styles.podiumRating}>⭐ {familyRanking[2].rating}</Text>
-                    <View style={[styles.podiumBar, styles.podiumBar3]} />
-                  </View>
-                </View>
-              )}
-
-              {/* Полный список */}
-              <Text style={styles.sectionTitle}>Все участники семьи</Text>
-              <View style={styles.rankList}>
-                {familyRanking.map((u, index) => {
-                  const isMe = u.id === user?.id;
-                  return (
-                    <View
-                      key={u.id}
-                      style={[styles.rankRow, isMe && styles.rankRowMe]}
-                    >
-                      <View style={styles.rankCol}>
-                        {index < 3 ? (
-                          <Text style={styles.rankMedal}>{MEDAL[index]}</Text>
-                        ) : (
-                          <Text style={styles.rankNum}>#{index + 1}</Text>
-                        )}
-                      </View>
-
-                      <View style={[styles.rankAvatar, isMe && styles.rankAvatarMe]}>
-                        <Text style={styles.rankAvatarTxt}>
-                          {u.username.charAt(0).toUpperCase()}
-                        </Text>
-                      </View>
-
-                      <View style={styles.rankNameCol}>
-                        <Text style={styles.rankUsername} numberOfLines={1}>
-                          {u.username}
-                          {isMe && <Text style={styles.youLabel}> (ты)</Text>}
-                        </Text>
-                        <Text style={styles.rankCoins}>🪙 {u.rikonCoins} Rikon</Text>
-                      </View>
-
-                      <View style={styles.rankScoreCol}>
-                        <Text style={styles.rankScore}>⭐ {u.rating}</Text>
-                      </View>
-                    </View>
-                  );
-                })}
-              </View>
-            </>
           )}
         </ScrollView>
       )}
@@ -613,6 +438,7 @@ export default function FamilyScreen() {
     </SafeAreaView>
   );
 }
+
 const chatBtnStyle = {
   position: 'absolute' as const,
   bottom: 16,
@@ -630,13 +456,14 @@ const chatBtnStyle = {
   shadowRadius: 6,
   elevation: 8,
 };
+
 const chatBtnTxtStyle = {
   color: Colors.white,
   fontWeight: '700' as const,
   fontSize: 14,
 };
-const styles = StyleSheet.create({
 
+const styles = StyleSheet.create({
   viewOnlyBanner: {
     backgroundColor: Colors.card,
     borderRadius: 10,
@@ -660,51 +487,50 @@ const styles = StyleSheet.create({
   },
 
   familyTabsWrapper: {
-    height:           48,
-    justifyContent:   'center',
-    marginBottom:     0,
+    height: 48,
+    justifyContent: 'center',
+    marginBottom: 0,
   },
   familyTabsContent: {
     paddingHorizontal: 20,
-    gap:               8,
-    alignItems:        'center',
+    gap: 8,
+    alignItems: 'center',
   },
   familyTab: {
-    height:            36,
+    height: 36,
     paddingHorizontal: 16,
-    justifyContent:    'center',
-    alignItems:        'center',
-    backgroundColor:   Colors.surface,
-    borderRadius:      18,
-    borderWidth:       1,
-    borderColor:       Colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   familyTabActive:    { backgroundColor: Colors.primary, borderColor: Colors.primary },
   familyTabTxt:       { fontSize: 13, color: Colors.textSecondary, fontWeight: '500' },
   familyTabTxtActive: { color: Colors.white, fontWeight: '700' },
 
-  // Три таба — фиксированная высота
   tabs: {
-    flexDirection:    'row',
+    flexDirection: 'row',
     marginHorizontal: 20,
-    marginTop:        8,
-    marginBottom:     8,
-    height:           46,
-    backgroundColor:  Colors.surface,
-    borderRadius:     12,
-    padding:          4,
-    borderWidth:      1,
-    borderColor:      Colors.border,
+    marginTop: 8,
+    marginBottom: 8,
+    height: 46,
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   tab: {
-    flex:           1,
-    height:         36,
-    borderRadius:   10,
-    alignItems:     'center',
+    flex: 1,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
     justifyContent: 'center',
   },
   tabActive:    { backgroundColor: Colors.primary },
-  tabTxt:       { fontSize: 12, color: Colors.textSecondary, fontWeight: '500' },
+  tabTxt:       { fontSize: 13, color: Colors.textSecondary, fontWeight: '500' },
   tabTxtActive: { color: Colors.white, fontWeight: '700' },
 
   treeContainer: { flex: 1 },
@@ -754,7 +580,6 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
 
-  // Челленджи
   challengesContent: { padding: 20 },
   createChallengeBtn: {
     flexDirection: 'row',
@@ -786,109 +611,6 @@ const styles = StyleSheet.create({
   emptyIcon: { fontSize: 48, marginBottom: 12 },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary, marginBottom: 6 },
   emptyText: { fontSize: 14, color: Colors.textSecondary, textAlign: 'center' },
-
-  // ── РЕЙТИНГ ──
-  ratingContent: { padding: 20, paddingBottom: 40 },
-
-  ratingHeader: {
-    alignItems: 'center',
-    marginBottom: 20,
-    paddingVertical: 16,
-    backgroundColor: Colors.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  ratingTitle: { fontSize: 18, fontWeight: '800', color: Colors.textPrimary },
-  ratingSubtitle: { fontSize: 13, color: Colors.textSecondary, marginTop: 4 },
-
-  emptyRating: { alignItems: 'center', paddingVertical: 48 },
-
-  // Подиум
-  podium: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'flex-end',
-    marginBottom: 24,
-    gap: 8,
-  },
-  podiumItem: { flex: 1, alignItems: 'center', gap: 4 },
-  podiumFirst: {},
-  podiumSecond: {},
-  podiumThird: {},
-  podiumMedal: { fontSize: 28 },
-  podiumAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: Colors.border,
-  },
-  podiumAvatarFirst: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    borderColor: Colors.rikon,
-    borderWidth: 3,
-  },
-  podiumAvatarTxt: { color: Colors.white, fontWeight: '800', fontSize: 18 },
-  podiumName: { fontSize: 12, fontWeight: '600', color: Colors.textPrimary },
-  podiumRating: { fontSize: 11, color: Colors.textSecondary },
-  podiumBar: {
-    width: '100%',
-    borderTopLeftRadius: 6,
-    borderTopRightRadius: 6,
-    marginTop: 6,
-  },
-  podiumBar1: { height: 60, backgroundColor: Colors.rikon + '40' },
-  podiumBar2: { height: 44, backgroundColor: Colors.textMuted + '30' },
-  podiumBar3: { height: 30, backgroundColor: Colors.accent + '30' },
-
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    marginBottom: 12,
-  },
-
-  // Список рейтинга
-  rankList: { gap: 8 },
-  rankRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderRadius: 14,
-    padding: 12,
-    gap: 10,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  rankRowMe: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primary + '0D',
-  },
-  rankCol: { width: 36, alignItems: 'center' },
-  rankMedal: { fontSize: 20 },
-  rankNum: { fontSize: 14, fontWeight: '700', color: Colors.textMuted },
-  rankAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.card,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  rankAvatarMe: { backgroundColor: Colors.primary },
-  rankAvatarTxt: { color: Colors.white, fontWeight: '700', fontSize: 16 },
-  rankNameCol: { flex: 1 },
-  rankUsername: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary },
-  youLabel: { color: Colors.primary, fontWeight: '400' },
-  rankCoins: { fontSize: 11, color: Colors.textMuted, marginTop: 2 },
-  rankScoreCol: { alignItems: 'flex-end' },
-  rankScore: { fontSize: 14, fontWeight: '700', color: Colors.warning },
 
   // Модалка событий
   eventModalOverlay: {
