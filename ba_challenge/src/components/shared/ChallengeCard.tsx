@@ -15,16 +15,16 @@ interface ChallengeCardProps {
 }
 
 const statusConfig = {
-    active: { label: 'Активен', color: Colors.accent, icon: '🔥' },
-    pending: { label: 'Ожидание', color: Colors.warning, icon: '⏳' },
-    completed: { label: 'Завершён', color: Colors.primary, icon: '🏆' },
-    cancelled: { label: 'Отменён', color: Colors.error, icon: '❌' },
+    active:    { label: 'Активен',   color: Colors.accent,   icon: '🔥' },
+    pending:   { label: 'Ожидание',  color: Colors.warning,  icon: '⏳' },
+    completed: { label: 'Завершён',  color: Colors.primary,  icon: '🏆' },
+    cancelled: { label: 'Отменён',   color: Colors.error,    icon: '❌' },
 };
 
 const visibilityIcon = {
-    secret: '🔒',
+    secret:    '🔒',
     protected: '🛡️',
-    public: '🌍',
+    public:    '🌍',
 };
 
 export const ChallengeCard: React.FC<ChallengeCardProps> = ({ challenge }) => {
@@ -32,13 +32,16 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({ challenge }) => {
     const status = statusConfig[challenge.status];
 
     const daysLeft = () => {
-        const end = new Date(challenge.endDate);
-        const now = new Date();
+        const end  = new Date(challenge.endDate);
+        const now  = new Date();
         const diff = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
         if (diff < 0) return 'Завершён';
         if (diff === 0) return 'Последний день!';
         return `${diff} дн. осталось`;
     };
+
+    // ✅ Призовой пул = betAmount * participantCount (приходит с бэкенда)
+    const prizePool = challenge.prizePool ?? (challenge.betAmount * (challenge.participants?.length ?? 0));
 
     return (
         <TouchableOpacity
@@ -64,9 +67,7 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({ challenge }) => {
             </Text>
 
             {/* Нижняя строка */}
-            {/* Нижняя строка */}
             <View style={styles.bottomRow}>
-                {/* ✅ Создатель */}
                 {challenge.creator && (
                     <View style={styles.infoItem}>
                         <Ionicons name="person-outline" size={13} color={Colors.textSecondary} />
@@ -86,11 +87,12 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({ challenge }) => {
                     <Text style={styles.infoText}>{daysLeft()}</Text>
                 </View>
 
+                {/* ✅ Показываем призовой пул если betAmount > 0 */}
                 {challenge.betAmount > 0 && (
-                    <View style={styles.infoItem}>
-                        <Text style={styles.coinIcon}>🪙</Text>
-                        <Text style={[styles.infoText, { color: Colors.rikon }]}>
-                            {challenge.betAmount}
+                    <View style={styles.prizeItem}>
+                        <Text style={styles.prizeCoin}>🏆</Text>
+                        <Text style={styles.prizeText}>
+                            {prizePool} 🪙
                         </Text>
                     </View>
                 )}
@@ -140,10 +142,29 @@ const styles = StyleSheet.create({
     },
     bottomRow: {
         flexDirection: 'row',
-        gap: 14,
+        gap: 12,
         flexWrap: 'wrap',
+        alignItems: 'center',
     },
     infoItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     infoText: { fontSize: 12, color: Colors.textSecondary },
-    coinIcon: { fontSize: 12 },
+
+    // ✅ Призовой пул
+    prizeItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: Colors.rikon + '18',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: Colors.rikon + '40',
+    },
+    prizeCoin: { fontSize: 11 },
+    prizeText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: Colors.rikon,
+    },
 });

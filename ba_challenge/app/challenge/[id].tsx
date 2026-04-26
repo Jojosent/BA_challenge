@@ -24,7 +24,6 @@ import { taskService } from '@services/taskService';
 import { Task } from '@/types/index';
 import { InviteToChallengeModal } from '@components/shared/InviteToChallengeModal';
 
-
 export default function ChallengeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -38,12 +37,11 @@ export default function ChallengeDetailScreen() {
     joinChallenge,
     setCurrentTasks,
   } = useChallenge();
+
   const [inviteModalVisible, setInviteModalVisible] = useState(false);
   const [taskModalVisible, setTaskModalVisible] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [taskLoading, setTaskLoading] = useState(false);
-
-
 
   useEffect(() => {
     if (id) {
@@ -64,11 +62,7 @@ export default function ChallengeDetailScreen() {
   const c = currentChallenge;
   const isParticipant = c.participants?.some((p) => p.userId === user?.id);
   const isCreator = c.creatorId === user?.id;
-
   const isFamilyChallenge = !!c.familyOwnerId;
-  // Для семейного — только создатель может добавлять/менять задачи
-  const canManageTasks = isCreator;
-  // Для семейного — участники могут только смотреть и загружать доказательства
   const canEdit = isCreator;
 
   const totalDays = Math.ceil(
@@ -76,14 +70,28 @@ export default function ChallengeDetailScreen() {
     (1000 * 60 * 60 * 24)
   );
 
+  // ✅ Призовой пул
+  const participantCount = c.participants?.length ?? 0;
+  const prizePool = c.prizePool ?? (c.betAmount * participantCount);
+  const prizeInfo = c.prizeInfo;
+
   const handleJoin = () => {
-    Alert.alert('Вступить в челлендж?', `Ставка: 🪙 ${c.betAmount} Rikon`, [
+    const msg = c.betAmount > 0
+      ? `Вступить? Спишется ${c.betAmount} 🪙 и добавится в призовой пул.`
+      : 'Вступить в этот челлендж?';
+
+    Alert.alert('Вступить в челлендж?', msg, [
       { text: 'Отмена', style: 'cancel' },
       {
         text: 'Вступить',
         onPress: async () => {
-          const ok = await joinChallenge(Number(id));
-          if (ok) Alert.alert('🎉', 'Ты в игре!');
+          const result = await joinChallenge(Number(id));
+          if (result) {
+            const poolMsg = c.betAmount > 0
+              ? `\nПризовой пул: ${result.prizePool} 🪙`
+              : '';
+            Alert.alert('🎉', `Ты в игре!${poolMsg}`);
+          }
         },
       },
     ]);
@@ -97,11 +105,7 @@ export default function ChallengeDetailScreen() {
       setCurrentTasks(updatedTasks);
       setTaskModalVisible(false);
     } catch (e: any) {
-      // ✅ Показываем точное сообщение от бэкенда
-      Alert.alert(
-        'Нельзя добавить задачу',
-        e.message || 'Ошибка при добавлении задачи'
-      );
+      Alert.alert('Нельзя добавить задачу', e.message || 'Ошибка при добавлении задачи');
     } finally {
       setTaskLoading(false);
     }
@@ -188,16 +192,96 @@ export default function ChallengeDetailScreen() {
               <Ionicons name="time-outline" size={14} color={Colors.textSecondary} />
               <Text style={styles.metaText}>{totalDays} дней</Text>
             </View>
-            <View style={styles.metaItem}>
-              <Text style={styles.metaText}>🪙 {c.betAmount} Rikon</Text>
-            </View>
+            {c.betAmount > 0 && (
+              <View style={styles.metaItem}>
+                <Text style={styles.metaText}>🪙 {c.betAmount} взнос</Text>
+              </View>
+            )}
           </View>
         </View>
+
+        {/* ✅ ── Призовой пул ── */}
+        {c.betAmount > 0 && (
+          <View style={styles.prizeSection}>
+            {/* Заголовок пула */}
+            <View style={styles.prizeHeader}>
+              <Text style={styles.prizeHeaderIcon}>🏆</Text>
+              <View style={styles.prizeHeaderTexts}>
+                <Text style={styles.prizeHeaderTitle}>Призовой пул</Text>
+                <Text style={styles.prizeHeaderSub}>
+                  {c.betAmount} 🪙 × {participantCount} участников
+                </Text>
+              </View>
+              <Text style={styles.prizeTotal}>{prizePool} 🪙</Text>
+            </View>
+
+            {/* Разбивка по местам */}
+            {prizeInfo && prizeInfo.prizes.length > 0 ? (
+              <View style={styles.prizeTiers}>
+                {prizeInfo.prizes.map((tier) => (
+                  <View key={tier.place} style={styles.prizeTierRow}>
+                    <Text style={styles.prizeTierLabel}>{tier.label}</Text>
+                    <View style={styles.prizeTierRight}>
+                      <Text style={styles.prizeTierPercent}>{tier.percent}%</Text>
+                      <Text style={styles.prizeTierAmount}>{tier.amount} 🪙</Text>
+                    </View>
+                  </View>
+                ))}
+                {participantCount > 3 && (
+                  <View style={styles.prizeLosers}>
+                    <Text style={styles.prizeLosersText}>
+                      😔 4+ место — монеты не возвращаются
+                    </Text>
+                  </View>
+                )}
+              </View>
+            ) : (
+              // Показываем стандартную разбивку если prizeInfo не пришёл
+              <View style={styles.prizeTiers}>
+                <View style={styles.prizeTierRow}>
+                  <Text style={styles.prizeTierLabel}>🥇 1 место</Text>
+                  <View style={styles.prizeTierRight}>
+                    <Text style={styles.prizeTierPercent}>50%</Text>
+                    <Text style={styles.prizeTierAmount}>{Math.floor(prizePool * 0.5)} 🪙</Text>
+                  </View>
+                </View>
+                <View style={styles.prizeTierRow}>
+                  <Text style={styles.prizeTierLabel}>🥈 2 место</Text>
+                  <View style={styles.prizeTierRight}>
+                    <Text style={styles.prizeTierPercent}>30%</Text>
+                    <Text style={styles.prizeTierAmount}>{Math.floor(prizePool * 0.3)} 🪙</Text>
+                  </View>
+                </View>
+                <View style={styles.prizeTierRow}>
+                  <Text style={styles.prizeTierLabel}>🥉 3 место</Text>
+                  <View style={styles.prizeTierRight}>
+                    <Text style={styles.prizeTierPercent}>20%</Text>
+                    <Text style={styles.prizeTierAmount}>{Math.floor(prizePool * 0.2)} 🪙</Text>
+                  </View>
+                </View>
+                {participantCount > 3 && (
+                  <View style={styles.prizeLosers}>
+                    <Text style={styles.prizeLosersText}>
+                      😔 4+ место — монеты не возвращаются
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
+        )}
 
         {/* ── Кнопка вступить ── */}
         {!isParticipant && !canEdit && c.status !== 'completed' && (
           <View style={styles.joinSection}>
-            <Button title="🎯 Вступить в челлендж" onPress={handleJoin} isLoading={isLoading} />
+            <Button
+              title={c.betAmount > 0
+                ? `🎯 Вступить (взнос ${c.betAmount} 🪙)`
+                : '🎯 Вступить в челлендж'
+              }
+              onPress={handleJoin}
+              isLoading={isLoading}
+            />
           </View>
         )}
 
@@ -232,43 +316,14 @@ export default function ChallengeDetailScreen() {
             <Ionicons name="chevron-forward" size={20} color={Colors.primary} />
           </TouchableOpacity>
         )}
-        {/* ======================= */}
 
-                {/* ── Ставки ── */}
-        {(isParticipant || canEdit) && (
-          <TouchableOpacity
-            style={styles.betBtn}
-            onPress={() => {
-              // Передаём участников для выбора оппонента
-              const participantsData = c.participants?.map((p) => ({
-                userId:   p.userId,
-                username: p.user?.username ?? 'Участник',
-                score:    p.score,
-              })) ?? [];
- 
-              router.push(
-                `/challenge/bets/${id}?challengeTitle=${encodeURIComponent(c.title)}&participantsJson=${encodeURIComponent(JSON.stringify(participantsData))}`
-              );
-            }}
-          >
-            <Text style={{ fontSize: 24 }}>💰</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.betBtnTitle}>Ставки</Text>
-              <Text style={styles.betBtnSub}>Поставь монеты на участника</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={Colors.rikon} />
-          </TouchableOpacity>
-        )}
-
-                {/* ── Чат участников ── */}
+        {/* ── Чат участников ── */}
         {(canEdit || isParticipant) && (
           <TouchableOpacity
             style={chatBtnChallStyle}
             onPress={() =>
               router.push(
-                `/chat?roomType=challenge&roomId=${id}&title=${encodeURIComponent(
-                  `Чат: ${c.title}`
-                )}`
+                `/chat?roomType=challenge&roomId=${id}&title=${encodeURIComponent(`Чат: ${c.title}`)}`
               )
             }
           >
@@ -281,6 +336,7 @@ export default function ChallengeDetailScreen() {
           </TouchableOpacity>
         )}
 
+        {/* ── Кнопка пригласить ── */}
         {canEdit && c.visibility === 'secret' && !isFamilyChallenge && (
           <TouchableOpacity
             style={styles.inviteBtn}
@@ -290,12 +346,10 @@ export default function ChallengeDetailScreen() {
             <Text style={styles.inviteBtnTxt}>Пригласить участника</Text>
           </TouchableOpacity>
         )}
-        {/* ======================= */}
 
         {/* ── Задачи ── */}
         <View style={styles.tasksTitleRow}>
           <Text style={styles.sectionTitle}>Задачи ({currentTasks.length})</Text>
-          {/* Кнопка добавить — только для создателя */}
           {canEdit && (
             <TouchableOpacity
               style={styles.addTaskBtn}
@@ -326,44 +380,13 @@ export default function ChallengeDetailScreen() {
                 <Card key={task.id} style={[styles.taskCard, isExpired && styles.taskExpired]}>
                   <View style={styles.taskInner}>
 
-                    {/* Левая часть: стрелки порядка (только создатель) */}
-                    {/* {isCreator && (
-                      <View style={styles.reorderCol}>
-                        <TouchableOpacity
-                          style={[styles.arrowBtn, isFirst && styles.arrowBtnDisabled]}
-                          onPress={() => !isFirst && handleReorder(task, 'up')}
-                          disabled={isFirst}
-                        >
-                          <Ionicons
-                            name="chevron-up"
-                            size={18}
-                            color={isFirst ? Colors.textMuted : Colors.primary}
-                          />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={[styles.arrowBtn, isLast && styles.arrowBtnDisabled]}
-                          onPress={() => !isLast && handleReorder(task, 'down')}
-                          disabled={isLast}
-                        >
-                          <Ionicons
-                            name="chevron-down"
-                            size={18}
-                            color={isLast ? Colors.textMuted : Colors.primary}
-                          />
-                        </TouchableOpacity>
-                      </View>
-                    )} */}
-
-                    {/* Стрелки порядка — блокируем если просрочено */}
+                    {/* Стрелки порядка */}
                     {canEdit && (
                       <View style={styles.reorderCol}>
                         <TouchableOpacity
-                          style={[
-                            styles.arrowBtn,
-                            (isFirst || isExpired) && styles.arrowBtnDisabled,   // ✅
-                          ]}
+                          style={[styles.arrowBtn, (isFirst || isExpired) && styles.arrowBtnDisabled]}
                           onPress={() => !isFirst && !isExpired && handleReorder(task, 'up')}
-                          disabled={isFirst || isExpired}   // ✅
+                          disabled={isFirst || isExpired}
                         >
                           <Ionicons
                             name="chevron-up"
@@ -372,12 +395,9 @@ export default function ChallengeDetailScreen() {
                           />
                         </TouchableOpacity>
                         <TouchableOpacity
-                          style={[
-                            styles.arrowBtn,
-                            (isLast || isExpired) && styles.arrowBtnDisabled,    // ✅
-                          ]}
+                          style={[styles.arrowBtn, (isLast || isExpired) && styles.arrowBtnDisabled]}
                           onPress={() => !isLast && !isExpired && handleReorder(task, 'down')}
-                          disabled={isLast || isExpired}    // ✅
+                          disabled={isLast || isExpired}
                         >
                           <Ionicons
                             name="chevron-down"
@@ -388,7 +408,7 @@ export default function ChallengeDetailScreen() {
                       </View>
                     )}
 
-                    {/* Центральная часть: контент */}
+                    {/* Контент задачи */}
                     <TouchableOpacity
                       style={styles.taskContent}
                       onPress={() => {
@@ -404,13 +424,11 @@ export default function ChallengeDetailScreen() {
                       }}
                       activeOpacity={isExpired ? 0.6 : 0.8}
                     >
-                      {/* Бейджи */}
                       <View style={styles.taskHeader}>
                         <View style={styles.dayBadge}>
                           <Text style={styles.dayText}>Задача {task.day}</Text>
                         </View>
 
-                        {/* ✅ AI или человек */}
                         {task.isAiGenerated ? (
                           <View style={styles.aiBadge}>
                             <Text style={styles.aiText}>🤖 AI</Text>
@@ -421,7 +439,6 @@ export default function ChallengeDetailScreen() {
                           </View>
                         )}
 
-                        {/* Дедлайн */}
                         {isExpired ? (
                           <View style={styles.expiredBadge}>
                             <Text style={styles.expiredText}>⏰ Просрочено</Text>
@@ -453,29 +470,8 @@ export default function ChallengeDetailScreen() {
                       ) : null}
                     </TouchableOpacity>
 
-                    {/* Правая часть: кнопки редактировать/удалить (только создатель) */}
-                    {/* {isCreator && (
-                      <View style={styles.taskActions}>
-                        <TouchableOpacity
-                          style={styles.editTaskBtn}
-                          onPress={() => {
-                            setEditingTask(task);
-                            setTaskModalVisible(true);
-                          }}
-                        >
-                          <Ionicons name="pencil" size={15} color={Colors.primary} />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={styles.deleteTaskBtn}
-                          onPress={() => handleDeleteTask(task)}
-                        >
-                          <Ionicons name="trash-outline" size={15} color={Colors.error} />
-                        </TouchableOpacity>
-                      </View>
-                    )} */}
-
-                    {/* Кнопки редактировать/удалить — скрываем если просрочено */}
-                    {canEdit && !isExpired && (    // ✅ добавили !isExpired
+                    {/* Кнопки редактирования */}
+                    {canEdit && !isExpired && (
                       <View style={styles.taskActions}>
                         <TouchableOpacity
                           style={styles.editTaskBtn}
@@ -494,7 +490,6 @@ export default function ChallengeDetailScreen() {
                         </TouchableOpacity>
                       </View>
                     )}
-
                   </View>
                 </Card>
               );
@@ -505,9 +500,7 @@ export default function ChallengeDetailScreen() {
             <Text style={styles.emptyIcon}>📋</Text>
             <Text style={styles.emptyTitle}>Задачи ещё не добавлены</Text>
             {canEdit ? (
-              <Text style={styles.emptyText}>
-                Сгенерируй через AI или добавь вручную
-              </Text>
+              <Text style={styles.emptyText}>Сгенерируй через AI или добавь вручную</Text>
             ) : (
               <Text style={styles.emptyText}>Создатель пока не добавил задачи</Text>
             )}
@@ -521,35 +514,32 @@ export default function ChallengeDetailScreen() {
         <Card style={styles.participantsCard}>
           <ParticipantList
             participants={c.participants ?? []}
-            creatorId={c.creatorId}          // ✅ передаём creatorId
+            creatorId={c.creatorId}
+            betAmount={c.betAmount}
+            prizePool={prizePool}
           />
         </Card>
 
       </ScrollView>
 
-      {/* Модалка добавления/редактирования задачи */}
+      {/* Модалки */}
       <TaskFormModal
         visible={taskModalVisible}
-        onClose={() => {
-          setTaskModalVisible(false);
-          setEditingTask(null);
-        }}
+        onClose={() => { setTaskModalVisible(false); setEditingTask(null); }}
         onSave={editingTask ? handleEditTask : handleAddTask}
         editTask={editingTask}
         isLoading={taskLoading}
       />
-      {/* ======================================================= */}
+
       <InviteToChallengeModal
         visible={inviteModalVisible}
         onClose={() => setInviteModalVisible(false)}
         challengeId={Number(id)}
       />
-      {/* ======================================================= */}
-
     </SafeAreaView>
-
   );
 }
+
 const chatBtnChallStyle = {
   flexDirection: 'row' as const,
   alignItems: 'center' as const,
@@ -563,32 +553,9 @@ const chatBtnChallStyle = {
   gap: 12,
 };
 const chatTitleStyle = { fontSize: 15, fontWeight: '700' as const, color: Colors.textPrimary };
-const chatSubStyle   = { fontSize: 12, color: Colors.textSecondary, marginTop: 2 };
+const chatSubStyle = { fontSize: 12, color: Colors.textSecondary, marginTop: 2 };
+
 const styles = StyleSheet.create({
-    betBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surface,
-    marginHorizontal: 20,
-    marginBottom: 16,
-    borderRadius: 14,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: Colors.rikon + '44',
-    gap: 12,
-  },
-  betBtnTitle: { fontSize: 15, fontWeight: '700', color: Colors.textPrimary },
-  betBtnSub:   { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
-  inviteBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: Colors.secondary,
-    marginHorizontal: 20, marginBottom: 12,
-    borderRadius: 12, padding: 14,
-  },
-  inviteBtnTxt: { color: Colors.white, fontWeight: '700', fontSize: 14 },
-  sectionTitlePadded: {
-    paddingHorizontal: 20,
-  },
   container: { flex: 1, backgroundColor: Colors.background },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   errorText: { color: Colors.textSecondary, fontSize: 16 },
@@ -599,6 +566,53 @@ const styles = StyleSheet.create({
   metaRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   metaText: { fontSize: 13, color: Colors.textSecondary },
+
+  // ✅ Призовой пул
+  prizeSection: {
+    marginHorizontal: 20,
+    marginBottom: 16,
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.rikon + '40',
+    overflow: 'hidden',
+  },
+  prizeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: Colors.rikon + '12',
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.rikon + '25',
+    gap: 12,
+  },
+  prizeHeaderIcon: { fontSize: 28 },
+  prizeHeaderTexts: { flex: 1 },
+  prizeHeaderTitle: { fontSize: 16, fontWeight: '700', color: Colors.textPrimary },
+  prizeHeaderSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
+  prizeTotal: { fontSize: 22, fontWeight: '800', color: Colors.rikon },
+
+  prizeTiers: { padding: 12, gap: 2 },
+  prizeTierRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  prizeTierLabel: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary },
+  prizeTierRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  prizeTierPercent: { fontSize: 13, color: Colors.textMuted, width: 36, textAlign: 'right' },
+  prizeTierAmount: { fontSize: 15, fontWeight: '700', color: Colors.rikon, minWidth: 60, textAlign: 'right' },
+
+  prizeLosers: {
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+  },
+  prizeLosersText: { fontSize: 12, color: Colors.textMuted, fontStyle: 'italic' },
 
   joinSection: { paddingHorizontal: 20, marginBottom: 12 },
   joinedBadge: {
@@ -620,18 +634,22 @@ const styles = StyleSheet.create({
   aiChatTitle: { fontSize: 15, fontWeight: '700', color: Colors.textPrimary },
   aiChatSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
 
-  // Заголовок задач с кнопкой добавить
+  inviteBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: Colors.secondary,
+    marginHorizontal: 20, marginBottom: 12,
+    borderRadius: 12, padding: 14,
+  },
+  inviteBtnTxt: { color: Colors.white, fontWeight: '700', fontSize: 14 },
+
+  sectionTitlePadded: { paddingHorizontal: 20 },
+
   tasksTitleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 10,
-    marginTop: 4,
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', paddingHorizontal: 20,
+    marginBottom: 10, marginTop: 4,
   },
-  sectionTitle: {
-    fontSize: 18, fontWeight: '700', color: Colors.textPrimary,
-  },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary },
   addTaskBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     backgroundColor: Colors.primary, paddingHorizontal: 12,
@@ -639,66 +657,35 @@ const styles = StyleSheet.create({
   },
   addTaskTxt: { color: Colors.white, fontWeight: '600', fontSize: 13 },
 
-  // Задачи
   tasksSection: { paddingHorizontal: 20, marginBottom: 16 },
   taskCard: { marginBottom: 10, padding: 0, overflow: 'hidden' },
   taskExpired: { opacity: 0.5, borderColor: Colors.textMuted },
-
   taskInner: { flexDirection: 'row', alignItems: 'stretch' },
 
-  // Стрелки порядка
   reorderCol: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-    paddingVertical: 12,
-    borderRightWidth: 1,
-    borderRightColor: Colors.border,
-    gap: 4,
+    justifyContent: 'center', alignItems: 'center',
+    paddingHorizontal: 4, paddingVertical: 12,
+    borderRightWidth: 1, borderRightColor: Colors.border, gap: 4,
   },
   arrowBtn: { padding: 6, borderRadius: 6 },
   arrowBtnDisabled: { opacity: 0.25 },
 
-  // Контент задачи
   taskContent: { flex: 1, padding: 12 },
   taskHeader: { flexDirection: 'row', gap: 6, marginBottom: 8, flexWrap: 'wrap' },
 
-  dayBadge: {
-    backgroundColor: Colors.primary + '22',
-    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
-  },
+  dayBadge: { backgroundColor: Colors.primary + '22', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   dayText: { color: Colors.primary, fontSize: 11, fontWeight: '600' },
 
-  // ✅ AI бейдж
-  aiBadge: {
-    backgroundColor: Colors.secondary + '22',
-    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
-  },
+  aiBadge: { backgroundColor: Colors.secondary + '22', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   aiText: { color: Colors.secondary, fontSize: 11, fontWeight: '600' },
-
-  // ✅ Человек бейдж
-  humanBadge: {
-    backgroundColor: Colors.accent + '22',
-    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
-  },
+  humanBadge: { backgroundColor: Colors.accent + '22', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   humanText: { color: Colors.accent, fontSize: 11, fontWeight: '600' },
 
-  expiredBadge: {
-    backgroundColor: Colors.error + '22',
-    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
-  },
+  expiredBadge: { backgroundColor: Colors.error + '22', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   expiredText: { color: Colors.error, fontSize: 11, fontWeight: '600' },
-
-  urgentBadge: {
-    backgroundColor: Colors.warning + '22',
-    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
-  },
+  urgentBadge: { backgroundColor: Colors.warning + '22', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   urgentText: { color: Colors.warning, fontSize: 11, fontWeight: '600' },
-
-  deadlineBadge: {
-    backgroundColor: Colors.accent + '22',
-    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
-  },
+  deadlineBadge: { backgroundColor: Colors.accent + '22', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   deadlineText: { color: Colors.accent, fontSize: 11, fontWeight: '600' },
 
   taskTitle: { fontSize: 15, fontWeight: '700', color: Colors.textPrimary, marginBottom: 4 },
@@ -707,14 +694,10 @@ const styles = StyleSheet.create({
   tapHint: { fontSize: 11, color: Colors.primary, fontStyle: 'italic' },
   expiredHint: { fontSize: 11, color: Colors.error, fontStyle: 'italic' },
 
-  // Кнопки редактировать/удалить
   taskActions: {
-    justifyContent: 'center',
-    gap: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 12,
-    borderLeftWidth: 1,
-    borderLeftColor: Colors.border,
+    justifyContent: 'center', gap: 6,
+    paddingHorizontal: 8, paddingVertical: 12,
+    borderLeftWidth: 1, borderLeftColor: Colors.border,
   },
   editTaskBtn: {
     padding: 8, borderRadius: 8,
@@ -727,11 +710,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: Colors.error + '30',
   },
 
-  // Пусто
-  emptyCard: {
-    marginHorizontal: 20, marginBottom: 16,
-    alignItems: 'center', paddingVertical: 32,
-  },
+  emptyCard: { marginHorizontal: 20, marginBottom: 16, alignItems: 'center', paddingVertical: 32 },
   emptyIcon: { fontSize: 40, marginBottom: 12 },
   emptyTitle: { fontSize: 16, fontWeight: '700', color: Colors.textPrimary, marginBottom: 6 },
   emptyText: { fontSize: 13, color: Colors.textSecondary, textAlign: 'center' },

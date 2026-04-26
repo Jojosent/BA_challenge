@@ -23,9 +23,6 @@ export const connectDB = async (): Promise<void> => {
   try {
     await sequelize.authenticate();
     console.log('✅ PostgreSQL подключён успешно');
-
-    // Автоматически создаёт таблицы если их нет
-    // alter: true — обновляет структуру без удаления данных
     await sequelize.sync({ alter: true });
     // await sequelize.sync({ force: true });
     console.log('✅ Таблицы синхронизированы');

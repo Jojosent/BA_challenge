@@ -1,14 +1,5 @@
-import { Challenge, Task } from '@/types';
+import { Challenge, Task, PrizeInfo } from '@/types';
 import api from './api';
-
-interface CreateChallengeParams {
-    title: string;
-    description: string;
-    startDate: string;
-    endDate: string;
-    visibility: 'secret' | 'protected' | 'public';
-    betAmount: number;
-}
 
 export const challengeService = {
 
@@ -37,14 +28,19 @@ export const challengeService = {
         endDate: string;
         visibility: string;
         betAmount: number;
-        familyOwnerId?: number;   // ✅ добавили
+        familyOwnerId?: number;
     }): Promise<Challenge> => {
         const response = await api.post('/challenges', params);
         return response.data;
     },
 
-    join: async (id: number): Promise<void> => {
-        await api.post(`/challenges/${id}/join`);
+    join: async (id: number): Promise<{
+        message: string;
+        prizePool: number;
+        prizeInfo: PrizeInfo;
+    }> => {
+        const response = await api.post(`/challenges/${id}/join`);
+        return response.data;
     },
 
     getTasks: async (id: number): Promise<Task[]> => {
@@ -52,11 +48,21 @@ export const challengeService = {
         return response.data;
     },
 
-    updateStatus: async (
-        id: number,
-        status: string
-    ): Promise<Challenge> => {
+    updateStatus: async (id: number, status: string): Promise<Challenge> => {
         const response = await api.patch(`/challenges/${id}/status`, { status });
+        return response.data;
+    },
+
+    // ✅ Новый метод — детальная информация о призовом пуле
+    getPrizePool: async (id: number): Promise<{
+        challengeId: number;
+        betAmount: number;
+        participantCount: number;
+        totalPool: number;
+        status: string;
+        prizes: PrizeInfo['prizes'];
+    }> => {
+        const response = await api.get(`/challenges/${id}/prize-pool`);
         return response.data;
     },
 };

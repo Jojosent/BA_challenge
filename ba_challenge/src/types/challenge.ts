@@ -3,6 +3,21 @@ import { User } from "./user";
 export type ChallengeStatus = 'active' | 'pending' | 'completed' | 'cancelled';
 export type VisibilityLevel = 'secret' | 'protected' | 'public';
 
+// ✅ Описание одного призового места
+export interface PrizeTier {
+  place:   number;   // 1, 2, 3
+  percent: number;   // 50, 30, 20
+  amount:  number;   // реальная сумма монет
+  label:   string;   // '🥇 1 место'
+  user?:   { id: number; username: string } | null;  // кто занял (если завершён)
+}
+
+// ✅ Полная информация о призовом пуле
+export interface PrizeInfo {
+  totalPool: number;
+  prizes:    PrizeTier[];
+}
+
 export interface Challenge {
   familyOwnerId: any;
   id: number;
@@ -11,7 +26,7 @@ export interface Challenge {
   startDate: string;
   endDate: string;
   creatorId: number;
-  creator?: {           // ✅ добавили
+  creator?: {
     id: number;
     username: string;
   };
@@ -19,6 +34,10 @@ export interface Challenge {
   visibility: VisibilityLevel;
   betAmount: number;
   participants: Participant[];
+
+  // ✅ Призовой пул — приходит с бэкенда
+  prizePool?: number;
+  prizeInfo?: PrizeInfo;
 }
 
 export interface Vote {
@@ -35,23 +54,12 @@ export interface Vote {
 }
 
 export interface Participant {
-    id: number;
-    challengeId: number;
-    userId: number;
-    score: number;
-    user?: User;
+  id: number;
+  challengeId: number;
+  userId: number;
+  score: number;
+  user?: User;
 }
-
-// export interface Task {
-//     isAiGenerated: import("react").JSX.Element;
-//     id: number;
-//     challengeId: number;
-//     title: string;
-//     description: string;
-//     day: number;
-//     isCompleted?: boolean;
-//     deadline: string;
-// }
 
 export interface Task {
   id: number;
@@ -60,28 +68,28 @@ export interface Task {
   description: string;
   day: number;
   deadline: string;
-  isAiGenerated: boolean;   // ✅ true = AI, false = человек
+  isAiGenerated: boolean;
   isCompleted?: boolean;
 }
 
 export interface Submission {
+  id: number;
+  taskId: number;
+  userId: number;
+  mediaUrl: string;
+  mediaType: 'photo' | 'video';
+  score: number;
+  aiScore?: number;
+  aiComment?: string;
+  createdAt: string;
+  user?: {
     id: number;
-    taskId: number;
-    userId: number;
-    mediaUrl: string;
-    mediaType: 'photo' | 'video';
-    score: number;
-    aiScore?: number;
-    aiComment?: string;
-    createdAt: string;
-    user?: {
-        id: number;
-        username: string;
-        avatarUrl?: string;
-    };
-    task?: {
-        id: number;
-        title: string;
-        day: number;
-    };
+    username: string;
+    avatarUrl?: string;
+  };
+  task?: {
+    id: number;
+    title: string;
+    day: number;
+  };
 }
