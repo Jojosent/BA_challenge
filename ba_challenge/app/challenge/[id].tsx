@@ -234,6 +234,53 @@ export default function ChallengeDetailScreen() {
         )}
         {/* ======================= */}
 
+                {/* ── Ставки ── */}
+        {(isParticipant || canEdit) && (
+          <TouchableOpacity
+            style={styles.betBtn}
+            onPress={() => {
+              // Передаём участников для выбора оппонента
+              const participantsData = c.participants?.map((p) => ({
+                userId:   p.userId,
+                username: p.user?.username ?? 'Участник',
+                score:    p.score,
+              })) ?? [];
+ 
+              router.push(
+                `/challenge/bets/${id}?challengeTitle=${encodeURIComponent(c.title)}&participantsJson=${encodeURIComponent(JSON.stringify(participantsData))}`
+              );
+            }}
+          >
+            <Text style={{ fontSize: 24 }}>💰</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.betBtnTitle}>Ставки</Text>
+              <Text style={styles.betBtnSub}>Поставь монеты на участника</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={Colors.rikon} />
+          </TouchableOpacity>
+        )}
+
+                {/* ── Чат участников ── */}
+        {(canEdit || isParticipant) && (
+          <TouchableOpacity
+            style={chatBtnChallStyle}
+            onPress={() =>
+              router.push(
+                `/chat?roomType=challenge&roomId=${id}&title=${encodeURIComponent(
+                  `Чат: ${c.title}`
+                )}`
+              )
+            }
+          >
+            <Text style={{ fontSize: 22 }}>💬</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={chatTitleStyle}>Чат участников</Text>
+              <Text style={chatSubStyle}>Обсуждение челленджа</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={Colors.accent} />
+          </TouchableOpacity>
+        )}
+
         {canEdit && c.visibility === 'secret' && !isFamilyChallenge && (
           <TouchableOpacity
             style={styles.inviteBtn}
@@ -503,8 +550,35 @@ export default function ChallengeDetailScreen() {
 
   );
 }
-
+const chatBtnChallStyle = {
+  flexDirection: 'row' as const,
+  alignItems: 'center' as const,
+  backgroundColor: Colors.surface,
+  marginHorizontal: 20,
+  marginBottom: 16,
+  borderRadius: 14,
+  padding: 16,
+  borderWidth: 1,
+  borderColor: Colors.accent + '44',
+  gap: 12,
+};
+const chatTitleStyle = { fontSize: 15, fontWeight: '700' as const, color: Colors.textPrimary };
+const chatSubStyle   = { fontSize: 12, color: Colors.textSecondary, marginTop: 2 };
 const styles = StyleSheet.create({
+    betBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    marginHorizontal: 20,
+    marginBottom: 16,
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.rikon + '44',
+    gap: 12,
+  },
+  betBtnTitle: { fontSize: 15, fontWeight: '700', color: Colors.textPrimary },
+  betBtnSub:   { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
   inviteBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: Colors.secondary,

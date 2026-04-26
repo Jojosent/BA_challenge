@@ -66,7 +66,6 @@ export const challengeController = {
     getAll: async (req: AuthRequest, res: Response): Promise<void> => {
         try {
             const userId = req.user!.id;
-
             const challenges = await Challenge.findAll({
                 include: [
                     {
@@ -78,7 +77,7 @@ export const challengeController = {
                 ],
                 where: {
                     // ✅ Только НЕ семейные челленджи
-                    // familyOwnerId: null,
+                    familyOwnerId: { [Op.is]: null as any },
                     [Op.or]: [
                         { visibility: 'public' },
                         { creatorId: userId },
@@ -87,7 +86,6 @@ export const challengeController = {
                 },
                 order: [['createdAt', 'DESC']],
             });
-
             res.json(challenges);
         } catch (error) {
             res.status(500).json({ message: 'Ошибка' });

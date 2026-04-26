@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+
 import {
   View,
   Text,
@@ -198,33 +199,37 @@ export default function FamilyScreen() {
         }
       />
 
-      {/* Переключатель семей */}
-      {allFamilies.length > 1 && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.familyTabs}
-          contentContainerStyle={{ paddingHorizontal: 20, gap: 8 }}
-        >
-          {allFamilies.map((family, idx) => (
-            <TouchableOpacity
-              key={family.ownerId}
-              style={[
-                styles.familyTab,
-                activeFamilyIdx === idx && styles.familyTabActive,
-              ]}
-              onPress={() => setActiveFamilyIdx(idx)}
-            >
-              <Text style={[
-                styles.familyTabTxt,
-                activeFamilyIdx === idx && styles.familyTabTxtActive,
-              ]}>
-                {family.isOwn ? '🌳 Моя семья' : `🌳 ${family.ownerName}`}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      )}
+      {/* Переключатель семей — фиксированная высота всегда */}
+      <View style={styles.familyTabsWrapper}>
+        {allFamilies.length > 1 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.familyTabsContent}
+          >
+            {allFamilies.map((family, idx) => (
+              <TouchableOpacity
+                key={family.ownerId}
+                style={[
+                  styles.familyTab,
+                  activeFamilyIdx === idx && styles.familyTabActive,
+                ]}
+                onPress={() => setActiveFamilyIdx(idx)}
+              >
+                <Text
+                  style={[
+                    styles.familyTabTxt,
+                    activeFamilyIdx === idx && styles.familyTabTxtActive,
+                  ]}
+                  numberOfLines={1}
+                >
+                  {family.isOwn ? '🌳 Моя семья' : `🌳 ${family.ownerName}`}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
+      </View>
 
       {/* Табы */}
       <View style={styles.tabs}>
@@ -323,7 +328,23 @@ export default function FamilyScreen() {
               )}
             </View>
           )}
+          {tab === 'tree' && !selectedMember && (
+        <TouchableOpacity
+          style={chatBtnStyle}
+          onPress={() =>
+            router.push(
+              `/chat?roomType=family&roomId=${activeFamily?.ownerId}&title=${encodeURIComponent(
+                activeFamily?.isOwn ? 'Чат семьи' : `Чат семьи ${activeFamily?.ownerName}`
+              )}`
+            )
+          }
+        >
+          <Ionicons name="chatbubbles" size={20} color={Colors.white} />
+          <Text style={chatBtnTxtStyle}>Семейный чат</Text>
+        </TouchableOpacity>
+      )}
         </View>
+        
       )}
 
       {/* ── ВКЛАДКА ЧЕЛЛЕНДЖИ ── */}
@@ -592,8 +613,30 @@ export default function FamilyScreen() {
     </SafeAreaView>
   );
 }
-
+const chatBtnStyle = {
+  position: 'absolute' as const,
+  bottom: 16,
+  right: 16,
+  flexDirection: 'row' as const,
+  alignItems: 'center' as const,
+  gap: 8,
+  backgroundColor: Colors.primary,
+  borderRadius: 24,
+  paddingHorizontal: 18,
+  paddingVertical: 12,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.3,
+  shadowRadius: 6,
+  elevation: 8,
+};
+const chatBtnTxtStyle = {
+  color: Colors.white,
+  fontWeight: '700' as const,
+  fontSize: 14,
+};
 const styles = StyleSheet.create({
+
   viewOnlyBanner: {
     backgroundColor: Colors.card,
     borderRadius: 10,
@@ -616,34 +659,52 @@ const styles = StyleSheet.create({
     padding: 8,
   },
 
-  familyTabs: { marginBottom: 8 },
-  familyTab: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    backgroundColor: Colors.surface,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    marginRight: 8,
+  familyTabsWrapper: {
+    height:           48,
+    justifyContent:   'center',
+    marginBottom:     0,
   },
-  familyTabActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  familyTabTxt: { fontSize: 13, color: Colors.textSecondary, fontWeight: '500' },
+  familyTabsContent: {
+    paddingHorizontal: 20,
+    gap:               8,
+    alignItems:        'center',
+  },
+  familyTab: {
+    height:            36,
+    paddingHorizontal: 16,
+    justifyContent:    'center',
+    alignItems:        'center',
+    backgroundColor:   Colors.surface,
+    borderRadius:      18,
+    borderWidth:       1,
+    borderColor:       Colors.border,
+  },
+  familyTabActive:    { backgroundColor: Colors.primary, borderColor: Colors.primary },
+  familyTabTxt:       { fontSize: 13, color: Colors.textSecondary, fontWeight: '500' },
   familyTabTxtActive: { color: Colors.white, fontWeight: '700' },
 
-  // Три таба
+  // Три таба — фиксированная высота
   tabs: {
-    flexDirection: 'row',
+    flexDirection:    'row',
     marginHorizontal: 20,
-    marginVertical: 12,
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    padding: 4,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    marginTop:        8,
+    marginBottom:     8,
+    height:           46,
+    backgroundColor:  Colors.surface,
+    borderRadius:     12,
+    padding:          4,
+    borderWidth:      1,
+    borderColor:      Colors.border,
   },
-  tab: { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center' },
-  tabActive: { backgroundColor: Colors.primary },
-  tabTxt: { fontSize: 12, color: Colors.textSecondary, fontWeight: '500' },
+  tab: {
+    flex:           1,
+    height:         36,
+    borderRadius:   10,
+    alignItems:     'center',
+    justifyContent: 'center',
+  },
+  tabActive:    { backgroundColor: Colors.primary },
+  tabTxt:       { fontSize: 12, color: Colors.textSecondary, fontWeight: '500' },
   tabTxtActive: { color: Colors.white, fontWeight: '700' },
 
   treeContainer: { flex: 1 },

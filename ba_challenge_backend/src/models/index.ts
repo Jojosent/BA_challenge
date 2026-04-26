@@ -8,6 +8,8 @@ import FamilyMember from './FamilyMember';
 import FamilyEvent from './FamilyEvent';
 import FamilyInvite from './FamilyInvite';
 import ChallengeInvite from './ChallengeInvite';
+import Message from './Message';
+import Bet from './Bet';
 
 User.hasMany(Challenge, { foreignKey: 'creatorId', as: 'createdChallenges' });
 Challenge.belongsTo(User, { foreignKey: 'creatorId', as: 'creator' });
@@ -27,7 +29,6 @@ Submission.belongsTo(Task, { foreignKey: 'taskId' });
 User.hasMany(Submission, { foreignKey: 'userId', as: 'submissions' });
 Submission.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
-// ✅ Vote связи
 Submission.hasMany(Vote, { foreignKey: 'submissionId', as: 'votes' });
 Vote.belongsTo(Submission, { foreignKey: 'submissionId' });
 
@@ -52,5 +53,13 @@ ChallengeInvite.belongsTo(Challenge, { foreignKey: 'challengeId' });
 ChallengeInvite.belongsTo(User, { foreignKey: 'fromUserId', as: 'inviteSender' });
 ChallengeInvite.belongsTo(User, { foreignKey: 'toUserId', as: 'inviteReceiver' });
 
+Challenge.hasMany(Bet, { foreignKey: 'challengeId', as: 'bets' });
+Bet.belongsTo(Challenge, { foreignKey: 'challengeId' });
+Bet.belongsTo(User, { foreignKey: 'fromUserId', as: 'betCreator' });
+Bet.belongsTo(User, { foreignKey: 'toUserId', as: 'betOpponent' });
 
-export { User, Challenge, Participant, Task, Submission, Vote, FamilyMember, FamilyEvent, FamilyInvite, ChallengeInvite };
+export {
+  User, Challenge, Participant, Task, Submission,
+  Vote, FamilyMember, FamilyEvent, FamilyInvite,
+  ChallengeInvite, Message, Bet,
+};
