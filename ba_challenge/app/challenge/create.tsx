@@ -25,6 +25,7 @@ const schema = z.object({
     title: z.string().min(3, 'Минимум 3 символа'),
     description: z.string().min(10, 'Минимум 10 символов'),
     betAmount: z.string().optional(),
+    password: z.string().optional(),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -220,34 +221,50 @@ export default function CreateChallengeScreen() {
 
                 {/* Поле пароля — только для protected */}
                 {visibility === 'protected' && (
-                    <View style={[styles.passwordBox, passError ? styles.passwordBoxError : null]}>
-                        <Text style={styles.passwordLabel}>🔑 Пароль для входа</Text>
-                        <Text style={styles.passwordSub}>
-                            Участники должны ввести этот пароль чтобы вступить
-                        </Text>
-                        <View style={styles.passwordRow}>
-                            <Ionicons name="key-outline" size={18} color={Colors.textMuted} />
-                            <TextInput
-                                style={styles.passwordInput}
-                                value={password}
-                                onChangeText={(t) => { setPassword(t); setPassError(''); }}
-                                placeholder="Придумай пароль..."
-                                placeholderTextColor={Colors.textMuted}
-                                secureTextEntry={!showPass}
-                                autoCapitalize="none"
-                            />
-                            <TouchableOpacity onPress={() => setShowPass(!showPass)}>
-                                <Ionicons
-                                    name={showPass ? 'eye-off' : 'eye'}
-                                    size={18}
-                                    color={Colors.textMuted}
-                                />
-                            </TouchableOpacity>
-                        </View>
-                        {passError ? (
-                            <Text style={styles.passError}>⚠️ {passError}</Text>
-                        ) : null}
-                    </View>
+                    <Controller
+                        control={control}
+                        name="password"
+                        render={({ field: { onChange, value } }) => {
+                            // Берем ошибку из react-hook-form, если она есть
+                            const errorMessage = errors.password?.message;
+
+                            return (
+                                <View style={[styles.passwordBox, errorMessage ? styles.passwordBoxError : null]}>
+                                    <Text style={styles.passwordLabel}>🔑 Пароль для входа</Text>
+                                    <Text style={styles.passwordSub}>
+                                        Участники должны ввести этот пароль чтобы вступить
+                                    </Text>
+                                    <View style={styles.passwordRow}>
+                                        <Ionicons name="key-outline" size={18} color={Colors.textMuted} />
+                                        <TextInput
+                                            style={styles.passwordInput}
+                                            // Связываем значение с react-hook-form
+                                            value={value}
+                                            // Передаем изменения в react-hook-form
+                                            onChangeText={onChange}
+                                            placeholder="Придумай пароль..."
+                                            placeholderTextColor={Colors.textMuted}
+                                            secureTextEntry={!showPass}
+                                            autoCapitalize="none"
+                                        />
+                                        {/* Состояние showPass остается локальным (useState), 
+                            так как оно нужно только для интерфейса */}
+                                        <TouchableOpacity onPress={() => setShowPass(!showPass)}>
+                                            <Ionicons
+                                                name={showPass ? 'eye-off' : 'eye'}
+                                                size={18}
+                                                color={Colors.textMuted}
+                                            />
+                                        </TouchableOpacity>
+                                    </View>
+                                    {/* Выводим ошибку от react-hook-form */}
+                                    {errorMessage ? (
+                                        <Text style={styles.passError}>⚠️ {errorMessage}</Text>
+                                    ) : null}
+                                </View>
+                            );
+                        }}
+                    />
                 )}
 
                 {/* Ставка */}

@@ -174,13 +174,12 @@ export const useChallenge = () => {
     };
 
     // ✅ joinChallenge теперь возвращает prizePool и message
-    const joinChallenge = async (id: number) => {
+    const joinChallenge = async (id: number, password?: string) => {
         try {
             setIsLoading(true);
-            const result = await challengeService.join(id);
-            // Обновляем текущий челлендж чтобы prizePool обновился
+            await challengeService.join(id, password);
             await fetchChallenge(id);
-            return result; // { message, prizePool, prizeInfo }
+            return true;
         } catch (e: any) {
             setError(e.message);
             return null;

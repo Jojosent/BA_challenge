@@ -45,6 +45,10 @@ export default function ChallengeDetailScreen() {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [taskLoading, setTaskLoading] = useState(false);
 
+  const [passwordModal, setPasswordModal] = useState(false);
+  const [enteredPassword, setEnteredPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+
   const [visibilityModalVisible, setVisibilityModalVisible] = useState(false);
 
   useEffect(() => {
@@ -80,25 +84,29 @@ export default function ChallengeDetailScreen() {
   const prizeInfo = c.prizeInfo;
 
   const handleJoin = () => {
-    const msg = c.betAmount > 0
-      ? `Вступить? Спишется ${c.betAmount} 🪙 и добавится в призовой пул.`
-      : 'Вступить в этот челлендж?';
-
-    Alert.alert('Вступить в челлендж?', msg, [
-      { text: 'Отмена', style: 'cancel' },
-      {
-        text: 'Вступить',
-        onPress: async () => {
-          const result = await joinChallenge(Number(id));
-          if (result) {
-            const poolMsg = c.betAmount > 0
-              ? `\nПризовой пул: ${result.prizePool} 🪙`
-              : '';
-            Alert.alert('🎉', `Ты в игре!${poolMsg}`);
-          }
+    if (c.visibility === 'protected') {
+      Alert.prompt(
+        '🔒 Защищённый челлендж',
+        'Введи пароль для вступления:',
+        async (password) => {
+          if (!password) return;
+          const ok = await joinChallenge(Number(id), password);
+          if (ok) Alert.alert('🎉', 'Ты в игре!');
         },
-      },
-    ]);
+        'plain-text'
+      );
+    } else {
+      Alert.alert('Вступить в челлендж?', `Ставка: 🪙 ${c.betAmount} Rikon`, [
+        { text: 'Отмена', style: 'cancel' },
+        {
+          text: 'Вступить',
+          onPress: async () => {
+            const ok = await joinChallenge(Number(id));
+            if (ok) Alert.alert('🎉', 'Ты в игре!');
+          },
+        },
+      ]);
+    }
   };
 
   // Добавить задачу

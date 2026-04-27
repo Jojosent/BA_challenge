@@ -29,18 +29,14 @@ export const challengeService = {
         visibility: string;
         betAmount: number;
         familyOwnerId?: number;
+        password?: string;
     }): Promise<Challenge> => {
         const response = await api.post('/challenges', params);
         return response.data;
     },
 
-    join: async (id: number): Promise<{
-        message: string;
-        prizePool: number;
-        prizeInfo: PrizeInfo;
-    }> => {
-        const response = await api.post(`/challenges/${id}/join`);
-        return response.data;
+    join: async (id: number, password?: string): Promise<void> => {
+        await api.post(`/challenges/${id}/join`, { password });
     },
 
     getTasks: async (id: number): Promise<Task[]> => {
