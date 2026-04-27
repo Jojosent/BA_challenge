@@ -8,7 +8,7 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { userService } from '@services/userService';
 import { Ionicons } from '@expo/vector-icons';
-import { notificationService } from '@services/notificationService';
+import { useNotificationStore } from '@hooks/useNotifications';
 
 import {
   RefreshControl,
@@ -24,23 +24,8 @@ export default function HomeScreen() {
   const router = useRouter();
   const { displayUser, isLoading, fetchProfile } = useProfile();
 
-
-  useEffect(() => {
-    userService.getStats()
-      .then((data) => {
-        console.log('📊 Stats загружены:', data);
-        setStats(data);
-      })
-      .catch((e) => console.log('❌ Stats ошибка:', e.message));
-  }, [displayUser?.id]); // ✅ перезагружаем когда меняется юзер
-
-
-  //   const [stats, setStats] = useState({
-  //   avgRating: 0,
-  //   totalVoters: 0,
-  //   challengeCount: 0,
-  //   wonCount: 0,
-  // });
+  // Берём счётчик из глобального store — polling уже идёт в _layout.tsx
+  const notifCount = useNotificationStore((state) => state.count);
 
   const [stats, setStats] = useState({
     avgRating: 0,
@@ -50,9 +35,14 @@ export default function HomeScreen() {
     wonCount: 0,
     submissionCount: 0,
   });
-  const [notifCount, setNotifCount] = useState(0);
+
   useEffect(() => {
-    notificationService.getCount().then(setNotifCount).catch(console.log);
+    userService.getStats()
+      .then((data) => {
+        console.log('📊 Stats загружены:', data);
+        setStats(data);
+      })
+      .catch((e) => console.log('❌ Stats ошибка:', e.message));
   }, [displayUser?.id]);
 
   if (isLoading && !displayUser) return <LoadingSpinner />;
@@ -64,19 +54,17 @@ export default function HomeScreen() {
     return 'Добрый вечер';
   };
 
-
-
-
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-
       <ScrollView
-
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={isLoading}
-            onRefresh={fetchProfile}
+            onRefresh={() => {
+              fetchProfile();
+              useNotificationStore.getState().refresh();
+            }}
             tintColor={Colors.primary}
           />
         }
@@ -139,7 +127,6 @@ export default function HomeScreen() {
             value={stats.challengeCount}
             color={Colors.primary}
           />
-          {/* ✅ Рейтинг с количеством оценщиков */}
           <StatCard
             icon="⭐"
             label={`(${stats.totalVoters})`}
@@ -159,22 +146,40 @@ export default function HomeScreen() {
             <Text style={styles.actionLabel}>Челленджи</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionCard} onPress={() => { }}>
+          <TouchableOpacity style={styles.actionCard} onPress={() => {}}>
             <Text style={styles.actionIcon}>🤖</Text>
             <Text style={styles.actionLabel}>AI Генератор</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.actionCard}
-            onPress={() => router.push('/family')}   // ✅
+            onPress={() => router.push('/family')}
           >
             <Text style={styles.actionIcon}>🌳</Text>
             <Text style={styles.actionLabel}>Семейное дерево</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionCard} onPress={() => { }}>
-            <Text style={styles.actionIcon}>💰</Text>
-            <Text style={styles.actionLabel}>Ставки</Text>
+          {/* Уведомления с живым бейджем */}
+          <TouchableOpacity
+            style={[styles.actionCard, notifCount > 0 && styles.actionCardAlert]}
+            onPress={() => router.push('/notifications')}
+          >
+            <View style={styles.actionIconWrapper}>
+              <Text style={styles.actionIcon}>🔔</Text>
+              {notifCount > 0 && (
+                <View style={styles.actionBadge}>
+                  <Text style={styles.actionBadgeTxt}>
+                    {notifCount > 9 ? '9+' : notifCount}
+                  </Text>
+                </View>
+              )}
+            </View>
+            <Text style={[
+              styles.actionLabel,
+              notifCount > 0 && styles.actionLabelAlert,
+            ]}>
+              Уведомления
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -199,6 +204,19 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: Colors.background },
+
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  greeting: { fontSize: 14, color: Colors.textSecondary },
+  username: { fontSize: 24, fontWeight: '800', color: Colors.textPrimary },
+
   notifBtn: {
     backgroundColor: Colors.surface,
     padding: 10,
@@ -221,27 +239,8 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: Colors.background,
   },
-  notifBadgeTxt: {
-    color: Colors.white,
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  container: { flex: 1, backgroundColor: Colors.background },
+  notifBadgeTxt: { color: Colors.white, fontSize: 10, fontWeight: '700' },
 
-  // Header
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 8,
-  },
-  greeting: { fontSize: 14, color: Colors.textSecondary },
-  username: { fontSize: 24, fontWeight: '800', color: Colors.textPrimary },
-
-
-  // Rikon карточка
   rikonCard: {
     marginHorizontal: 20,
     marginVertical: 16,
@@ -259,7 +258,6 @@ const styles = StyleSheet.create({
   rikonRight: { alignItems: 'flex-end', gap: 8 },
   rikonRating: { fontSize: 13, color: 'rgba(255,255,255,0.85)', marginTop: 8 },
 
-  // Статистика
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
@@ -274,7 +272,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
 
-  // Быстрые действия
   actionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -291,10 +288,33 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
   },
-  actionIcon: { fontSize: 32, marginBottom: 8 },
+  actionCardAlert: {
+    borderColor: Colors.error + '60',
+    backgroundColor: Colors.error + '08',
+  },
+  actionIconWrapper: {
+    position: 'relative',
+    marginBottom: 8,
+  },
+  actionIcon: { fontSize: 32 },
+  actionBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -10,
+    backgroundColor: Colors.error,
+    borderRadius: 9,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: Colors.background,
+  },
+  actionBadgeTxt: { color: Colors.white, fontSize: 10, fontWeight: '700' },
   actionLabel: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary },
+  actionLabelAlert: { color: Colors.error },
 
-  // Пустое состояние
   emptyCard: {
     marginHorizontal: 20,
     marginBottom: 24,
@@ -302,12 +322,7 @@ const styles = StyleSheet.create({
     paddingVertical: 32,
   },
   emptyIcon: { fontSize: 48, marginBottom: 12 },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    marginBottom: 8,
-  },
+  emptyTitle: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary, marginBottom: 8 },
   emptyText: {
     fontSize: 14,
     color: Colors.textSecondary,

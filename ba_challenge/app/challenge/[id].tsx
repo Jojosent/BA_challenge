@@ -26,8 +26,6 @@ import { TaskFormModal } from '@components/shared/TaskFormModal';
 import { taskService } from '@services/taskService';
 import { Task } from '@/types/index';
 import { InviteToChallengeModal } from '@components/shared/InviteToChallengeModal';
-import api from '@services/api';
-
 
 export default function ChallengeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -42,16 +40,17 @@ export default function ChallengeDetailScreen() {
     joinChallenge,
     setCurrentTasks,
   } = useChallenge();
+
   const [inviteModalVisible, setInviteModalVisible] = useState(false);
   const [taskModalVisible, setTaskModalVisible] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [taskLoading, setTaskLoading] = useState(false);
 
-  // ✅ Состояние модалки пароля
+  // ✅ Состояния для модального окна пароля
   const [passwordModal, setPasswordModal] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [passwordError, setPasswordError] = useState('');
-  const [joiningWithPassword, setJoiningWithPassword] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -73,64 +72,61 @@ export default function ChallengeDetailScreen() {
   const isParticipant = c.participants?.some((p) => p.userId === user?.id);
   const isCreator = c.creatorId === user?.id;
   const isFamilyChallenge = !!c.familyOwnerId;
-  const canManageTasks = isCreator;
   const canEdit = isCreator;
   const isProtected = c.visibility === 'protected';
-  // ✅ hasPassword может прийти с бэкенда
-  const hasPassword = (c as any).hasPassword;
 
   const totalDays = Math.ceil(
     (new Date(c.endDate).getTime() - new Date(c.startDate).getTime()) /
     (1000 * 60 * 60 * 24)
   );
 
-  // ✅ Обработчик нажатия "Вступить"
-  const handleJoinPress = () => {
-    if (isProtected && hasPassword) {
-      // Показываем модалку с паролем
+  const participantCount = c.participants?.length ?? 0;
+  const prizePool = c.prizePool ?? (c.betAmount * participantCount);
+  const prizeInfo = c.prizeInfo;
+
+  // ✅ Основная кнопка "Вступить" — открывает пароль или сразу подтверждение
+  const handleJoin = () => {
+    if (isProtected) {
       setPasswordInput('');
       setPasswordError('');
+      setPasswordVisible(false);
       setPasswordModal(true);
-    } else {
-      // Обычное вступление
-      Alert.alert('Вступить в челлендж?', `Ставка: 🪙 ${c.betAmount} Rikon`, [
-        { text: 'Отмена', style: 'cancel' },
-        {
-          text: 'Вступить',
-          onPress: async () => {
-            const ok = await joinChallenge(Number(id));
-            if (ok) Alert.alert('🎉', 'Ты в игре!');
-          },
-        },
-      ]);
+      return;
     }
+    confirmJoin();
   };
 
-  // ✅ Вступление с паролем
-  const handleJoinWithPassword = async () => {
+  // ✅ Выполняет вступление (с паролем или без)
+  const confirmJoin = (password?: string) => {
+    const msg = c.betAmount > 0
+      ? `Вступить? Спишется ${c.betAmount} 🪙 и добавится в призовой пул.`
+      : 'Вступить в этот челлендж?';
+
+    Alert.alert('Вступить в челлендж?', msg, [
+      { text: 'Отмена', style: 'cancel' },
+      {
+        text: 'Вступить',
+        onPress: async () => {
+          const result = await joinChallenge(Number(id), password);
+          if (result) {
+            const poolMsg = c.betAmount > 0
+              ? `\nПризовой пул: ${result.prizePool} 🪙`
+              : '';
+            Alert.alert('🎉', `Ты в игре!${poolMsg}`);
+            setPasswordModal(false);
+          }
+        },
+      },
+    ]);
+  };
+
+  // ✅ Обработка отправки пароля
+  const handlePasswordSubmit = () => {
     if (!passwordInput.trim()) {
       setPasswordError('Введи пароль');
       return;
     }
-    try {
-      setJoiningWithPassword(true);
-      setPasswordError('');
-
-      await api.post(`/challenges/${id}/join`, { password: passwordInput.trim() });
-
-      setPasswordModal(false);
-      setPasswordInput('');
-      await fetchChallenge(Number(id));
-      Alert.alert('🎉', 'Ты в игре!');
-    } catch (e: any) {
-      if (e.message?.includes('Неверный пароль') || e.message?.includes('wrongPassword')) {
-        setPasswordError('Неверный пароль. Попробуй ещё раз.');
-      } else {
-        setPasswordError(e.message || 'Ошибка вступления');
-      }
-    } finally {
-      setJoiningWithPassword(false);
-    }
+    confirmJoin(passwordInput.trim());
   };
 
   // Добавить задачу
@@ -228,24 +224,103 @@ export default function ChallengeDetailScreen() {
               <Ionicons name="time-outline" size={14} color={Colors.textSecondary} />
               <Text style={styles.metaText}>{totalDays} дней</Text>
             </View>
-            <View style={styles.metaItem}>
-              <Text style={styles.metaText}>🪙 {c.betAmount} Rikon</Text>
-            </View>
+            {c.betAmount > 0 && (
+              <View style={styles.metaItem}>
+                <Text style={styles.metaText}>🪙 {c.betAmount} взнос</Text>
+              </View>
+            )}
             {/* ✅ Бейдж защищённого */}
             {isProtected && (
-              <View style={styles.metaItem}>
-                <Text style={styles.protectedBadge}>🛡️ С паролем</Text>
+              <View style={styles.protectedBadge}>
+                <Ionicons name="shield-checkmark" size={12} color={Colors.warning} />
+                <Text style={styles.protectedBadgeText}>Защищён паролем</Text>
               </View>
             )}
           </View>
         </View>
 
+        {/* ✅ ── Призовой пул ── */}
+        {c.betAmount > 0 && (
+          <View style={styles.prizeSection}>
+            <View style={styles.prizeHeader}>
+              <Text style={styles.prizeHeaderIcon}>🏆</Text>
+              <View style={styles.prizeHeaderTexts}>
+                <Text style={styles.prizeHeaderTitle}>Призовой пул</Text>
+                <Text style={styles.prizeHeaderSub}>
+                  {c.betAmount} 🪙 × {participantCount} участников
+                </Text>
+              </View>
+              <Text style={styles.prizeTotal}>{prizePool} 🪙</Text>
+            </View>
+
+            {prizeInfo && prizeInfo.prizes.length > 0 ? (
+              <View style={styles.prizeTiers}>
+                {prizeInfo.prizes.map((tier) => (
+                  <View key={tier.place} style={styles.prizeTierRow}>
+                    <Text style={styles.prizeTierLabel}>{tier.label}</Text>
+                    <View style={styles.prizeTierRight}>
+                      <Text style={styles.prizeTierPercent}>{tier.percent}%</Text>
+                      <Text style={styles.prizeTierAmount}>{tier.amount} 🪙</Text>
+                    </View>
+                  </View>
+                ))}
+                {participantCount > 3 && (
+                  <View style={styles.prizeLosers}>
+                    <Text style={styles.prizeLosersText}>
+                      😔 4+ место — монеты не возвращаются
+                    </Text>
+                  </View>
+                )}
+              </View>
+            ) : (
+              <View style={styles.prizeTiers}>
+                <View style={styles.prizeTierRow}>
+                  <Text style={styles.prizeTierLabel}>🥇 1 место</Text>
+                  <View style={styles.prizeTierRight}>
+                    <Text style={styles.prizeTierPercent}>50%</Text>
+                    <Text style={styles.prizeTierAmount}>{Math.floor(prizePool * 0.5)} 🪙</Text>
+                  </View>
+                </View>
+                <View style={styles.prizeTierRow}>
+                  <Text style={styles.prizeTierLabel}>🥈 2 место</Text>
+                  <View style={styles.prizeTierRight}>
+                    <Text style={styles.prizeTierPercent}>30%</Text>
+                    <Text style={styles.prizeTierAmount}>{Math.floor(prizePool * 0.3)} 🪙</Text>
+                  </View>
+                </View>
+                <View style={styles.prizeTierRow}>
+                  <Text style={styles.prizeTierLabel}>🥉 3 место</Text>
+                  <View style={styles.prizeTierRight}>
+                    <Text style={styles.prizeTierPercent}>20%</Text>
+                    <Text style={styles.prizeTierAmount}>{Math.floor(prizePool * 0.2)} 🪙</Text>
+                  </View>
+                </View>
+                {participantCount > 3 && (
+                  <View style={styles.prizeLosers}>
+                    <Text style={styles.prizeLosersText}>
+                      😔 4+ место — монеты не возвращаются
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
+        )}
+
         {/* ── Кнопка вступить ── */}
         {!isParticipant && !canEdit && c.status !== 'completed' && (
           <View style={styles.joinSection}>
             <Button
-              title={isProtected ? '🛡️ Вступить (нужен пароль)' : '🎯 Вступить в челлендж'}
-              onPress={handleJoinPress}
+              title={
+                isProtected
+                  ? c.betAmount > 0
+                    ? `🛡️ Вступить (взнос ${c.betAmount} 🪙)`
+                    : '🛡️ Вступить (нужен пароль)'
+                  : c.betAmount > 0
+                    ? `🎯 Вступить (взнос ${c.betAmount} 🪙)`
+                    : '🎯 Вступить в челлендж'
+              }
+              onPress={handleJoin}
               isLoading={isLoading}
             />
           </View>
@@ -283,31 +358,6 @@ export default function ChallengeDetailScreen() {
           </TouchableOpacity>
         )}
 
-        {/* ── Ставки ── */}
-        {(isParticipant || canEdit) && (
-          <TouchableOpacity
-            style={styles.betBtn}
-            onPress={() => {
-              const participantsData = c.participants?.map((p) => ({
-                userId: p.userId,
-                username: p.user?.username ?? 'Участник',
-                score: p.score,
-              })) ?? [];
-
-              router.push(
-                `/challenge/bets/${id}?challengeTitle=${encodeURIComponent(c.title)}&participantsJson=${encodeURIComponent(JSON.stringify(participantsData))}`
-              );
-            }}
-          >
-            <Text style={{ fontSize: 24 }}>💰</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.betBtnTitle}>Ставки</Text>
-              <Text style={styles.betBtnSub}>Поставь монеты на участника</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={Colors.rikon} />
-          </TouchableOpacity>
-        )}
-
         {/* ── Чат участников ── */}
         {(canEdit || isParticipant) && (
           <TouchableOpacity
@@ -327,6 +377,7 @@ export default function ChallengeDetailScreen() {
           </TouchableOpacity>
         )}
 
+        {/* ── Кнопка пригласить ── */}
         {canEdit && c.visibility === 'secret' && !isFamilyChallenge && (
           <TouchableOpacity
             style={styles.inviteBtn}
@@ -369,6 +420,7 @@ export default function ChallengeDetailScreen() {
               return (
                 <Card key={task.id} style={[styles.taskCard, isExpired && styles.taskExpired]}>
                   <View style={styles.taskInner}>
+
                     {canEdit && (
                       <View style={styles.reorderCol}>
                         <TouchableOpacity
@@ -498,12 +550,17 @@ export default function ChallengeDetailScreen() {
           Участники ({c.participants?.length ?? 0})
         </Text>
         <Card style={styles.participantsCard}>
-          <ParticipantList participants={c.participants ?? []} creatorId={c.creatorId} />
+          <ParticipantList
+            participants={c.participants ?? []}
+            creatorId={c.creatorId}
+            betAmount={c.betAmount}
+            prizePool={prizePool}
+          />
         </Card>
 
       </ScrollView>
 
-      {/* ✅ Модалка ввода пароля */}
+      {/* ✅ ── Модальное окно пароля ── */}
       <Modal
         visible={passwordModal}
         transparent
@@ -512,25 +569,56 @@ export default function ChallengeDetailScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
-            <Text style={styles.modalTitle}>🛡️ Введи пароль</Text>
+            {/* Заголовок */}
+            <View style={styles.modalHeader}>
+              <View style={styles.modalTitleRow}>
+                <Ionicons name="shield-checkmark" size={22} color={Colors.warning} />
+                <Text style={styles.modalTitle}>Защищённый челлендж</Text>
+              </View>
+              <TouchableOpacity onPress={() => setPasswordModal(false)}>
+                <Ionicons name="close" size={22} color={Colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+
             <Text style={styles.modalSubtitle}>
-              Этот челлендж защищён паролем. Узнай его у создателя.
+              Этот челлендж защищён паролем. Введи пароль чтобы вступить.
             </Text>
 
-            <TextInput
-              style={[styles.passwordInput, passwordError ? styles.passwordInputError : null]}
-              value={passwordInput}
-              onChangeText={(t) => { setPasswordInput(t); setPasswordError(''); }}
-              placeholder="Пароль..."
-              placeholderTextColor={Colors.textMuted}
-              secureTextEntry
-              autoFocus
-            />
+            {/* Поле пароля */}
+            <View style={[
+              styles.passwordInputWrapper,
+              passwordError ? styles.passwordInputError : null,
+            ]}>
+              <Ionicons name="lock-closed-outline" size={18} color={Colors.textMuted} />
+              <TextInput
+                style={styles.passwordInput}
+                value={passwordInput}
+                onChangeText={(t) => {
+                  setPasswordInput(t);
+                  setPasswordError('');
+                }}
+                placeholder="Введи пароль..."
+                placeholderTextColor={Colors.textMuted}
+                secureTextEntry={!passwordVisible}
+                autoFocus
+                autoCapitalize="none"
+                onSubmitEditing={handlePasswordSubmit}
+                returnKeyType="done"
+              />
+              <TouchableOpacity onPress={() => setPasswordVisible(!passwordVisible)}>
+                <Ionicons
+                  name={passwordVisible ? 'eye-off-outline' : 'eye-outline'}
+                  size={18}
+                  color={Colors.textMuted}
+                />
+              </TouchableOpacity>
+            </View>
 
             {passwordError ? (
-              <Text style={styles.passwordError}>{passwordError}</Text>
+              <Text style={styles.passwordErrorText}>{passwordError}</Text>
             ) : null}
 
+            {/* Кнопки */}
             <View style={styles.modalBtns}>
               <TouchableOpacity
                 style={styles.modalCancelBtn}
@@ -540,20 +628,25 @@ export default function ChallengeDetailScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.modalJoinBtn, joiningWithPassword && styles.modalJoinBtnDisabled]}
-                onPress={handleJoinWithPassword}
-                disabled={joiningWithPassword}
+                style={[
+                  styles.passwordSubmitBtn,
+                  (!passwordInput.trim() || isLoading) && styles.passwordSubmitBtnDisabled,
+                ]}
+                onPress={handlePasswordSubmit}
+                disabled={!passwordInput.trim() || isLoading}
               >
-                {joiningWithPassword
-                  ? <ActivityIndicator size="small" color={Colors.white} />
-                  : <Text style={styles.modalJoinTxt}>Вступить</Text>
-                }
+                {isLoading ? (
+                  <ActivityIndicator size="small" color={Colors.white} />
+                ) : (
+                  <Text style={styles.passwordSubmitTxt}>Вступить 🛡️</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
 
+      {/* Модалки задач */}
       <TaskFormModal
         visible={taskModalVisible}
         onClose={() => { setTaskModalVisible(false); setEditingTask(null); }}
@@ -587,24 +680,6 @@ const chatTitleStyle = { fontSize: 15, fontWeight: '700' as const, color: Colors
 const chatSubStyle = { fontSize: 12, color: Colors.textSecondary, marginTop: 2 };
 
 const styles = StyleSheet.create({
-  betBtn: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: Colors.surface, marginHorizontal: 20,
-    marginBottom: 16, borderRadius: 14, padding: 16,
-    borderWidth: 1, borderColor: Colors.rikon + '44', gap: 12,
-  },
-  betBtnTitle: { fontSize: 15, fontWeight: '700', color: Colors.textPrimary },
-  betBtnSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
-
-  inviteBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: Colors.secondary,
-    marginHorizontal: 20, marginBottom: 12,
-    borderRadius: 12, padding: 14,
-  },
-  inviteBtnTxt: { color: Colors.white, fontWeight: '700', fontSize: 14 },
-
-  sectionTitlePadded: { paddingHorizontal: 20 },
   container: { flex: 1, backgroundColor: Colors.background },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   errorText: { color: Colors.textSecondary, fontSize: 16 },
@@ -612,10 +687,68 @@ const styles = StyleSheet.create({
   heroSection: { padding: 20 },
   challengeTitle: { fontSize: 24, fontWeight: '800', color: Colors.textPrimary, marginBottom: 8 },
   challengeDesc: { fontSize: 15, color: Colors.textSecondary, lineHeight: 22, marginBottom: 14 },
-  metaRow: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
+  metaRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap', alignItems: 'center' },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   metaText: { fontSize: 13, color: Colors.textSecondary },
-  protectedBadge: { fontSize: 12, color: Colors.warning, fontWeight: '600' },
+
+  // ✅ Бейдж защищённого
+  protectedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: Colors.warning + '20',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.warning + '50',
+  },
+  protectedBadgeText: {
+    fontSize: 11,
+    color: Colors.warning,
+    fontWeight: '600',
+  },
+
+  // Призовой пул
+  prizeSection: {
+    marginHorizontal: 20,
+    marginBottom: 16,
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.rikon + '40',
+    overflow: 'hidden',
+  },
+  prizeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: Colors.rikon + '12',
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.rikon + '25',
+    gap: 12,
+  },
+  prizeHeaderIcon: { fontSize: 28 },
+  prizeHeaderTexts: { flex: 1 },
+  prizeHeaderTitle: { fontSize: 16, fontWeight: '700', color: Colors.textPrimary },
+  prizeHeaderSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
+  prizeTotal: { fontSize: 22, fontWeight: '800', color: Colors.rikon },
+  prizeTiers: { padding: 12, gap: 2 },
+  prizeTierRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  prizeTierLabel: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary },
+  prizeTierRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  prizeTierPercent: { fontSize: 13, color: Colors.textMuted, width: 36, textAlign: 'right' },
+  prizeTierAmount: { fontSize: 15, fontWeight: '700', color: Colors.rikon, minWidth: 60, textAlign: 'right' },
+  prizeLosers: { paddingVertical: 10, paddingHorizontal: 4, alignItems: 'center' },
+  prizeLosersText: { fontSize: 12, color: Colors.textMuted, fontStyle: 'italic' },
 
   joinSection: { paddingHorizontal: 20, marginBottom: 12 },
   joinedBadge: {
@@ -637,9 +770,19 @@ const styles = StyleSheet.create({
   aiChatTitle: { fontSize: 15, fontWeight: '700', color: Colors.textPrimary },
   aiChatSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
 
+  inviteBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: Colors.secondary,
+    marginHorizontal: 20, marginBottom: 12,
+    borderRadius: 12, padding: 14,
+  },
+  inviteBtnTxt: { color: Colors.white, fontWeight: '700', fontSize: 14 },
+
+  sectionTitlePadded: { paddingHorizontal: 20 },
   tasksTitleRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, marginBottom: 10, marginTop: 4,
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', paddingHorizontal: 20,
+    marginBottom: 10, marginTop: 4,
   },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary },
   addTaskBtn: {
@@ -664,7 +807,6 @@ const styles = StyleSheet.create({
 
   taskContent: { flex: 1, padding: 12 },
   taskHeader: { flexDirection: 'row', gap: 6, marginBottom: 8, flexWrap: 'wrap' },
-
   dayBadge: { backgroundColor: Colors.primary + '22', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   dayText: { color: Colors.primary, fontSize: 11, fontWeight: '600' },
   aiBadge: { backgroundColor: Colors.secondary + '22', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
@@ -685,16 +827,19 @@ const styles = StyleSheet.create({
   expiredHint: { fontSize: 11, color: Colors.error, fontStyle: 'italic' },
 
   taskActions: {
-    justifyContent: 'center', gap: 6, paddingHorizontal: 8, paddingVertical: 12,
+    justifyContent: 'center', gap: 6,
+    paddingHorizontal: 8, paddingVertical: 12,
     borderLeftWidth: 1, borderLeftColor: Colors.border,
   },
   editTaskBtn: {
     padding: 8, borderRadius: 8,
-    backgroundColor: Colors.primary + '15', borderWidth: 1, borderColor: Colors.primary + '30',
+    backgroundColor: Colors.primary + '15',
+    borderWidth: 1, borderColor: Colors.primary + '30',
   },
   deleteTaskBtn: {
     padding: 8, borderRadius: 8,
-    backgroundColor: Colors.error + '15', borderWidth: 1, borderColor: Colors.error + '30',
+    backgroundColor: Colors.error + '15',
+    borderWidth: 1, borderColor: Colors.error + '30',
   },
 
   emptyCard: { marginHorizontal: 20, marginBottom: 16, alignItems: 'center', paddingVertical: 32 },
@@ -704,34 +849,99 @@ const styles = StyleSheet.create({
 
   participantsCard: { marginHorizontal: 20, marginBottom: 30 },
 
-  // ✅ Модалка пароля
+  // ✅ Модальное окно пароля
   modalOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end',
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    justifyContent: 'flex-end',
   },
   modalSheet: {
     backgroundColor: Colors.surface,
-    borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    padding: 24, paddingBottom: 40,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 40,
   },
-  modalTitle: { fontSize: 20, fontWeight: '700', color: Colors.textPrimary, marginBottom: 8 },
-  modalSubtitle: { fontSize: 13, color: Colors.textSecondary, marginBottom: 20, lineHeight: 18 },
-  passwordInput: {
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  modalTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  passwordInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
     backgroundColor: Colors.card,
-    borderRadius: 12, borderWidth: 1, borderColor: Colors.border,
-    padding: 14, fontSize: 16, color: Colors.textPrimary, marginBottom: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingHorizontal: 14,
+    marginBottom: 8,
   },
-  passwordInputError: { borderColor: Colors.error },
-  passwordError: { color: Colors.error, fontSize: 13, marginBottom: 16 },
-  modalBtns: { flexDirection: 'row', gap: 12, marginTop: 8 },
+  passwordInputError: {
+    borderColor: Colors.error,
+  },
+  passwordInput: {
+    flex: 1,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: Colors.textPrimary,
+  },
+  passwordErrorText: {
+    color: Colors.error,
+    fontSize: 12,
+    marginBottom: 12,
+    marginLeft: 4,
+  },
+  modalBtns: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
+  },
   modalCancelBtn: {
-    flex: 1, padding: 14, borderRadius: 12,
-    borderWidth: 1, borderColor: Colors.border, alignItems: 'center',
+    flex: 1,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: 'center',
   },
-  modalCancelTxt: { color: Colors.textSecondary, fontWeight: '600' },
-  modalJoinBtn: {
-    flex: 1, padding: 14, borderRadius: 12,
-    backgroundColor: Colors.primary, alignItems: 'center',
+  modalCancelTxt: {
+    color: Colors.textSecondary,
+    fontWeight: '600',
+    fontSize: 15,
   },
-  modalJoinBtnDisabled: { opacity: 0.5 },
-  modalJoinTxt: { color: Colors.white, fontWeight: '700', fontSize: 15 },
+  passwordSubmitBtn: {
+    flex: 2,
+    backgroundColor: Colors.primary,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  passwordSubmitBtnDisabled: {
+    opacity: 0.45,
+  },
+  passwordSubmitTxt: {
+    color: Colors.white,
+    fontWeight: '700',
+    fontSize: 15,
+  },
 });

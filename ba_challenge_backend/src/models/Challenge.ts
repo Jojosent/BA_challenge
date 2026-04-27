@@ -1,3 +1,8 @@
+// ============================================================
+// ФАЙЛ 1: ba_challenge_backend/src/models/Challenge.ts
+// Добавь поле password в модель
+// ============================================================
+
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize from '../config/database';
 import { ChallengeStatus, VisibilityLevel } from '../types';
@@ -13,7 +18,7 @@ interface ChallengeAttributes {
   visibility: VisibilityLevel;
   betAmount: number;
   familyOwnerId?: number;
-  password?: string;   // ✅ пароль для защищённых челленджей
+  password?: string;        // ✅ НОВОЕ поле для защищённых челленджей
 }
 
 interface ChallengeCreationAttributes
@@ -30,10 +35,11 @@ class Challenge extends Model<ChallengeAttributes, ChallengeCreationAttributes>
   public status!: ChallengeStatus;
   public visibility!: VisibilityLevel;
   public betAmount!: number;
+  public password?: string;   // ✅
   public readonly createdAt!: Date;
-  public familyOwnerId: any;
-  public password?: string;   // ✅ вот эта строка должна быть
+  familyOwnerId: any;
 }
+
 Challenge.init(
   {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
@@ -52,7 +58,7 @@ Challenge.init(
     },
     betAmount: { type: DataTypes.INTEGER, defaultValue: 0 },
     familyOwnerId: { type: DataTypes.INTEGER, allowNull: true },
-    password: { type: DataTypes.STRING(100), allowNull: true },  // ✅
+    password: { type: DataTypes.STRING(255), allowNull: true },   // ✅ НОВОЕ
   },
   { sequelize, tableName: 'challenges', timestamps: true }
 );

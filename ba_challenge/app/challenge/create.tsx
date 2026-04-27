@@ -34,9 +34,24 @@ const visibilityOptions: {
     icon: string;
     desc: string;
 }[] = [
-    { key: 'public',    label: 'Публичный',       icon: '🌍', desc: 'Виден всем в ленте' },
-    { key: 'protected', label: 'С паролем',        icon: '🛡️', desc: 'Виден всем, вход по паролю' },
-    { key: 'secret',    label: 'По приглашению',   icon: '🔒', desc: 'Только приглашённые' },
+    {
+        key: 'public',
+        label: 'Публичный',
+        icon: '🌍',
+        desc: 'Виден всем в ленте',
+    },
+    {
+        key: 'protected',
+        label: 'Защищённый',
+        icon: '🛡️',
+        desc: 'Нужен пароль',
+    },
+    {
+        key: 'secret',
+        label: 'По приглашению',
+        icon: '🔒',
+        desc: 'Только приглашённые',
+    },
 ];
 
 export default function CreateChallengeScreen() {
@@ -48,7 +63,7 @@ export default function CreateChallengeScreen() {
     const [endDate, setEndDate] = useState('');
     const [dateError, setDateError] = useState('');
 
-    const { control, handleSubmit, formState: { errors } } = useForm<FormData>({
+    const { control, handleSubmit, formState: { errors }, watch } = useForm<FormData>({
         resolver: zodResolver(schema),
         defaultValues: { betAmount: '0', password: '' },
     });
@@ -73,9 +88,9 @@ export default function CreateChallengeScreen() {
     const onSubmit = async (data: FormData) => {
         if (!validateDates()) return;
 
-        // ✅ Предупреждаем если protected без пароля
+        // ✅ Проверяем пароль для protected
         if (visibility === 'protected' && !data.password?.trim()) {
-            Alert.alert('Пароль не задан', 'Для защищённого челленджа нужен пароль.');
+            Alert.alert('Ошибка', 'Для защищённого челленджа нужно указать пароль');
             return;
         }
 
@@ -86,8 +101,8 @@ export default function CreateChallengeScreen() {
             endDate,
             visibility,
             betAmount: parseInt(data.betAmount || '0') || 0,
-            password: visibility === 'protected' ? (data.password?.trim() || '') : '',
-        });
+            ...(visibility === 'protected' && { password: data.password?.trim() }),
+        } as any);
 
         if (challenge) {
             Alert.alert('🎉 Челлендж создан!', 'Теперь добавь задачи через AI', [
@@ -185,22 +200,31 @@ export default function CreateChallengeScreen() {
                     ))}
                 </View>
 
-                {/* ✅ Поле пароля только для protected */}
+                {/* ✅ Поле пароля появляется только для protected */}
                 {visibility === 'protected' && (
-                    <Controller
-                        control={control}
-                        name="password"
-                        render={({ field: { onChange, value } }) => (
-                            <Input
-                                label="🔑 Пароль для вступления"
-                                placeholder="Придумай пароль..."
-                                onChangeText={onChange}
-                                value={value}
-                                isPassword
-                                error={errors.password?.message}
-                            />
-                        )}
-                    />
+                    <View style={styles.passwordSection}>
+                        <View style={styles.passwordInfoRow}>
+                            <Text style={styles.passwordInfoIcon}>🛡️</Text>
+                            <Text style={styles.passwordInfoText}>
+                                Участники должны ввести пароль чтобы вступить
+                            </Text>
+                        </View>
+                        <Controller
+                            control={control}
+                            name="password"
+                            render={({ field: { onChange, value } }) => (
+                                <Input
+                                    label="Пароль для вступления *"
+                                    placeholder="Придумай пароль..."
+                                    onChangeText={onChange}
+                                    value={value}
+                                    isPassword
+                                    autoCapitalize="none"
+                                    error={errors.password?.message}
+                                />
+                            )}
+                        />
+                    </View>
                 )}
 
                 {/* Ставка */}
@@ -269,8 +293,32 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.primary + '15',
     },
     visIcon: { fontSize: 20, marginBottom: 4 },
-    visLabel: { fontSize: 11, fontWeight: '600', color: Colors.textSecondary, textAlign: 'center' },
+    visLabel: { fontSize: 11, fontWeight: '600', color: Colors.textSecondary },
     visLabelActive: { color: Colors.primary },
     visDesc: { fontSize: 9, color: Colors.textMuted, textAlign: 'center', marginTop: 2 },
+
+    // ✅ Блок пароля
+    passwordSection: {
+        backgroundColor: Colors.warning + '10',
+        borderRadius: 12,
+        padding: 14,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: Colors.warning + '40',
+    },
+    passwordInfoRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 14,
+    },
+    passwordInfoIcon: { fontSize: 18 },
+    passwordInfoText: {
+        flex: 1,
+        fontSize: 13,
+        color: Colors.textSecondary,
+        lineHeight: 18,
+    },
+
     submitBtn: { marginTop: 8 },
 });

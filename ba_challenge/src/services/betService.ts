@@ -56,4 +56,11 @@ export const betService = {
     const r = await api.patch(`/bets/${betId}/cancel`);
     return r.data;
   },
+
+  // НОВЫЙ МЕТОД: Ответить на ставку (принять или отклонить)
+  respond: async (betId: number, accept: boolean): Promise<{ message: string }> => {
+    // Отправляем POST запрос на бэкенд с указанием статуса (accept)
+    const r = await api.post(`/bets/${betId}/respond`, { accept });
+    return r.data;
+  },
 };

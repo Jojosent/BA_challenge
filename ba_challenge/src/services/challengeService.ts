@@ -29,14 +29,21 @@ export const challengeService = {
         visibility: string;
         betAmount: number;
         familyOwnerId?: number;
-        password?: string;   // ✅ добавить
     }): Promise<Challenge> => {
         const response = await api.post('/challenges', params);
         return response.data;
     },
 
-    join: async (id: number, password?: string): Promise<void> => {
-        await api.post(`/challenges/${id}/join`, { password });
+    // ✅ Передаём пароль если он есть (для protected челленджей)
+    join: async (id: number, password?: string): Promise<{
+        message: string;
+        prizePool: number;
+        prizeInfo: PrizeInfo;
+    }> => {
+        const response = await api.post(`/challenges/${id}/join`, {
+            ...(password ? { password } : {}),
+        });
+        return response.data;
     },
 
     getTasks: async (id: number): Promise<Task[]> => {
@@ -49,7 +56,6 @@ export const challengeService = {
         return response.data;
     },
 
-    // ✅ Новый метод — детальная информация о призовом пуле
     getPrizePool: async (id: number): Promise<{
         challengeId: number;
         betAmount: number;
