@@ -13,7 +13,7 @@ interface ChallengeAttributes {
   visibility: VisibilityLevel;
   betAmount: number;
   familyOwnerId?: number;
-  password?: string;   // ✅ пароль для protected
+  password?: string;   // ✅ пароль для защищённых челленджей
 }
 
 interface ChallengeCreationAttributes
@@ -30,11 +30,10 @@ class Challenge extends Model<ChallengeAttributes, ChallengeCreationAttributes>
   public status!: ChallengeStatus;
   public visibility!: VisibilityLevel;
   public betAmount!: number;
-  public familyOwnerId?: number;
-  public password?: string;
   public readonly createdAt!: Date;
+  public familyOwnerId: any;
+  public password?: string;   // ✅ вот эта строка должна быть
 }
-
 Challenge.init(
   {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
@@ -52,8 +51,8 @@ Challenge.init(
       defaultValue: 'protected',
     },
     betAmount: { type: DataTypes.INTEGER, defaultValue: 0 },
-    password: { type: DataTypes.STRING(100), allowNull: true },
     familyOwnerId: { type: DataTypes.INTEGER, allowNull: true },
+    password: { type: DataTypes.STRING(100), allowNull: true },  // ✅
   },
   { sequelize, tableName: 'challenges', timestamps: true }
 );

@@ -29,7 +29,7 @@ export const challengeService = {
         visibility: string;
         betAmount: number;
         familyOwnerId?: number;
-        password?: string;
+        password?: string;   // ✅ добавить
     }): Promise<Challenge> => {
         const response = await api.post('/challenges', params);
         return response.data;

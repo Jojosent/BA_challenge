@@ -158,6 +158,7 @@ export const useChallenge = () => {
         endDate: string;
         visibility: 'secret' | 'protected' | 'public';
         betAmount: number;
+        password?: string;  // ✅ добавить
     }) => {
         try {
             setIsLoading(true);

@@ -3,96 +3,6 @@ import { Op } from 'sequelize';
 import { AuthRequest } from '../types';
 import { Challenge, Participant, Task, User, ChallengeInvite, FamilyMember } from '../models';
 
-// ─────────────────────────────────────────────────────────────
-// Вспомогательная функция — распределение призового пула
-// 1 место: 50%, 2 место: 30%, 3 место: 20%
-// Если 2 участника: 70% / 30%
-// Если 1 участник: возврат монет
-// ─────────────────────────────────────────────────────────────
-const distributePrizePool = async (challengeId: number): Promise<void> => {
-    try {
-        const challenge = await Challenge.findByPk(challengeId);
-        if (!challenge || challenge.betAmount === 0) return;
-
-        const participants = await Participant.findAll({
-            where: { challengeId },
-            order: [['score', 'DESC']],
-        });
-
-        if (participants.length === 0) return;
-
-        const totalPool = challenge.betAmount * participants.length;
-
-        console.log(`💰 Призовой пул челленджа #${challengeId}: ${totalPool} монет`);
-        console.log(`👥 Участников: ${participants.length}`);
-
-        const prizes: { userId: number; prize: number; place: number }[] = [];
-
-        if (participants.length === 1) {
-            // Один участник — возвращаем монеты
-            prizes.push({ userId: participants[0].userId, prize: totalPool, place: 1 });
-
-        } else if (participants.length === 2) {
-            // Два участника — 70% / 30%
-            prizes.push({ userId: participants[0].userId, prize: Math.floor(totalPool * 0.7), place: 1 });
-            prizes.push({ userId: participants[1].userId, prize: Math.floor(totalPool * 0.3), place: 2 });
-
-        } else {
-            // Три и более — 50% / 30% / 20%
-            prizes.push({ userId: participants[0].userId, prize: Math.floor(totalPool * 0.5), place: 1 });
-            prizes.push({ userId: participants[1].userId, prize: Math.floor(totalPool * 0.3), place: 2 });
-            prizes.push({ userId: participants[2].userId, prize: Math.floor(totalPool * 0.2), place: 3 });
-            // Остальные теряют монеты
-        }
-
-        for (const { userId, prize, place } of prizes) {
-            await User.increment('rikonCoins', { by: prize, where: { id: userId } });
-            console.log(`🏆 Место #${place}: userId ${userId} получает ${prize} монет`);
-        }
-
-        console.log(`✅ Призовой пул распределён для челленджа #${challengeId}`);
-    } catch (error: any) {
-        console.error('distributePrizePool error:', error.message);
-    }
-};
-
-// ─────────────────────────────────────────────────────────────
-// Вспомогательная функция — формат призового пула для ответа
-// ─────────────────────────────────────────────────────────────
-const buildPrizeInfo = (totalPool: number, participantCount: number) => {
-    if (participantCount === 0 || totalPool === 0) {
-        return { totalPool: 0, prizes: [] };
-    }
-
-    if (participantCount === 1) {
-        return {
-            totalPool,
-            prizes: [
-                { place: 1, percent: 100, amount: totalPool, label: '🥇 1 место' },
-            ],
-        };
-    }
-
-    if (participantCount === 2) {
-        return {
-            totalPool,
-            prizes: [
-                { place: 1, percent: 70, amount: Math.floor(totalPool * 0.7), label: '🥇 1 место' },
-                { place: 2, percent: 30, amount: Math.floor(totalPool * 0.3), label: '🥈 2 место' },
-            ],
-        };
-    }
-
-    return {
-        totalPool,
-        prizes: [
-            { place: 1, percent: 50, amount: Math.floor(totalPool * 0.5), label: '🥇 1 место' },
-            { place: 2, percent: 30, amount: Math.floor(totalPool * 0.3), label: '🥈 2 место' },
-            { place: 3, percent: 20, amount: Math.floor(totalPool * 0.2), label: '🥉 3 место' },
-        ],
-    };
-};
-
 export const challengeController = {
 
     // GET /api/challenges/family
@@ -138,13 +48,14 @@ export const challengeController = {
                 order: [['createdAt', 'DESC']],
             });
 
-            const result = challenges.map((c: any) => {
-                const participantCount = c.participants?.length ?? 0;
-                const prizePool = c.betAmount * participantCount;
-                return { ...c.toJSON(), prizePool };
+            // ✅ Не отдаём пароль клиенту
+            const safe = challenges.map((c) => {
+                const obj = c.toJSON() as any;
+                delete obj.password;
+                return obj;
             });
 
-            res.json(result);
+            res.json(safe);
         } catch (error: any) {
             console.error('getFamilyChallenges error:', error.message);
             res.status(500).json({ message: 'Ошибка: ' + error.message });
@@ -155,7 +66,6 @@ export const challengeController = {
     getAll: async (req: AuthRequest, res: Response): Promise<void> => {
         try {
             const userId = req.user!.id;
-
             const challenges = await Challenge.findAll({
                 include: [
                     {
@@ -166,31 +76,25 @@ export const challengeController = {
                     { model: User, as: 'creator', attributes: ['id', 'username'] },
                 ],
                 where: {
-                    // НЕ семейные
                     familyOwnerId: { [Op.is]: null as any },
                     [Op.or]: [
-                        { visibility: 'public' },                    // ✅ публичный — всем
-                        { visibility: 'protected' },                 // ✅ protected — тоже виден в списке
-                        { creatorId: userId },                       // ✅ свои secret тоже видишь
-                        { '$participants.userId$': userId },         // ✅ участник secret — видишь
+                        { visibility: 'public' },
+                        { visibility: 'protected' },  // ✅ защищённые тоже видны в ленте
+                        { creatorId: userId },
+                        { '$participants.userId$': userId },
                     ],
                 },
                 order: [['createdAt', 'DESC']],
             });
 
-            const result = challenges.map((c: any) => {
-                const participantCount = c.participants?.length ?? 0;
-                const prizePool = c.betAmount * participantCount;
-                const plain = c.toJSON();
-                delete plain.accessPassword; // ❌ никогда не отдаём пароль клиенту
-                return {
-                    ...plain,
-                    prizePool,
-                    hasPassword: plain.visibility === 'protected' && !!c.accessPassword,
-                };
+            // ✅ Никогда не отдаём пароль в списке
+            const safe = challenges.map((c) => {
+                const obj = c.toJSON() as any;
+                delete obj.password;
+                return obj;
             });
 
-            res.json(result);
+            res.json(safe);
         } catch (error) {
             res.status(500).json({ message: 'Ошибка' });
         }
@@ -201,7 +105,6 @@ export const challengeController = {
         try {
             const userId = req.user!.id;
             const challenge = await Challenge.findByPk(req.params.id, {
-                attributes: { exclude: ['password'] },
                 include: [
                     {
                         model: Participant,
@@ -229,15 +132,12 @@ export const challengeController = {
                 }
             }
 
-            const participantCount = (challenge as any).participants?.length ?? 0;
-            const totalPool = challenge.betAmount * participantCount;
-            const prizeInfo = buildPrizeInfo(totalPool, participantCount);
+            // ✅ Сообщаем клиенту есть ли пароль, но не передаём его значение
+            const obj = challenge.toJSON() as any;
+            obj.hasPassword = !!challenge.password;
+            delete obj.password;
 
-            res.json({
-                ...challenge.toJSON(),
-                prizePool: totalPool,
-                prizeInfo,
-            });
+            res.json(obj);
         } catch (error) {
             res.status(500).json({ message: 'Ошибка' });
         }
@@ -259,15 +159,11 @@ export const challengeController = {
                 return;
             }
 
-            if (betAmount > 0) {
-                const creator = await User.findByPk(creatorId);
-                if (!creator || creator.rikonCoins < betAmount) {
-                    res.status(400).json({
-                        message: `Недостаточно монет. У тебя ${creator?.rikonCoins ?? 0} 🪙`,
-                    });
-                    return;
-                }
-            }
+            // ✅ Пароль только для protected
+            const challengePassword =
+                visibility === 'protected' && password && password.trim()
+                    ? password.trim()
+                    : null;
 
             const challenge = await Challenge.create({
                 title, description, startDate, endDate,
@@ -276,7 +172,7 @@ export const challengeController = {
                 betAmount: betAmount || 0,
                 status: 'pending',
                 familyOwnerId: familyOwnerId ? Number(familyOwnerId) : undefined,
-                password: (visibility === 'protected' && password) ? password : undefined,
+                password: challengePassword ?? undefined,
             });
 
             await Participant.create({
@@ -300,10 +196,11 @@ export const challengeController = {
                 ],
             });
 
-            const prizePool = betAmount || 0;
-            const prizeInfo = buildPrizeInfo(prizePool, 1);
+            const obj = (full as any).toJSON();
+            obj.hasPassword = !!challenge.password;
+            delete obj.password;
 
-            res.status(201).json({ ...(full as any).toJSON(), prizePool, prizeInfo });
+            res.status(201).json(obj);
         } catch (error) {
             res.status(500).json({ message: 'Ошибка создания челленджа' });
         }
@@ -314,6 +211,7 @@ export const challengeController = {
         try {
             const challengeId = Number(req.params.id);
             const userId = req.user!.id;
+            const { password } = req.body;  // ✅ принимаем пароль
 
             const challenge = await Challenge.findByPk(challengeId);
             if (!challenge) {
@@ -321,6 +219,7 @@ export const challengeController = {
                 return;
             }
 
+            // ✅ Для семейного — только члены семьи
             if (challenge.familyOwnerId) {
                 const isMember = await FamilyMember.findOne({
                     where: { userId: challenge.familyOwnerId, appUserId: userId },
@@ -331,33 +230,25 @@ export const challengeController = {
                     return;
                 }
             }
-            // ✅ Защищённый челлендж — проверяем пароль
-            // Проверка пароля для защищённых челленджей
-            if (challenge.visibility === 'protected') {
-                const { password } = req.body;
-                if (!password) {
-                    res.status(403).json({ message: 'Этот челлендж защищён паролем', requiresPassword: true });
-                    return;
-                }
-                if (password !== challenge.password) {
-                    res.status(403).json({ message: 'Неверный пароль', requiresPassword: true });
+
+            // ✅ Проверяем пароль для protected-челленджей
+            if (challenge.visibility === 'protected' && challenge.password) {
+                if (!password || password.trim() !== challenge.password) {
+                    res.status(403).json({ message: 'Неверный пароль', wrongPassword: true });
                     return;
                 }
             }
+
             const existing = await Participant.findOne({ where: { challengeId, userId } });
             if (existing) {
                 res.status(400).json({ message: 'Уже участвуешь' });
                 return;
             }
 
-            if (challenge.betAmount > 0) {
-                const user = await User.findByPk(userId);
-                if (!user || user.rikonCoins < challenge.betAmount) {
-                    res.status(400).json({
-                        message: `Недостаточно монет. Нужно ${challenge.betAmount} 🪙, у тебя ${user?.rikonCoins ?? 0} 🪙`,
-                    });
-                    return;
-                }
+            const user = await User.findByPk(userId);
+            if (user && challenge.betAmount > user.rikonCoins) {
+                res.status(400).json({ message: 'Недостаточно Rikon монет' });
+                return;
             }
 
             await Participant.create({ challengeId, userId, hasConsented: true });
@@ -366,17 +257,7 @@ export const challengeController = {
                 await User.decrement('rikonCoins', { by: challenge.betAmount, where: { id: userId } });
             }
 
-            const participantCount = await Participant.count({ where: { challengeId } });
-            const totalPool = challenge.betAmount * participantCount;
-            const prizeInfo = buildPrizeInfo(totalPool, participantCount);
-
-            res.json({
-                message: challenge.betAmount > 0
-                    ? `🎉 Ты в игре! ${challenge.betAmount} 🪙 добавлены в призовой пул.`
-                    : '🎉 Ты вступил в челлендж!',
-                prizePool: totalPool,
-                prizeInfo,
-            });
+            res.json({ message: 'Ты вступил в челлендж!' });
         } catch (error) {
             res.status(500).json({ message: 'Ошибка' });
         }
@@ -412,64 +293,12 @@ export const challengeController = {
             }
 
             await challenge.update({ status });
-
-            // ✅ Автоматически распределяем призы при завершении
-            if (status === 'completed' && challenge.betAmount > 0) {
-                await distributePrizePool(challenge.id);
-            }
-
             res.json(challenge);
         } catch (error) {
             res.status(500).json({ message: 'Ошибка' });
         }
     },
 
-    // GET /api/challenges/:id/prize-pool
-    // ✅ Новый роут — детальная информация о призовом пуле
-    getPrizePool: async (req: AuthRequest, res: Response): Promise<void> => {
-        try {
-            const challenge = await Challenge.findByPk(req.params.id);
-            if (!challenge) {
-                res.status(404).json({ message: 'Челлендж не найден' });
-                return;
-            }
-
-            const participants = await Participant.findAll({
-                where: { challengeId: challenge.id },
-                include: [{ model: User, as: 'user', attributes: ['id', 'username', 'avatarUrl'] }],
-                order: [['score', 'DESC']],
-            });
-
-            const participantCount = participants.length;
-            const totalPool = challenge.betAmount * participantCount;
-            const prizeInfo = buildPrizeInfo(totalPool, participantCount);
-
-            // Добавляем имена призёров если челлендж завершён
-            const enrichedPrizes = prizeInfo.prizes.map((prize, i) => ({
-                ...prize,
-                user: participants[i]
-                    ? {
-                        id: (participants[i] as any).user?.id,
-                        username: (participants[i] as any).user?.username,
-                    }
-                    : null,
-            }));
-
-            res.json({
-                challengeId: challenge.id,
-                betAmount: challenge.betAmount,
-                participantCount,
-                totalPool,
-                status: challenge.status,
-                prizes: enrichedPrizes,
-            });
-        } catch (error: any) {
-            console.error('getPrizePool error:', error.message);
-            res.status(500).json({ message: 'Ошибка' });
-        }
-    },
-
-    // POST /api/challenges/:id/invite
     inviteUser: async (req: AuthRequest, res: Response): Promise<void> => {
         try {
             const challengeId = Number(req.params.id);
@@ -503,7 +332,6 @@ export const challengeController = {
         }
     },
 
-    // GET /api/challenges/my-invites
     getMyChallengeInvites: async (req: AuthRequest, res: Response): Promise<void> => {
         try {
             const userId = req.user!.id;
@@ -522,17 +350,12 @@ export const challengeController = {
                         attributes: ['id', 'username'],
                     });
 
-                    const participantCount = await Participant.count({
-                        where: { challengeId: invite.challengeId },
-                    });
-                    const prizePool = (challenge?.betAmount ?? 0) * participantCount;
-
                     return {
                         id: invite.id,
                         challengeId: invite.challengeId,
                         status: invite.status,
                         createdAt: invite.createdAt,
-                        challenge: challenge ? { ...challenge.toJSON(), prizePool } : null,
+                        challenge,
                         inviteSender: sender,
                     };
                 })
@@ -541,11 +364,10 @@ export const challengeController = {
             res.json(result);
         } catch (error: any) {
             console.error('getMyChallengeInvites error:', error.message);
-            res.status(500).json({ message: 'Ошибка: ' + error.message });
+            res.status(500).json({ message: 'Ошибка получения приглашений: ' + error.message });
         }
     },
 
-    // PATCH /api/challenges/invites/:inviteId
     respondChallengeInvite: async (req: AuthRequest, res: Response): Promise<void> => {
         try {
             const { inviteId } = req.params;
@@ -559,18 +381,6 @@ export const challengeController = {
             }
 
             if (accept) {
-                const challenge = await Challenge.findByPk(invite.challengeId);
-
-                if (challenge && challenge.betAmount > 0) {
-                    const user = await User.findByPk(userId);
-                    if (!user || user.rikonCoins < challenge.betAmount) {
-                        res.status(400).json({
-                            message: `Недостаточно монет. Нужно ${challenge.betAmount} 🪙 для участия`,
-                        });
-                        return;
-                    }
-                }
-
                 const existing = await Participant.findOne({
                     where: { challengeId: invite.challengeId, userId },
                 });
@@ -581,15 +391,7 @@ export const challengeController = {
                         userId,
                         hasConsented: true,
                     });
-
-                    if (challenge && challenge.betAmount > 0) {
-                        await User.decrement('rikonCoins', {
-                            by: challenge.betAmount,
-                            where: { id: userId },
-                        });
-                    }
                 }
-
                 await invite.update({ status: 'accepted' });
                 res.json({ message: 'Принято! Ты в челлендже.' });
             } else {
@@ -600,8 +402,28 @@ export const challengeController = {
             res.status(500).json({ message: 'Ошибка' });
         }
     },
+getPrizePool: async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        const challenge = await Challenge.findByPk(req.params.id, {
+            include: [{
+                model: Participant,
+                as: 'participants',
+            }],
+        });
 
-    // GET /api/challenges/search-users?q=
+        if (!challenge) {
+            res.status(404).json({ message: 'Не найден' });
+            return;
+        }
+
+        const participantCount = (challenge as any).participants?.length ?? 0;
+        const prizePool = participantCount * challenge.betAmount;
+
+        res.json({ prizePool, participantCount, betAmount: challenge.betAmount });
+    } catch (error) {
+        res.status(500).json({ message: 'Ошибка' });
+    }
+},
     searchUsersForInvite: async (req: AuthRequest, res: Response): Promise<void> => {
         try {
             const { q } = req.query;
