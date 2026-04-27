@@ -11,10 +11,14 @@ interface UserAttributes {
   rating: number;
   rikonCoins: number;
   avatarUrl?: string;
+  // ✅ Приватность
+  showChallengesPublic?: boolean;
+  allowFamilyInvites?: boolean;
+  allowChallengeInvites?: boolean;
 }
 
-// id необязателен при создании — БД сама генерирует
-interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'rating' | 'rikonCoins'> {}
+interface UserCreationAttributes
+  extends Optional<UserAttributes, 'id' | 'rating' | 'rikonCoins' | 'showChallengesPublic' | 'allowFamilyInvites' | 'allowChallengeInvites'> { }
 
 class User extends Model<UserAttributes, UserCreationAttributes>
   implements UserAttributes {
@@ -26,6 +30,9 @@ class User extends Model<UserAttributes, UserCreationAttributes>
   public rating!: number;
   public rikonCoins!: number;
   public avatarUrl?: string;
+  public showChallengesPublic?: boolean;
+  public allowFamilyInvites?: boolean;
+  public allowChallengeInvites?: boolean;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
@@ -41,14 +48,15 @@ User.init(
       defaultValue: 'user',
     },
     rating: { type: DataTypes.INTEGER, defaultValue: 0 },
-    rikonCoins: { type: DataTypes.INTEGER, defaultValue: 100 }, // Стартовый баланс
+    rikonCoins: { type: DataTypes.INTEGER, defaultValue: 100 },
     avatarUrl: { type: DataTypes.STRING(500), allowNull: true },
+
+    // ✅ Приватность (3 поля, без showRatingPublic)
+    showChallengesPublic: { type: DataTypes.BOOLEAN, defaultValue: true },
+    allowFamilyInvites: { type: DataTypes.BOOLEAN, defaultValue: true },
+    allowChallengeInvites: { type: DataTypes.BOOLEAN, defaultValue: true },
   },
-  {
-    sequelize,
-    tableName: 'users',
-    timestamps: true,
-  }
+  { sequelize, tableName: 'users', timestamps: true }
 );
 
 export default User;

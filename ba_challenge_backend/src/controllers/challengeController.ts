@@ -575,6 +575,7 @@ export const challengeController = {
     getAll: async (req: AuthRequest, res: Response): Promise<void> => {
         try {
             const userId = req.user!.id;
+
             const challenges = await Challenge.findAll({
                 include: [
                     {
@@ -585,11 +586,13 @@ export const challengeController = {
                     { model: User, as: 'creator', attributes: ['id', 'username'] },
                 ],
                 where: {
+                    // НЕ семейные
                     familyOwnerId: { [Op.is]: null as any },
                     [Op.or]: [
-                        { visibility: 'public' },
-                        { creatorId: userId },
-                        { '$participants.userId$': userId },
+                        { visibility: 'public' },                    // ✅ публичный — всем
+                        { visibility: 'protected' },                 // ✅ protected — тоже виден в списке
+                        { creatorId: userId },                       // ✅ свои secret тоже видишь
+                        { '$participants.userId$': userId },         // ✅ участник secret — видишь
                     ],
                 },
                 order: [['createdAt', 'DESC']],
@@ -598,7 +601,13 @@ export const challengeController = {
             const result = challenges.map((c: any) => {
                 const participantCount = c.participants?.length ?? 0;
                 const prizePool = c.betAmount * participantCount;
-                return { ...c.toJSON(), prizePool };
+                const plain = c.toJSON();
+                delete plain.accessPassword; // ❌ никогда не отдаём пароль клиенту
+                return {
+                    ...plain,
+                    prizePool,
+                    hasPassword: plain.visibility === 'protected' && !!c.accessPassword,
+                };
             });
 
             res.json(result);

@@ -8,6 +8,7 @@ import voteRoutes       from './voteRoutes';
 import taskRoutes       from './taskRoutes';
 import familyRoutes     from './familyRoutes';
 import chatRoutes       from './chatRoutes';
+import privacyRoutes    from './privacyRoutes';
 
 const router = Router();
 
@@ -20,5 +21,6 @@ router.use('/votes',       voteRoutes);
 router.use('/tasks',       taskRoutes);
 router.use('/family',      familyRoutes);
 router.use('/chat',        chatRoutes);
+router.use('/privacy',     privacyRoutes);
 
 export default router;

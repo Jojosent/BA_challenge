@@ -15,8 +15,10 @@ import {
     Text,
     TouchableOpacity,
     View,
+    TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { z } from 'zod';
 
 const schema = z.object({
@@ -26,25 +28,35 @@ const schema = z.object({
 });
 
 type FormData = z.infer<typeof schema>;
-type Visibility = 'secret' | 'protected' | 'public';
+type Visibility = 'public' | 'protected' | 'secret';
 
 const visibilityOptions: {
-    key: 'public' | 'secret';
+    key: Visibility;
     label: string;
     icon: string;
     desc: string;
+    color: string;
 }[] = [
         {
             key: 'public',
             label: 'Публичный',
             icon: '🌍',
             desc: 'Виден всем в ленте',
+            color: Colors.accent,
+        },
+        {
+            key: 'protected',
+            label: 'Защищённый',
+            icon: '🔐',
+            desc: 'Вступить только по паролю',
+            color: Colors.warning,
         },
         {
             key: 'secret',
             label: 'По приглашению',
             icon: '🔒',
             desc: 'Только приглашённые',
+            color: Colors.error,
         },
     ];
 
@@ -52,17 +64,19 @@ export default function CreateChallengeScreen() {
     const router = useRouter();
     const { createChallenge, isLoading } = useChallenge();
 
-    const [visibility, setVisibility] = useState<'public' | 'secret'>('public');
+    const [visibility, setVisibility] = useState<Visibility>('public');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [dateError, setDateError] = useState('');
+    const [password, setPassword] = useState('');
+    const [showPass, setShowPass] = useState(false);
+    const [passError, setPassError] = useState('');
 
     const { control, handleSubmit, formState: { errors } } = useForm<FormData>({
         resolver: zodResolver(schema),
         defaultValues: { betAmount: '0' },
     });
 
-    // Считаем сколько дней между датами
     const getDayCount = () => {
         if (!startDate || !endDate) return 0;
         const diff = new Date(endDate).getTime() - new Date(startDate).getTime();
@@ -72,16 +86,20 @@ export default function CreateChallengeScreen() {
     const validateDates = () => {
         if (!startDate) { setDateError('Выбери дату начала'); return false; }
         if (!endDate) { setDateError('Выбери дату окончания'); return false; }
-        if (getDayCount() < 1) {
-            setDateError('Дата окончания должна быть позже начала');
-            return false;
-        }
+        if (getDayCount() < 1) { setDateError('Дата окончания должна быть позже начала'); return false; }
         setDateError('');
         return true;
     };
 
     const onSubmit = async (data: FormData) => {
         if (!validateDates()) return;
+
+        // Проверка пароля для protected
+        if (visibility === 'protected' && !password.trim()) {
+            setPassError('Укажи пароль для защищённого челленджа');
+            return;
+        }
+        setPassError('');
 
         const challenge = await createChallenge({
             title: data.title,
@@ -90,6 +108,8 @@ export default function CreateChallengeScreen() {
             endDate,
             visibility,
             betAmount: parseInt(data.betAmount || '0') || 0,
+            // пароль передаётся отдельно если protected
+            ...(visibility === 'protected' && { accessPassword: password.trim() }),
         });
 
         if (challenge) {
@@ -140,7 +160,7 @@ export default function CreateChallengeScreen() {
                     )}
                 />
 
-                {/* Даты с удобным picker */}
+                {/* Даты */}
                 <DatePicker
                     label="📅 Дата начала"
                     value={startDate}
@@ -156,7 +176,7 @@ export default function CreateChallengeScreen() {
                     error={dateError}
                 />
 
-                {/* Показываем сколько дней */}
+                {/* Количество дней */}
                 {dayCount > 0 && (
                     <View style={styles.daysInfo}>
                         <Text style={styles.daysIcon}>📊</Text>
@@ -168,27 +188,67 @@ export default function CreateChallengeScreen() {
 
                 {/* Видимость */}
                 <Text style={styles.sectionLabel}>Видимость</Text>
-                <View style={styles.visibilityRow}>
-                    {visibilityOptions.map((opt) => (
-                        <TouchableOpacity
-                            key={opt.key}
-                            style={[
-                                styles.visCard,
-                                visibility === opt.key && styles.visCardActive,
-                            ]}
-                            onPress={() => setVisibility(opt.key)}
-                        >
-                            <Text style={styles.visIcon}>{opt.icon}</Text>
-                            <Text style={[
-                                styles.visLabel,
-                                visibility === opt.key && styles.visLabelActive,
-                            ]}>
-                                {opt.label}
-                            </Text>
-                            <Text style={styles.visDesc}>{opt.desc}</Text>
-                        </TouchableOpacity>
-                    ))}
+                <View style={styles.visibilityGrid}>
+                    {visibilityOptions.map((opt) => {
+                        const isActive = visibility === opt.key;
+                        return (
+                            <TouchableOpacity
+                                key={opt.key}
+                                style={[
+                                    styles.visCard,
+                                    isActive && { borderColor: opt.color, backgroundColor: opt.color + '12' },
+                                ]}
+                                onPress={() => {
+                                    setVisibility(opt.key);
+                                    setPassError('');
+                                    if (opt.key !== 'protected') setPassword('');
+                                }}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={styles.visIcon}>{opt.icon}</Text>
+                                <Text style={[styles.visLabel, isActive && { color: opt.color }]}>
+                                    {opt.label}
+                                </Text>
+                                <Text style={styles.visDesc}>{opt.desc}</Text>
+                                {isActive && (
+                                    <View style={[styles.visDot, { backgroundColor: opt.color }]} />
+                                )}
+                            </TouchableOpacity>
+                        );
+                    })}
                 </View>
+
+                {/* Поле пароля — только для protected */}
+                {visibility === 'protected' && (
+                    <View style={[styles.passwordBox, passError ? styles.passwordBoxError : null]}>
+                        <Text style={styles.passwordLabel}>🔑 Пароль для входа</Text>
+                        <Text style={styles.passwordSub}>
+                            Участники должны ввести этот пароль чтобы вступить
+                        </Text>
+                        <View style={styles.passwordRow}>
+                            <Ionicons name="key-outline" size={18} color={Colors.textMuted} />
+                            <TextInput
+                                style={styles.passwordInput}
+                                value={password}
+                                onChangeText={(t) => { setPassword(t); setPassError(''); }}
+                                placeholder="Придумай пароль..."
+                                placeholderTextColor={Colors.textMuted}
+                                secureTextEntry={!showPass}
+                                autoCapitalize="none"
+                            />
+                            <TouchableOpacity onPress={() => setShowPass(!showPass)}>
+                                <Ionicons
+                                    name={showPass ? 'eye-off' : 'eye'}
+                                    size={18}
+                                    color={Colors.textMuted}
+                                />
+                            </TouchableOpacity>
+                        </View>
+                        {passError ? (
+                            <Text style={styles.passError}>⚠️ {passError}</Text>
+                        ) : null}
+                    </View>
+                )}
 
                 {/* Ставка */}
                 <Controller
@@ -241,23 +301,69 @@ const styles = StyleSheet.create({
         fontWeight: '500',
         marginBottom: 10,
     },
-    visibilityRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+
+    // Сетка 3 карточки
+    visibilityGrid: {
+        flexDirection: 'row',
+        gap: 8,
+        marginBottom: 16,
+    },
     visCard: {
         flex: 1,
         backgroundColor: Colors.surface,
-        borderRadius: 12,
+        borderRadius: 14,
         padding: 12,
         alignItems: 'center',
+        borderWidth: 1.5,
+        borderColor: Colors.border,
+        gap: 4,
+        position: 'relative',
+    },
+    visIcon: { fontSize: 22 },
+    visLabel: { fontSize: 11, fontWeight: '700', color: Colors.textSecondary, textAlign: 'center' },
+    visDesc: { fontSize: 9, color: Colors.textMuted, textAlign: 'center', lineHeight: 12 },
+    visDot: {
+        position: 'absolute',
+        top: 6,
+        right: 6,
+        width: 7,
+        height: 7,
+        borderRadius: 4,
+    },
+
+    // Блок пароля
+    passwordBox: {
+        backgroundColor: Colors.warning + '12',
+        borderRadius: 14,
+        padding: 14,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: Colors.warning + '40',
+        gap: 6,
+    },
+    passwordBoxError: {
+        borderColor: Colors.error,
+        backgroundColor: Colors.error + '08',
+    },
+    passwordLabel: { fontSize: 14, fontWeight: '700', color: Colors.warning },
+    passwordSub: { fontSize: 12, color: Colors.textSecondary, lineHeight: 16, marginBottom: 4 },
+    passwordRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Colors.card,
+        borderRadius: 10,
         borderWidth: 1,
         borderColor: Colors.border,
+        paddingHorizontal: 12,
+        gap: 8,
     },
-    visCardActive: {
-        borderColor: Colors.primary,
-        backgroundColor: Colors.primary + '15',
+    passwordInput: {
+        flex: 1,
+        paddingVertical: 12,
+        fontSize: 15,
+        color: Colors.textPrimary,
     },
-    visIcon: { fontSize: 22, marginBottom: 4 },
-    visLabel: { fontSize: 12, fontWeight: '600', color: Colors.textSecondary },
-    visLabelActive: { color: Colors.primary },
-    visDesc: { fontSize: 10, color: Colors.textMuted, textAlign: 'center', marginTop: 2 },
+    passError: { fontSize: 12, color: Colors.error },
+
     submitBtn: { marginTop: 8 },
 });

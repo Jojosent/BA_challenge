@@ -9,16 +9,17 @@ import { Colors } from '@constants/colors';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@hooks/useAuth';
 import { useProfile } from '@hooks/useProfile';
+import { router } from 'expo-router/build/exports';
 import React, { useEffect, useState } from 'react';
 import {
-    Alert,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -28,13 +29,13 @@ export default function ProfileScreen() {
   const [editModal, setEditModal] = useState(false);
   const [newUsername, setNewUsername] = useState('');
   const [stats, setStats] = useState({
-  avgRating: 0, totalVoters: 0,
-  challengeCount: 0, wonCount: 0,
-});
+    avgRating: 0, totalVoters: 0,
+    challengeCount: 0, wonCount: 0,
+  });
 
-useEffect(() => {
-  userService.getStats().then(setStats).catch(console.error);
-}, []);
+  useEffect(() => {
+    userService.getStats().then(setStats).catch(console.error);
+  }, []);
 
   if (isLoading && !displayUser) return <LoadingSpinner />;
 
@@ -79,7 +80,7 @@ useEffect(() => {
           <Text style={styles.username}>{displayUser?.username}</Text>
           <Text style={styles.email}>{displayUser?.email}</Text>
 
-          
+
 
           {displayUser?.role && (
             <View style={styles.badgeRow}>
@@ -101,26 +102,26 @@ useEffect(() => {
 
         {/* Статистика */}
         <Text style={styles.sectionTitle}>Статистика</Text>
-<View style={styles.statsRow}>
-  <StatCard
-    icon="🪙"
-    label="Rikon"
-    value={displayUser?.rikonCoins ?? 0}
-    color={Colors.rikon}
-  />
-  <StatCard
-    icon="⭐"
-    label={`(${stats.totalVoters})`}
-    value={stats.avgRating > 0 ? stats.avgRating.toFixed(2) : '—'}
-    color={Colors.warning}
-  />
-  <StatCard
-    icon="🏆"
-    label="Победы"
-    value={stats.wonCount}
-    color={Colors.accent}
-  />
-</View>
+        <View style={styles.statsRow}>
+          <StatCard
+            icon="🪙"
+            label="Rikon"
+            value={displayUser?.rikonCoins ?? 0}
+            color={Colors.rikon}
+          />
+          <StatCard
+            icon="⭐"
+            label={`(${stats.totalVoters})`}
+            value={stats.avgRating > 0 ? stats.avgRating.toFixed(2) : '—'}
+            color={Colors.warning}
+          />
+          <StatCard
+            icon="🏆"
+            label="Победы"
+            value={stats.wonCount}
+            color={Colors.accent}
+          />
+        </View>
 
         {/* Информация */}
         <Text style={styles.sectionTitle}>Информация</Text>
@@ -147,13 +148,23 @@ useEffect(() => {
         {/* Настройки */}
         <Text style={styles.sectionTitle}>Настройки</Text>
         <Card style={styles.settingsCard}>
-          <SettingsRow icon="notifications-outline" label="Уведомления" />
+          <SettingsRow icon="notifications-outline" label="Уведомления" onPress={function (): void {
+            throw new Error('Function not implemented.');
+          }} />
           <View style={styles.divider} />
-          <SettingsRow icon="lock-closed-outline" label="Приватность" />
+          <SettingsRow
+            icon="lock-closed-outline"
+            label="Приватность"
+            onPress={() => router.push('/settings/privacy-settings')}
+          />
           <View style={styles.divider} />
-          <SettingsRow icon="language-outline" label="Язык" />
+          <SettingsRow icon="language-outline" label="Язык" onPress={function (): void {
+            throw new Error('Function not implemented.');
+          } } />
           <View style={styles.divider} />
-          <SettingsRow icon="color-palette-outline" label="Тема" />
+          <SettingsRow icon="color-palette-outline" label="Тема" onPress={function (): void {
+            throw new Error('Function not implemented.');
+          } } />
         </Card>
 
         {/* Кнопка выхода */}
@@ -229,8 +240,8 @@ const InfoRow = ({
   </View>
 );
 
-const SettingsRow = ({ icon, label }: { icon: string; label: string }) => (
-  <TouchableOpacity style={infoStyles.row}>
+const SettingsRow = ({ icon, label, onPress }: { icon: string; label: string; onPress?: () => void }) => (
+  <TouchableOpacity style={infoStyles.row} onPress={onPress}>
     <Ionicons name={icon as any} size={18} color={Colors.textSecondary} />
     <Text style={[infoStyles.label, { flex: 1, marginLeft: 12 }]}>{label}</Text>
     <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />

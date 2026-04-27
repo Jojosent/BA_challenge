@@ -247,6 +247,24 @@ sendInvite: async (req: AuthRequest, res: Response): Promise<void> => {
       return;
     }
 
+    // ✅ Проверяем — не отключил ли получатель приглашения в семью
+    const targetUser = await User.findByPk(toUserId, {
+      attributes: ['id', 'username', 'allowFamilyInvites'],
+    }) as any;
+
+    if (!targetUser) {
+      res.status(404).json({ message: 'Пользователь не найден' });
+      return;
+    }
+
+    if (targetUser.allowFamilyInvites === false) {
+      res.status(403).json({
+        message: `${targetUser.username} отключил приглашения в семью`,
+        blocked: true,
+      });
+      return;
+    }
+
     // Проверяем — уже есть pending приглашение?
     const existing = await FamilyInvite.findOne({
       where: { fromUserId, toUserId, status: 'pending' },
@@ -269,7 +287,7 @@ sendInvite: async (req: AuthRequest, res: Response): Promise<void> => {
 
     const invite = await FamilyInvite.create({
       fromUserId,
-      toUserId: Number(toUserId),
+      toUserId:  Number(toUserId),
       relation,
       parentId:  parentId  ? Number(parentId)  : undefined,
       birthYear: birthYear ? Number(birthYear) : undefined,

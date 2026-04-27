@@ -23,6 +23,8 @@ import { TaskFormModal } from '@components/shared/TaskFormModal';
 import { taskService } from '@services/taskService';
 import { Task } from '@/types/index';
 import { InviteToChallengeModal } from '@components/shared/InviteToChallengeModal';
+import { VisibilityModal } from '@components/shared/VisibilityModal';
+
 
 export default function ChallengeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -42,6 +44,8 @@ export default function ChallengeDetailScreen() {
   const [taskModalVisible, setTaskModalVisible] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [taskLoading, setTaskLoading] = useState(false);
+
+  const [visibilityModalVisible, setVisibilityModalVisible] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -167,7 +171,7 @@ export default function ChallengeDetailScreen() {
         showBack
         rightElement={
           canEdit ? (
-            <TouchableOpacity onPress={() => { }}>
+            <TouchableOpacity onPress={() => setVisibilityModalVisible(true)}>
               <Ionicons name="settings-outline" size={22} color={Colors.textPrimary} />
             </TouchableOpacity>
           ) : undefined
@@ -535,6 +539,13 @@ export default function ChallengeDetailScreen() {
         visible={inviteModalVisible}
         onClose={() => setInviteModalVisible(false)}
         challengeId={Number(id)}
+      />
+      <VisibilityModal
+        visible={visibilityModalVisible}
+        challengeId={Number(id)}
+        currentVisibility={c.visibility}
+        onClose={() => setVisibilityModalVisible(false)}
+        onUpdated={() => fetchChallenge(Number(id))}
       />
     </SafeAreaView>
   );
