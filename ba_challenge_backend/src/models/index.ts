@@ -9,6 +9,9 @@ import FamilyEvent from './FamilyEvent';
 import FamilyInvite from './FamilyInvite';
 import ChallengeInvite from './ChallengeInvite';
 import Message from './Message';
+import Notification from './Notification';
+
+
 
 User.hasMany(Challenge, { foreignKey: 'creatorId', as: 'createdChallenges' });
 Challenge.belongsTo(User, { foreignKey: 'creatorId', as: 'creator' });
@@ -51,9 +54,11 @@ Challenge.hasMany(ChallengeInvite, { foreignKey: 'challengeId', as: 'challengeIn
 ChallengeInvite.belongsTo(Challenge, { foreignKey: 'challengeId' });
 ChallengeInvite.belongsTo(User, { foreignKey: 'fromUserId', as: 'inviteSender' });
 ChallengeInvite.belongsTo(User, { foreignKey: 'toUserId', as: 'inviteReceiver' });
+User.hasMany(Notification, { foreignKey: 'userId', as: 'notifications' });
+Notification.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
 export {
   User, Challenge, Participant, Task, Submission,
   Vote, FamilyMember, FamilyEvent, FamilyInvite,
-  ChallengeInvite, Message,
+  ChallengeInvite, Message, Notification
 };

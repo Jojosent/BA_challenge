@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import {
     View, Text, StyleSheet, ScrollView,
     RefreshControl, Alert, TouchableOpacity, ActivityIndicator,
+    SectionList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,35 +10,65 @@ import { useRouter } from 'expo-router';
 import { Header } from '@components/shared/Header';
 import { Colors } from '@constants/colors';
 import { familyService } from '@services/familyService';
-import { betService } from '@services/betService';
+import { notificationService, AppNotification } from '@services/notificationService';
 import { RELATION_LABELS } from '@/types/index';
 import api from '@services/api';
-import { useUserStore } from '@store/userStore';
-import { userService } from '@services/userService';
-import { useNotificationStore } from '@hooks/useNotifications';
+
+// ── Конфиг иконок и цветов по типу уведомления ────────────────────────────
+const NOTIF_CONFIG: Record<string, { icon: string; color: string; emoji: string }> = {
+    new_vote: { icon: 'star', color: Colors.rikon, emoji: '⭐' },
+    vote_updated: { icon: 'pencil', color: Colors.warning, emoji: '✏️' },
+    new_participant: { icon: 'person-add', color: Colors.accent, emoji: '🎉' },
+    challenge_started: { icon: 'flash', color: Colors.primary, emoji: '🔥' },
+    challenge_ended: { icon: 'trophy', color: Colors.rikon, emoji: '🏆' },
+    new_bet: { icon: 'cash', color: Colors.secondary, emoji: '🎯' },
+    bet_joined: { icon: 'swap-horizontal', color: Colors.accent, emoji: '⚔️' },
+    family_invite: { icon: 'people', color: Colors.primary, emoji: '🌳' },
+    challenge_invite: { icon: 'trophy-outline', color: Colors.primary, emoji: '🏆' },
+};
+
+// ── Форматирование времени ─────────────────────────────────────────────────
+const formatTime = (iso: string): string => {
+    const d = new Date(iso);
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    const diffH = Math.floor(diffMin / 60);
+    const diffD = Math.floor(diffH / 24);
+
+    if (diffMin < 1) return 'только что';
+    if (diffMin < 60) return `${diffMin} мин. назад`;
+    if (diffH < 24) return `${diffH} ч. назад`;
+    if (diffD < 7) return `${diffD} дн. назад`;
+    return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+};
+
+// ── Разделение по секциям ──────────────────────────────────────────────────
+interface SectionData {
+    title: string;
+    data: any[];
+    type: 'invites_family' | 'invites_challenge' | 'inapp';
+}
 
 export default function NotificationsScreen() {
     const router = useRouter();
-    const { setProfile } = useUserStore();
-    const { refresh: refreshGlobalCount } = useNotificationStore();
-
     const [familyInvites, setFamilyInvites] = useState<any[]>([]);
     const [challengeInvites, setChallengeInvites] = useState<any[]>([]);
-    const [pendingBets, setPendingBets] = useState<any[]>([]);
+    const [inAppNotifs, setInAppNotifs] = useState<AppNotification[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [loadingId, setLoadingId] = useState<string | null>(null);
 
     const fetchAll = useCallback(async () => {
         try {
             setIsLoading(true);
-            const [fi, ci, bets] = await Promise.all([
+            const [fi, ci, notifs] = await Promise.all([
                 familyService.getMyInvites(),
                 api.get('/challenges/my-invites').then(r => r.data),
-                betService.getMy(),
+                notificationService.getAll(50),
             ]);
             setFamilyInvites(fi);
             setChallengeInvites(ci);
-            setPendingBets(bets.filter((b: any) => b.status === 'pending' && b.isTarget));
+            setInAppNotifs(notifs);
         } catch (e) {
             console.log('Notifications error:', e);
         } finally {
@@ -47,19 +78,13 @@ export default function NotificationsScreen() {
 
     useEffect(() => { fetchAll(); }, [fetchAll]);
 
-    // После любого действия — обновляем и локальный список и глобальный счётчик
-    const afterAction = useCallback(() => {
-        fetchAll();
-        refreshGlobalCount();
-    }, [fetchAll, refreshGlobalCount]);
-
-    // ── Семейные приглашения ──────────────────────────────────────
+    // ── Инвайты — принять/отклонить ────────────────────────────────────────
     const handleFamilyRespond = async (inviteId: number, accept: boolean) => {
         try {
             setLoadingId(`f-${inviteId}`);
             const result = await familyService.respondInvite(inviteId, accept);
             Alert.alert(accept ? '✅ Принято!' : '❌ Отклонено', result.message);
-            afterAction();
+            fetchAll();
         } catch (e: any) {
             Alert.alert('Ошибка', e.message);
         } finally {
@@ -67,13 +92,12 @@ export default function NotificationsScreen() {
         }
     };
 
-    // ── Приглашения в челлендж ────────────────────────────────────
     const handleChallengeRespond = async (inviteId: number, accept: boolean) => {
         try {
             setLoadingId(`c-${inviteId}`);
             const result = await api.patch(`/challenges/invites/${inviteId}`, { accept });
             Alert.alert(accept ? '✅ Принято!' : '❌ Отклонено', result.data.message);
-            afterAction();
+            fetchAll();
         } catch (e: any) {
             Alert.alert('Ошибка', e.message);
         } finally {
@@ -81,39 +105,141 @@ export default function NotificationsScreen() {
         }
     };
 
-    // ── Ставки ────────────────────────────────────────────────────
-    const handleBetRespond = async (bet: any, accept: boolean) => {
-        const confirmMsg = accept
-            ? `Принять ставку? Спишется ${bet.amount} 🪙. Банк: ${bet.amount * 2} 🪙`
-            : 'Отклонить ставку?';
+    // ── In-app уведомление — прочитать и перейти ───────────────────────────
+    const handleNotifPress = async (notif: AppNotification) => {
+        if (!notif.isRead) {
+            await notificationService.markRead(notif.id);
+            setInAppNotifs(prev =>
+                prev.map(n => n.id === notif.id ? { ...n, isRead: true } : n)
+            );
+        }
 
-        Alert.alert(
-            accept ? '💰 Принять ставку' : '❌ Отклонить',
-            confirmMsg,
-            [
-                { text: 'Отмена', style: 'cancel' },
-                {
-                    text: accept ? 'Принять' : 'Отклонить',
-                    style: accept ? 'default' : 'destructive',
-                    onPress: async () => {
-                        try {
-                            setLoadingId(`b-${bet.id}`);
-                            const result = await betService.respond(bet.id, accept);
-                            Alert.alert(accept ? '🔥 Принято!' : '❌ Отклонено', result.message);
-                            userService.getProfile().then(p => setProfile(p)).catch(() => {});
-                            afterAction();
-                        } catch (e: any) {
-                            Alert.alert('Ошибка', e.message);
-                        } finally {
-                            setLoadingId(null);
-                        }
-                    },
+        // Навигация по типу
+        const d = notif.data;
+        if (!d) return;
+
+        if (d.challengeId) {
+            router.push(`/challenge/${d.challengeId}`);
+        }
+    };
+
+    const handleNotifDelete = async (id: number) => {
+        await notificationService.deleteOne(id);
+        setInAppNotifs(prev => prev.filter(n => n.id !== id));
+    };
+
+    const handleMarkAllRead = async () => {
+        await notificationService.markAllRead();
+        setInAppNotifs(prev => prev.map(n => ({ ...n, isRead: true })));
+    };
+
+    const handleClearAll = () => {
+        Alert.alert('Очистить уведомления?', 'Все in-app уведомления будут удалены', [
+            { text: 'Отмена', style: 'cancel' },
+            {
+                text: 'Очистить',
+                style: 'destructive',
+                onPress: async () => {
+                    await notificationService.clearAll();
+                    setInAppNotifs([]);
                 },
-            ]
+            },
+        ]);
+    };
+
+    const unreadCount = inAppNotifs.filter(n => !n.isRead).length;
+    const total = familyInvites.length + challengeInvites.length + inAppNotifs.length;
+
+    // ── Рендер in-app уведомления ──────────────────────────────────────────
+    const renderInAppNotif = (notif: AppNotification) => {
+        const cfg = NOTIF_CONFIG[notif.type] ?? { emoji: '🔔', color: Colors.primary };
+
+        return (
+            <TouchableOpacity
+                key={notif.id}
+                style={[styles.notifCard, !notif.isRead && styles.notifCardUnread]}
+                onPress={() => handleNotifPress(notif)}
+                activeOpacity={0.8}
+            >
+                {/* Цветная полоска слева у непрочитанных */}
+                {!notif.isRead && <View style={[styles.unreadBar, { backgroundColor: cfg.color }]} />}
+
+                <View style={[styles.notifIcon, { backgroundColor: cfg.color + '22' }]}>
+                    <Text style={styles.notifEmoji}>{cfg.emoji}</Text>
+                </View>
+
+                <View style={styles.notifBody}>
+                    <View style={styles.notifTopRow}>
+                        <Text style={[styles.notifTitle, !notif.isRead && styles.notifTitleBold]}>
+                            {notif.title}
+                        </Text>
+                        {!notif.isRead && <View style={[styles.dotBadge, { backgroundColor: cfg.color }]} />}
+                    </View>
+                    <Text style={styles.notifText}>{notif.body}</Text>
+                    <Text style={styles.notifTime}>{formatTime(notif.createdAt)}</Text>
+                </View>
+
+                <TouchableOpacity
+                    style={styles.deleteNotifBtn}
+                    onPress={() => handleNotifDelete(notif.id)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                    <Ionicons name="close" size={16} color={Colors.textMuted} />
+                </TouchableOpacity>
+            </TouchableOpacity>
         );
     };
 
-    const total = familyInvites.length + challengeInvites.length + pendingBets.length;
+    // ── Рендер карточки инвайта ────────────────────────────────────────────
+    const renderInviteCard = (invite: any, type: 'family' | 'challenge') => {
+        const isFamily = type === 'family';
+        const id = invite.id;
+        const loadKey = isFamily ? `f-${id}` : `c-${id}`;
+
+        return (
+            <View key={id} style={styles.inviteCard}>
+                <View style={[styles.inviteIconBox, { backgroundColor: isFamily ? Colors.primary + '20' : Colors.accent + '20' }]}>
+                    <Text style={styles.inviteEmoji}>{isFamily ? '🌳' : '🏆'}</Text>
+                </View>
+                <View style={styles.inviteInfo}>
+                    <Text style={styles.inviteTitle}>
+                        {isFamily
+                            ? `${invite.sender?.username ?? 'Пользователь'} приглашает тебя`
+                            : `${invite.inviteSender?.username ?? 'Пользователь'} приглашает тебя`
+                        }
+                    </Text>
+                    <Text style={styles.inviteDetail}>
+                        {isFamily
+                            ? `Роль: ${RELATION_LABELS[invite.relation as keyof typeof RELATION_LABELS] ?? invite.relation}${invite.birthYear ? ` · ${invite.birthYear} г.р.` : ''}`
+                            : `${invite.challenge?.title ?? 'Челлендж'}${invite.challenge?.betAmount > 0 ? ` · 🪙 ${invite.challenge.betAmount}` : ''}`
+                        }
+                    </Text>
+                </View>
+                <View style={styles.inviteBtns}>
+                    <TouchableOpacity
+                        style={styles.rejectBtn}
+                        onPress={() => isFamily ? handleFamilyRespond(id, false) : handleChallengeRespond(id, false)}
+                        disabled={loadingId === loadKey}
+                    >
+                        {loadingId === loadKey
+                            ? <ActivityIndicator size="small" color={Colors.error} />
+                            : <Text style={styles.rejectTxt}>✗</Text>
+                        }
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.acceptBtn}
+                        onPress={() => isFamily ? handleFamilyRespond(id, true) : handleChallengeRespond(id, true)}
+                        disabled={loadingId === loadKey}
+                    >
+                        {loadingId === loadKey
+                            ? <ActivityIndicator size="small" color={Colors.white} />
+                            : <Text style={styles.acceptTxt}>✓</Text>
+                        }
+                    </TouchableOpacity>
+                </View>
+            </View>
+        );
+    };
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
@@ -122,250 +248,57 @@ export default function NotificationsScreen() {
             <ScrollView
                 contentContainerStyle={styles.content}
                 refreshControl={
-                    <RefreshControl
-                        refreshing={isLoading}
-                        onRefresh={afterAction}
-                        tintColor={Colors.primary}
-                    />
+                    <RefreshControl refreshing={isLoading} onRefresh={fetchAll} tintColor={Colors.primary} />
                 }
             >
-                {/* Счётчик */}
-                {total > 0 && (
-                    <View style={styles.totalBanner}>
-                        <View style={styles.totalLeft}>
-                            <View style={styles.totalBadge}>
-                                <Text style={styles.totalBadgeTxt}>{total}</Text>
-                            </View>
-                            <Text style={styles.totalTxt}>
-                                {total === 1 ? 'уведомление' : total < 5 ? 'уведомления' : 'уведомлений'}
-                            </Text>
-                        </View>
-                        <Text style={styles.totalSub}>Требуют твоего ответа</Text>
-                    </View>
-                )}
-
-                {/* Пустое состояние */}
                 {total === 0 && !isLoading && (
                     <View style={styles.empty}>
-                        <View style={styles.emptyIconWrapper}>
-                            <Text style={styles.emptyIcon}>🔕</Text>
-                        </View>
-                        <Text style={styles.emptyTitle}>Всё спокойно</Text>
-                        <Text style={styles.emptyText}>
-                            Здесь появятся приглашения в семью, челленджи и ставки
-                        </Text>
+                        <Text style={styles.emptyIcon}>🔕</Text>
+                        <Text style={styles.emptyTitle}>Нет уведомлений</Text>
+                        <Text style={styles.emptyText}>Здесь будут оценки, ставки, приглашения и события по челленджам</Text>
                     </View>
                 )}
 
-                {/* ── Ставки ── */}
-                {pendingBets.length > 0 && (
-                    <>
-                        <View style={styles.sectionHeader}>
-                            <Text style={styles.section}>💰 Входящие ставки</Text>
-                            <View style={[styles.sectionBadge, {
-                                backgroundColor: Colors.rikon + '22',
-                                borderColor: Colors.rikon + '60',
-                            }]}>
-                                <Text style={[styles.sectionBadgeTxt, { color: Colors.rikon }]}>
-                                    {pendingBets.length}
-                                </Text>
-                            </View>
-                        </View>
-
-                        {pendingBets.map((bet) => {
-                            const isLoadingThis = loadingId === `b-${bet.id}`;
-                            return (
-                                <View key={bet.id} style={[styles.card, styles.betCard]}>
-                                    <View style={[styles.cardIcon, { backgroundColor: Colors.rikon + '20' }]}>
-                                        <Text style={styles.cardIconTxt}>💰</Text>
-                                    </View>
-
-                                    <View style={styles.cardInfo}>
-                                        <Text style={styles.cardTitle}>
-                                            {bet.fromUser?.username ?? 'Пользователь'} предлагает ставку
-                                        </Text>
-                                        <Text style={styles.cardDetail}>
-                                            Сумма:{' '}
-                                            <Text style={[styles.cardDetailBold, { color: Colors.rikon }]}>
-                                                {bet.amount} 🪙
-                                            </Text>
-                                            {' '}· Банк: {bet.amount * 2} 🪙
-                                        </Text>
-                                        <Text style={styles.cardDesc} numberOfLines={2}>
-                                            {bet.description}
-                                        </Text>
-                                        <View style={styles.betPredictionRow}>
-                                            <Ionicons name="trophy-outline" size={12} color={Colors.rikon} />
-                                            <Text style={styles.betPredictionTxt}>
-                                                Ставит на победу:{' '}
-                                                <Text style={{ color: Colors.rikon, fontWeight: '700' }}>
-                                                    {bet.targetUser?.username}
-                                                </Text>
-                                            </Text>
-                                        </View>
-                                    </View>
-
-                                    <View style={styles.cardBtns}>
-                                        <TouchableOpacity
-                                            style={styles.rejectBtn}
-                                            onPress={() => handleBetRespond(bet, false)}
-                                            disabled={isLoadingThis}
-                                        >
-                                            {isLoadingThis
-                                                ? <ActivityIndicator size="small" color={Colors.error} />
-                                                : <Text style={styles.rejectTxt}>✗</Text>
-                                            }
-                                        </TouchableOpacity>
-                                        <TouchableOpacity
-                                            style={styles.acceptBtn}
-                                            onPress={() => handleBetRespond(bet, true)}
-                                            disabled={isLoadingThis}
-                                        >
-                                            {isLoadingThis
-                                                ? <ActivityIndicator size="small" color={Colors.white} />
-                                                : <Text style={styles.acceptTxt}>✓</Text>
-                                            }
-                                        </TouchableOpacity>
-                                    </View>
-                                </View>
-                            );
-                        })}
-                    </>
-                )}
-
-                {/* ── Приглашения в семью ── */}
+                {/* ── Инвайты в семью ─────────────────────────────────────── */}
                 {familyInvites.length > 0 && (
                     <>
-                        <View style={styles.sectionHeader}>
-                            <Text style={styles.section}>👨‍👩‍👧 Приглашения в семью</Text>
-                            <View style={[styles.sectionBadge, {
-                                backgroundColor: Colors.accent + '22',
-                                borderColor: Colors.accent + '60',
-                            }]}>
-                                <Text style={[styles.sectionBadgeTxt, { color: Colors.accent }]}>
-                                    {familyInvites.length}
-                                </Text>
-                            </View>
-                        </View>
-
-                        {familyInvites.map((invite) => {
-                            const isLoadingThis = loadingId === `f-${invite.id}`;
-                            return (
-                                <View key={invite.id} style={styles.card}>
-                                    <View style={[styles.cardIcon, { backgroundColor: Colors.accent + '18' }]}>
-                                        <Text style={styles.cardIconTxt}>🌳</Text>
-                                    </View>
-                                    <View style={styles.cardInfo}>
-                                        <Text style={styles.cardTitle}>
-                                            {invite.sender?.username ?? 'Пользователь'} приглашает тебя
-                                        </Text>
-                                        <Text style={styles.cardDetail}>
-                                            Роль:{' '}
-                                            <Text style={styles.cardDetailBold}>
-                                                {RELATION_LABELS[invite.relation as keyof typeof RELATION_LABELS] ?? invite.relation}
-                                            </Text>
-                                            {invite.birthYear ? ` · ${invite.birthYear} г.р.` : ''}
-                                        </Text>
-                                    </View>
-                                    <View style={styles.cardBtns}>
-                                        <TouchableOpacity
-                                            style={styles.rejectBtn}
-                                            onPress={() => handleFamilyRespond(invite.id, false)}
-                                            disabled={isLoadingThis}
-                                        >
-                                            {isLoadingThis
-                                                ? <ActivityIndicator size="small" color={Colors.error} />
-                                                : <Text style={styles.rejectTxt}>✗</Text>
-                                            }
-                                        </TouchableOpacity>
-                                        <TouchableOpacity
-                                            style={styles.acceptBtn}
-                                            onPress={() => handleFamilyRespond(invite.id, true)}
-                                            disabled={isLoadingThis}
-                                        >
-                                            {isLoadingThis
-                                                ? <ActivityIndicator size="small" color={Colors.white} />
-                                                : <Text style={styles.acceptTxt}>✓</Text>
-                                            }
-                                        </TouchableOpacity>
-                                    </View>
-                                </View>
-                            );
-                        })}
+                        <Text style={styles.section}>👨‍👩‍👧 Приглашения в семью</Text>
+                        {familyInvites.map(invite => renderInviteCard(invite, 'family'))}
                     </>
                 )}
 
-                {/* ── Приглашения в челлендж ── */}
+                {/* ── Инвайты в челлендж ──────────────────────────────────── */}
                 {challengeInvites.length > 0 && (
                     <>
-                        <View style={styles.sectionHeader}>
-                            <Text style={styles.section}>🏆 Приглашения в челлендж</Text>
-                            <View style={[styles.sectionBadge, {
-                                backgroundColor: Colors.primary + '22',
-                                borderColor: Colors.primary + '60',
-                            }]}>
-                                <Text style={[styles.sectionBadgeTxt, { color: Colors.primary }]}>
-                                    {challengeInvites.length}
-                                </Text>
-                            </View>
-                        </View>
-
-                        {challengeInvites.map((invite) => {
-                            const isLoadingThis = loadingId === `c-${invite.id}`;
-                            return (
-                                <View key={invite.id} style={styles.card}>
-                                    <View style={[styles.cardIcon, { backgroundColor: Colors.primary + '18' }]}>
-                                        <Text style={styles.cardIconTxt}>🏆</Text>
-                                    </View>
-                                    <View style={styles.cardInfo}>
-                                        <Text style={styles.cardTitle}>
-                                            {invite.inviteSender?.username ?? 'Пользователь'} приглашает тебя
-                                        </Text>
-                                        <Text style={styles.cardDetail}>
-                                            {invite.challenge?.title ?? 'Челлендж'}
-                                        </Text>
-                                        {invite.challenge?.betAmount > 0 && (
-                                            <Text style={[styles.cardDetail, { color: Colors.rikon }]}>
-                                                Ставка: {invite.challenge.betAmount} 🪙
-                                            </Text>
-                                        )}
-                                    </View>
-                                    <View style={styles.cardBtns}>
-                                        <TouchableOpacity
-                                            style={styles.rejectBtn}
-                                            onPress={() => handleChallengeRespond(invite.id, false)}
-                                            disabled={isLoadingThis}
-                                        >
-                                            {isLoadingThis
-                                                ? <ActivityIndicator size="small" color={Colors.error} />
-                                                : <Text style={styles.rejectTxt}>✗</Text>
-                                            }
-                                        </TouchableOpacity>
-                                        <TouchableOpacity
-                                            style={styles.acceptBtn}
-                                            onPress={() => handleChallengeRespond(invite.id, true)}
-                                            disabled={isLoadingThis}
-                                        >
-                                            {isLoadingThis
-                                                ? <ActivityIndicator size="small" color={Colors.white} />
-                                                : <Text style={styles.acceptTxt}>✓</Text>
-                                            }
-                                        </TouchableOpacity>
-                                    </View>
-                                </View>
-                            );
-                        })}
+                        <Text style={styles.section}>🏆 Приглашения в челлендж</Text>
+                        {challengeInvites.map(invite => renderInviteCard(invite, 'challenge'))}
                     </>
                 )}
 
-                {total === 0 && !isLoading && (
-                    <TouchableOpacity
-                        style={styles.exploreBtn}
-                        onPress={() => router.push('/(tabs)/challenges')}
-                    >
-                        <Ionicons name="trophy-outline" size={18} color={Colors.primary} />
-                        <Text style={styles.exploreBtnTxt}>Посмотреть челленджи</Text>
-                    </TouchableOpacity>
+                {/* ── In-app уведомления ──────────────────────────────────── */}
+                {inAppNotifs.length > 0 && (
+                    <>
+                        <View style={styles.inAppHeader}>
+                            <Text style={styles.section}>
+                                🔔 Уведомления
+                                {unreadCount > 0 && (
+                                    <Text style={styles.unreadBadge}> ({unreadCount} новых)</Text>
+                                )}
+                            </Text>
+                            <View style={styles.inAppActions}>
+                                {unreadCount > 0 && (
+                                    <TouchableOpacity onPress={handleMarkAllRead} style={styles.actionBtn}>
+                                        <Text style={styles.actionBtnTxt}>Все прочитаны</Text>
+                                    </TouchableOpacity>
+                                )}
+                                <TouchableOpacity onPress={handleClearAll} style={styles.clearBtn}>
+                                    <Ionicons name="trash-outline" size={15} color={Colors.error} />
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+
+                        {inAppNotifs.map(renderInAppNotif)}
+                    </>
                 )}
             </ScrollView>
         </SafeAreaView>
@@ -376,53 +309,103 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: Colors.background },
     content: { padding: 20, paddingBottom: 40 },
 
-    totalBanner: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        backgroundColor: Colors.primary + '15',
-        borderRadius: 14,
-        padding: 14,
-        marginBottom: 20,
-        borderWidth: 1,
-        borderColor: Colors.primary + '30',
-    },
-    totalLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    totalBadge: {
-        width: 32, height: 32, borderRadius: 16,
-        backgroundColor: Colors.primary,
-        justifyContent: 'center', alignItems: 'center',
-    },
-    totalBadgeTxt: { color: Colors.white, fontWeight: '800', fontSize: 15 },
-    totalTxt: { fontSize: 16, fontWeight: '700', color: Colors.textPrimary },
-    totalSub: { fontSize: 12, color: Colors.textSecondary },
-
     empty: { alignItems: 'center', paddingVertical: 60 },
-    emptyIconWrapper: {
-        width: 80, height: 80, borderRadius: 40,
-        backgroundColor: Colors.surface,
-        justifyContent: 'center', alignItems: 'center',
-        marginBottom: 16,
-        borderWidth: 1, borderColor: Colors.border,
-    },
-    emptyIcon: { fontSize: 36 },
+    emptyIcon: { fontSize: 56, marginBottom: 16 },
     emptyTitle: { fontSize: 20, fontWeight: '700', color: Colors.textPrimary, marginBottom: 8 },
     emptyText: { fontSize: 14, color: Colors.textSecondary, textAlign: 'center', lineHeight: 20 },
 
-    sectionHeader: {
-        flexDirection: 'row', alignItems: 'center', gap: 8,
-        marginBottom: 10, marginTop: 8,
+    section: {
+        fontSize: 16, fontWeight: '700',
+        color: Colors.textPrimary, marginBottom: 10, marginTop: 8,
     },
-    section: { fontSize: 16, fontWeight: '700', color: Colors.textPrimary },
-    sectionBadge: {
-        paddingHorizontal: 8, paddingVertical: 2,
-        borderRadius: 10, borderWidth: 1,
-    },
-    sectionBadgeTxt: { fontSize: 12, fontWeight: '700' },
+    unreadBadge: { color: Colors.primary, fontWeight: '700' },
 
-    card: {
+    // Хедер секции in-app
+    inAppHeader: {
         flexDirection: 'row',
-        alignItems: 'flex-start',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 10,
+        marginTop: 8,
+    },
+    inAppActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    actionBtn: {
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        backgroundColor: Colors.primary + '18',
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: Colors.primary + '40',
+    },
+    actionBtnTxt: { fontSize: 12, color: Colors.primary, fontWeight: '600' },
+    clearBtn: {
+        padding: 6,
+        backgroundColor: Colors.error + '15',
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: Colors.error + '30',
+    },
+
+    // In-app карточка уведомления
+    notifCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Colors.surface,
+        borderRadius: 14,
+        padding: 14,
+        marginBottom: 8,
+        borderWidth: 1,
+        borderColor: Colors.border,
+        gap: 12,
+        overflow: 'hidden',
+    },
+    notifCardUnread: {
+        borderColor: Colors.primary + '50',
+        backgroundColor: Colors.primary + '08',
+    },
+    unreadBar: {
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        bottom: 0,
+        width: 3,
+        borderRadius: 3,
+    },
+
+    notifIcon: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        justifyContent: 'center',
+        alignItems: 'center',
+        flexShrink: 0,
+    },
+    notifEmoji: { fontSize: 22 },
+
+    notifBody: { flex: 1 },
+    notifTopRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginBottom: 2,
+    },
+    notifTitle: { fontSize: 14, color: Colors.textPrimary, flex: 1 },
+    notifTitleBold: { fontWeight: '700' },
+    dotBadge: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        flexShrink: 0,
+    },
+    notifText: { fontSize: 13, color: Colors.textSecondary, lineHeight: 18, marginBottom: 4 },
+    notifTime: { fontSize: 11, color: Colors.textMuted },
+
+    deleteNotifBtn: { padding: 4, flexShrink: 0 },
+
+    // Карточка инвайта
+    inviteCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
         backgroundColor: Colors.surface,
         borderRadius: 14,
         padding: 14,
@@ -431,27 +414,19 @@ const styles = StyleSheet.create({
         borderColor: Colors.border,
         gap: 12,
     },
-    betCard: {
-        borderColor: Colors.rikon + '30',
+    inviteIconBox: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
-    cardIcon: {
-        width: 44, height: 44, borderRadius: 22,
-        justifyContent: 'center', alignItems: 'center',
-        flexShrink: 0,
-    },
-    cardIconTxt: { fontSize: 22 },
-    cardInfo: { flex: 1, gap: 3 },
-    cardTitle: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary },
-    cardDetail: { fontSize: 12, color: Colors.textSecondary },
-    cardDetailBold: { fontWeight: '700', color: Colors.textPrimary },
-    cardDesc: { fontSize: 12, color: Colors.textMuted, fontStyle: 'italic', marginTop: 2 },
+    inviteEmoji: { fontSize: 22 },
+    inviteInfo: { flex: 1 },
+    inviteTitle: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary, marginBottom: 2 },
+    inviteDetail: { fontSize: 12, color: Colors.textSecondary },
 
-    betPredictionRow: {
-        flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4,
-    },
-    betPredictionTxt: { fontSize: 11, color: Colors.textSecondary },
-
-    cardBtns: { flexDirection: 'row', gap: 8, alignItems: 'center', flexShrink: 0 },
+    inviteBtns: { flexDirection: 'row', gap: 8 },
     rejectBtn: {
         width: 36, height: 36, borderRadius: 18,
         borderWidth: 1, borderColor: Colors.error,
@@ -464,13 +439,4 @@ const styles = StyleSheet.create({
         justifyContent: 'center', alignItems: 'center',
     },
     acceptTxt: { color: Colors.white, fontWeight: '700', fontSize: 16 },
-
-    exploreBtn: {
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-        gap: 8, marginTop: 24,
-        padding: 14, borderRadius: 12,
-        borderWidth: 1, borderColor: Colors.primary + '40',
-        backgroundColor: Colors.primary + '10',
-    },
-    exploreBtnTxt: { color: Colors.primary, fontWeight: '600', fontSize: 14 },
 });

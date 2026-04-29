@@ -9,6 +9,7 @@ import taskRoutes       from './taskRoutes';
 import familyRoutes     from './familyRoutes';
 import chatRoutes       from './chatRoutes';
 import privacyRoutes    from './privacyRoutes';
+import notificationRoutes from './notificationRoutes';
 
 const router = Router();
 
@@ -22,5 +23,6 @@ router.use('/tasks',       taskRoutes);
 router.use('/family',      familyRoutes);
 router.use('/chat',        chatRoutes);
 router.use('/privacy',     privacyRoutes);
+router.use('/notifications', notificationRoutes);
 
 export default router;

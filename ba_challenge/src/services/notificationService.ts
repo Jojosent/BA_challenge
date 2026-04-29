@@ -1,54 +1,69 @@
 import api from './api';
 
-export interface NotificationCounts {
-    familyInvites: number;
-    challengeInvites: number;
-    pendingBets: number;
-    total: number;
+export type NotificationType =
+    | 'new_vote'
+    | 'vote_updated'
+    | 'new_participant'
+    | 'challenge_started'
+    | 'challenge_ended'
+    | 'new_bet'
+    | 'bet_joined'
+    | 'family_invite'
+    | 'challenge_invite';
+
+export interface AppNotification {
+    id: number;
+    type: NotificationType;
+    title: string;
+    body: string;
+    data: Record<string, any> | null;
+    isRead: boolean;
+    createdAt: string;
 }
 
 export const notificationService = {
+
+    // Общий счётчик всех непрочитанных (инвайты + in-app уведомления)
     getCount: async (): Promise<number> => {
         try {
-            const [familyInvites, challengeInvites, bets] = await Promise.all([
+            const [familyInvites, challengeInvites, inApp] = await Promise.all([
                 api.get('/family/invites'),
                 api.get('/challenges/my-invites'),
-                api.get('/bets/my'),
+                api.get('/notifications/count').catch(() => ({ data: { count: 0 } })),
             ]);
-
-            const pendingBetsCount = (bets.data as any[]).filter(
-                (b: any) => b.status === 'pending' && b.isTarget
-            ).length;
-
-            return familyInvites.data.length + challengeInvites.data.length + pendingBetsCount;
+            return (
+                familyInvites.data.length +
+                challengeInvites.data.length +
+                (inApp.data.count ?? 0)
+            );
         } catch {
             return 0;
         }
     },
 
-    getCounts: async (): Promise<NotificationCounts> => {
-        try {
-            const [familyInvites, challengeInvites, bets] = await Promise.all([
-                api.get('/family/invites'),
-                api.get('/challenges/my-invites'),
-                api.get('/bets/my'),
-            ]);
+    // Все in-app уведомления (голоса, ставки, участники, смена статуса)
+    getAll: async (limit = 50): Promise<AppNotification[]> => {
+        const response = await api.get(`/notifications?limit=${limit}`);
+        return response.data;
+    },
 
-            const pendingBetsCount = (bets.data as any[]).filter(
-                (b: any) => b.status === 'pending' && b.isTarget
-            ).length;
+    // Пометить одно прочитанным
+    markRead: async (id: number): Promise<void> => {
+        await api.patch(`/notifications/${id}/read`);
+    },
 
-            const familyCount = familyInvites.data.length;
-            const challengeCount = challengeInvites.data.length;
+    // Пометить все прочитанными
+    markAllRead: async (): Promise<void> => {
+        await api.patch('/notifications/read-all');
+    },
 
-            return {
-                familyInvites: familyCount,
-                challengeInvites: challengeCount,
-                pendingBets: pendingBetsCount,
-                total: familyCount + challengeCount + pendingBetsCount,
-            };
-        } catch {
-            return { familyInvites: 0, challengeInvites: 0, pendingBets: 0, total: 0 };
-        }
+    // Удалить одно
+    deleteOne: async (id: number): Promise<void> => {
+        await api.delete(`/notifications/${id}`);
+    },
+
+    // Очистить все
+    clearAll: async (): Promise<void> => {
+        await api.delete('/notifications/clear-all');
     },
 };

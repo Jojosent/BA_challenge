@@ -22,6 +22,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 
 export default function ProfileScreen() {
   const { displayUser, isLoading, editProfile, fetchProfile } = useProfile();
@@ -32,7 +33,7 @@ export default function ProfileScreen() {
     avgRating: 0, totalVoters: 0,
     challengeCount: 0, wonCount: 0,
   });
-
+  const router = useRouter();
   useEffect(() => {
     userService.getStats().then(setStats).catch(console.error);
   }, []);
@@ -148,9 +149,7 @@ export default function ProfileScreen() {
         {/* Настройки */}
         <Text style={styles.sectionTitle}>Настройки</Text>
         <Card style={styles.settingsCard}>
-          <SettingsRow icon="notifications-outline" label="Уведомления" onPress={function (): void {
-            throw new Error('Function not implemented.');
-          }} />
+          <SettingsRow icon="notifications-outline" label="Уведомления" onPress={() => router.push('/notifications')} />
           <View style={styles.divider} />
           <SettingsRow
             icon="lock-closed-outline"
@@ -160,11 +159,11 @@ export default function ProfileScreen() {
           <View style={styles.divider} />
           <SettingsRow icon="language-outline" label="Язык" onPress={function (): void {
             throw new Error('Function not implemented.');
-          } } />
+          }} />
           <View style={styles.divider} />
           <SettingsRow icon="color-palette-outline" label="Тема" onPress={function (): void {
             throw new Error('Function not implemented.');
-          } } />
+          }} />
         </Card>
 
         {/* Кнопка выхода */}
@@ -240,13 +239,19 @@ const InfoRow = ({
   </View>
 );
 
-const SettingsRow = ({ icon, label, onPress }: { icon: string; label: string; onPress?: () => void }) => (
+const SettingsRow = ({ icon, label, onPress }: {
+  icon: string;
+  label: string;
+  onPress: () => void;  // ← должен быть этот проп
+}) => (
   <TouchableOpacity style={infoStyles.row} onPress={onPress}>
     <Ionicons name={icon as any} size={18} color={Colors.textSecondary} />
     <Text style={[infoStyles.label, { flex: 1, marginLeft: 12 }]}>{label}</Text>
     <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
   </TouchableOpacity>
 );
+
+
 
 const infoStyles = StyleSheet.create({
   row: {
