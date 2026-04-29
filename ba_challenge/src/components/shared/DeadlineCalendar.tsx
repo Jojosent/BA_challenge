@@ -40,11 +40,7 @@ export const DeadlineCalendar: React.FC = () => {
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
     const navigateToTask = (taskId: number, challengeId: number) => {
-        try {
-            router.push(`/challenge/task/${taskId}?challengeId=${challengeId}` as any);
-        } catch (e) {
-            console.log('Navigation error:', e);
-        }
+        router.push(`/challenge/task/${taskId}?challengeId=${challengeId}` as any);
     };
     const today = new Date();
     const [currentMonth, setCurrentMonth] = useState(today.getMonth());

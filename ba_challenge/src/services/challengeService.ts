@@ -23,32 +23,6 @@ export const challengeService = {
 
     // ----------------------------
     getMyTaskDeadlines: async (): Promise<{
-    taskId: number;
-    taskTitle: string;
-    taskDay: number;
-    deadline: string;
-    challengeId: number;
-    challengeTitle: string;
-    isExpired: boolean;
-    daysLeft: number;
-}[]> => {
-    const response = await api.get('/challenges');
-    const allChallenges = response.data;
-
-    // ✅ Получаем id текущего пользователя из SecureStore
-    const userStr = await import('expo-secure-store').then(m =>
-        m.getItemAsync('ba_challenge_user')
-    );
-    if (!userStr) return [];
-    const currentUser = JSON.parse(userStr);
-    const userId = currentUser.id;
-
-    // ✅ Только те челленджи где пользователь является участником
-    const myChallenges = allChallenges.filter((c: any) =>
-        c.participants?.some((p: any) => p.userId === userId)
-    );
-
-    const result: {
         taskId: number;
         taskTitle: string;
         taskDay: number;
@@ -57,43 +31,42 @@ export const challengeService = {
         challengeTitle: string;
         isExpired: boolean;
         daysLeft: number;
-    }[] = [];
-
-    const now = new Date();
-
-    for (const challenge of myChallenges) {
-        if (challenge.status === 'completed' || challenge.status === 'cancelled') continue;
-
+    }[]> => {
         try {
-            const tasksResponse = await api.get(`/challenges/${challenge.id}/tasks`);
-            const tasks = tasksResponse.data;
+            const challengesRes = await api.get('/challenges');
+            const challenges = challengesRes.data;
+            const now = new Date();
+            const result: any[] = [];
 
-            for (const task of tasks) {
-                if (!task.deadline) continue;
-                const deadline = new Date(task.deadline);
-                const daysLeft = Math.ceil(
-                    (deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-                );
-                result.push({
-                    taskId: task.id,
-                    taskTitle: task.title,
-                    taskDay: task.day,
-                    deadline: task.deadline,
-                    challengeId: challenge.id,
-                    challengeTitle: challenge.title,
-                    isExpired: deadline < now,
-                    daysLeft,
-                });
+            for (const challenge of challenges) {
+                if (challenge.status === 'completed' || challenge.status === 'cancelled') continue;
+                try {
+                    const tasksRes = await api.get(`/challenges/${challenge.id}/tasks`);
+                    for (const task of tasksRes.data) {
+                        if (!task.deadline) continue;
+                        const deadlineDate = new Date(task.deadline);
+                        const daysLeft = Math.ceil(
+                            (deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+                        );
+                        result.push({
+                            taskId: task.id,
+                            taskTitle: task.title,
+                            taskDay: task.day,
+                            deadline: task.deadline,
+                            challengeId: challenge.id,
+                            challengeTitle: challenge.title,
+                            isExpired: daysLeft < 0,
+                            daysLeft: Math.max(daysLeft, 0),
+                        });
+                    }
+                } catch (e) { /* нет доступа */ }
             }
-        } catch (e) {
-            console.log('getMyTaskDeadlines task fetch error:', e);
-        }
-    }
 
-    return result.sort((a, b) =>
-        new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
-    );
-},
+            return result.sort((a, b) => a.daysLeft - b.daysLeft);
+        } catch (e) {
+            return [];
+        }
+    },
     // ----------------------------
 
     create: async (params: {
