@@ -9,6 +9,7 @@ import React, { useEffect, useState } from 'react';
 import { userService } from '@services/userService';
 import { Ionicons } from '@expo/vector-icons';
 import { useNotificationStore } from '@hooks/useNotifications';
+import { DeadlineCalendar } from '@components/shared/DeadlineCalendar';
 
 import {
   RefreshControl,
@@ -23,9 +24,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 export default function HomeScreen() {
   const router = useRouter();
   const { displayUser, isLoading, fetchProfile } = useProfile();
+  const [notifCount, setNotifCount] = useState(0);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Берём счётчик из глобального store — polling уже идёт в _layout.tsx
-  const notifCount = useNotificationStore((state) => state.count);
+  // const notifCount = useNotificationStore((state) => state.count);
 
   const [stats, setStats] = useState({
     avgRating: 0,
@@ -54,6 +57,7 @@ export default function HomeScreen() {
     return 'Добрый вечер';
   };
 
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView
@@ -63,7 +67,7 @@ export default function HomeScreen() {
             refreshing={isLoading}
             onRefresh={() => {
               fetchProfile();
-              useNotificationStore.getState().refresh();
+              setRefreshKey((k) => k + 1);
             }}
             tintColor={Colors.primary}
           />
@@ -146,7 +150,7 @@ export default function HomeScreen() {
             <Text style={styles.actionLabel}>Челленджи</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionCard} onPress={() => {}}>
+          <TouchableOpacity style={styles.actionCard} onPress={() => { }}>
             <Text style={styles.actionIcon}>🤖</Text>
             <Text style={styles.actionLabel}>AI Генератор</Text>
           </TouchableOpacity>
@@ -184,20 +188,11 @@ export default function HomeScreen() {
         </View>
 
         {/* Лента активности */}
-        <Text style={styles.sectionTitle}>Последние события</Text>
-        <Card style={styles.emptyCard}>
-          <Text style={styles.emptyIcon}>🌟</Text>
-          <Text style={styles.emptyTitle}>Пока тихо!</Text>
-          <Text style={styles.emptyText}>
-            Создай первый челлендж и начни соревноваться
-          </Text>
-          <TouchableOpacity
-            style={styles.emptyBtn}
-            onPress={() => router.push('/(tabs)/challenges')}
-          >
-            <Text style={styles.emptyBtnText}>Создать челлендж</Text>
-          </TouchableOpacity>
-        </Card>
+        <Text style={styles.sectionTitle}>📅 Календарь задач</Text>
+        <View style={styles.calendarWrapper}>
+          <DeadlineCalendar key={refreshKey} />
+        </View>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -205,7 +200,10 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-
+  calendarWrapper: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

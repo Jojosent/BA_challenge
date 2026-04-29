@@ -21,6 +21,81 @@ export const challengeService = {
         return response.data;
     },
 
+    // ----------------------------
+    getMyTaskDeadlines: async (): Promise<{
+    taskId: number;
+    taskTitle: string;
+    taskDay: number;
+    deadline: string;
+    challengeId: number;
+    challengeTitle: string;
+    isExpired: boolean;
+    daysLeft: number;
+}[]> => {
+    const response = await api.get('/challenges');
+    const allChallenges = response.data;
+
+    // ✅ Получаем id текущего пользователя из SecureStore
+    const userStr = await import('expo-secure-store').then(m =>
+        m.getItemAsync('ba_challenge_user')
+    );
+    if (!userStr) return [];
+    const currentUser = JSON.parse(userStr);
+    const userId = currentUser.id;
+
+    // ✅ Только те челленджи где пользователь является участником
+    const myChallenges = allChallenges.filter((c: any) =>
+        c.participants?.some((p: any) => p.userId === userId)
+    );
+
+    const result: {
+        taskId: number;
+        taskTitle: string;
+        taskDay: number;
+        deadline: string;
+        challengeId: number;
+        challengeTitle: string;
+        isExpired: boolean;
+        daysLeft: number;
+    }[] = [];
+
+    const now = new Date();
+
+    for (const challenge of myChallenges) {
+        if (challenge.status === 'completed' || challenge.status === 'cancelled') continue;
+
+        try {
+            const tasksResponse = await api.get(`/challenges/${challenge.id}/tasks`);
+            const tasks = tasksResponse.data;
+
+            for (const task of tasks) {
+                if (!task.deadline) continue;
+                const deadline = new Date(task.deadline);
+                const daysLeft = Math.ceil(
+                    (deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+                );
+                result.push({
+                    taskId: task.id,
+                    taskTitle: task.title,
+                    taskDay: task.day,
+                    deadline: task.deadline,
+                    challengeId: challenge.id,
+                    challengeTitle: challenge.title,
+                    isExpired: deadline < now,
+                    daysLeft,
+                });
+            }
+        } catch (e) {
+            console.log('getMyTaskDeadlines task fetch error:', e);
+        }
+    }
+
+    return result.sort((a, b) =>
+        new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
+    );
+},
+    // ----------------------------
+
     create: async (params: {
         title: string;
         description: string;
