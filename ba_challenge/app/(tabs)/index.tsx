@@ -150,11 +150,13 @@ export default function HomeScreen() {
             <Text style={styles.actionLabel}>Челленджи</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionCard} onPress={() => { }}>
+          <TouchableOpacity
+            style={styles.actionCard}
+            onPress={() => router.push('/(tabs)/ai-assistant')}
+          >
             <Text style={styles.actionIcon}>🤖</Text>
-            <Text style={styles.actionLabel}>AI Генератор</Text>
+            <Text style={styles.actionLabel}>AI Ассистент</Text>
           </TouchableOpacity>
-
           <TouchableOpacity
             style={styles.actionCard}
             onPress={() => router.push('/family')}

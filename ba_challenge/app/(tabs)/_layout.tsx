@@ -20,6 +20,7 @@ const TabIcon = ({
     </View>
 );
 
+
 // Иконка главной вкладки с бейджем уведомлений
 const HomeTabIcon = ({
     color,
@@ -73,7 +74,7 @@ export default function TabsLayout() {
                 options={{
                     title: 'Главная',
                     tabBarIcon: ({ color, focused }) => (
-                        <HomeTabIcon color={color} focused={focused} />
+                        <TabIcon name={focused ? 'home' : 'home-outline'} color={color} focused={focused} />
                     ),
                 }}
             />
@@ -82,21 +83,17 @@ export default function TabsLayout() {
                 options={{
                     title: 'Челленджи',
                     tabBarIcon: ({ color, focused }) => (
-                        <TabIcon
-                            name={focused ? 'trophy' : 'trophy-outline'}
-                            color={color}
-                            focused={focused}
-                        />
+                        <TabIcon name={focused ? 'trophy' : 'trophy-outline'} color={color} focused={focused} />
                     ),
                 }}
             />
             <Tabs.Screen
-                name="scoreboard"
+                name="ai-assistant"
                 options={{
-                    title: 'Рейтинг',
+                    title: 'AI',
                     tabBarIcon: ({ color, focused }) => (
                         <TabIcon
-                            name={focused ? 'bar-chart' : 'bar-chart-outline'}
+                            name={focused ? 'sparkles' : 'sparkles-outline'}
                             color={color}
                             focused={focused}
                         />
@@ -108,11 +105,7 @@ export default function TabsLayout() {
                 options={{
                     title: 'Профиль',
                     tabBarIcon: ({ color, focused }) => (
-                        <TabIcon
-                            name={focused ? 'person' : 'person-outline'}
-                            color={color}
-                            focused={focused}
-                        />
+                        <TabIcon name={focused ? 'person' : 'person-outline'} color={color} focused={focused} />
                     ),
                 }}
             />
@@ -122,9 +115,6 @@ export default function TabsLayout() {
 
 const tabStyles = StyleSheet.create({
     iconWrapper: { alignItems: 'center', justifyContent: 'center' },
-    iconWithBadge: {
-        position: 'relative',
-    },
     dot: {
         width: 4,
         height: 4,
@@ -132,6 +122,10 @@ const tabStyles = StyleSheet.create({
         backgroundColor: Colors.primary,
         marginTop: 3,
     },
+    iconWithBadge: {
+        position: 'relative',
+    },
+
     badge: {
         position: 'absolute',
         top: -6,
