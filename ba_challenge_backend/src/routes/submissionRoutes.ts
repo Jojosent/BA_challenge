@@ -7,9 +7,16 @@ const router = Router();
 
 router.use(authMiddleware);
 
-// upload.single('media') — принимает один файл с полем 'media'
+// Загрузка доказательства (с шифрованием)
 router.post('/', upload.single('media'), submissionController.create);
+
+// Список сабмишенов по задаче
 router.get('/task/:taskId', submissionController.getByTask);
+
+// Мои сабмишены по челленджу
 router.get('/my/:challengeId', submissionController.getMySubmissions);
+
+// ✅ Защищённый endpoint — расшифровывает и отдаёт файл только участникам
+router.get('/:submissionId/media', submissionController.serveMedia);
 
 export default router;

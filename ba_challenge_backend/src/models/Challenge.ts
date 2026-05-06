@@ -1,8 +1,3 @@
-// ============================================================
-// ФАЙЛ 1: ba_challenge_backend/src/models/Challenge.ts
-// Добавь поле password в модель
-// ============================================================
-
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize from '../config/database';
 import { ChallengeStatus, VisibilityLevel } from '../types';
@@ -18,11 +13,10 @@ interface ChallengeAttributes {
   visibility: VisibilityLevel;
   betAmount: number;
   familyOwnerId?: number;
-  password?: string;        // ✅ НОВОЕ поле для защищённых челленджей
 }
 
 interface ChallengeCreationAttributes
-  extends Optional<ChallengeAttributes, 'id' | 'status' | 'betAmount' | 'password'> { }
+  extends Optional<ChallengeAttributes, 'id' | 'status' | 'betAmount'> { }
 
 class Challenge extends Model<ChallengeAttributes, ChallengeCreationAttributes>
   implements ChallengeAttributes {
@@ -35,9 +29,11 @@ class Challenge extends Model<ChallengeAttributes, ChallengeCreationAttributes>
   public status!: ChallengeStatus;
   public visibility!: VisibilityLevel;
   public betAmount!: number;
-  public password?: string;   // ✅
+  public familyOwnerId: any;
+
+  // ✅ Добавляем updatedAt — нужен для cleanupFiles
   public readonly createdAt!: Date;
-  familyOwnerId: any;
+  public readonly updatedAt!: Date;
 }
 
 Challenge.init(
@@ -58,9 +54,12 @@ Challenge.init(
     },
     betAmount: { type: DataTypes.INTEGER, defaultValue: 0 },
     familyOwnerId: { type: DataTypes.INTEGER, allowNull: true },
-    password: { type: DataTypes.STRING(255), allowNull: true },   // ✅ НОВОЕ
   },
-  { sequelize, tableName: 'challenges', timestamps: true }
+  {
+    sequelize,
+    tableName: 'challenges',
+    timestamps: true,   // ✅ включает createdAt и updatedAt
+  }
 );
 
 export default Challenge;
