@@ -26,9 +26,9 @@ interface SubmissionCardProps {
 
 // ─── Хук для загрузки защищённого медиа с токеном ───────────
 const useProtectedMedia = (mediaUrl: string, mediaType: 'photo' | 'video') => {
-    const [dataUri, setDataUri] = useState<string | null>(null);
+    const [dataUri, setDataUri]     = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState(false);
+    const [error, setError]         = useState(false);
 
     useEffect(() => {
         // Загружаем только фото — видео пока показываем плейсхолдер
@@ -60,7 +60,7 @@ const useProtectedMedia = (mediaUrl: string, mediaType: 'photo' | 'video') => {
                     const blob = await response.blob();
                     const base64 = await new Promise<string>((resolve, reject) => {
                         const reader = new FileReader();
-                        reader.onload = () => resolve(reader.result as string);
+                        reader.onload  = () => resolve(reader.result as string);
                         reader.onerror = () => reject(new Error('FileReader error'));
                         reader.readAsDataURL(blob);
                     });
@@ -92,7 +92,7 @@ const useProtectedMedia = (mediaUrl: string, mediaType: 'photo' | 'video') => {
 
 // ─── Компонент медиа ─────────────────────────────────────────
 const ProtectedMedia: React.FC<{
-    mediaUrl: string;
+    mediaUrl:  string;
     mediaType: 'photo' | 'video';
 }> = ({ mediaUrl, mediaType }) => {
     const { dataUri, isLoading, error } = useProtectedMedia(mediaUrl, mediaType);
@@ -137,14 +137,14 @@ const ProtectedMedia: React.FC<{
 export const SubmissionCard: React.FC<SubmissionCardProps> = ({ submission }) => {
     const { user } = useAuthStore();
     const [currentScore, setCurrentScore] = useState(submission.score);
-    const [aiScore, setAiScore] = useState(submission.aiScore);
-    const [aiComment, setAiComment] = useState(submission.aiComment);
+    const [aiScore, setAiScore]           = useState(submission.aiScore);
+    const [aiComment, setAiComment]       = useState(submission.aiComment);
     const [isEvaluating, setIsEvaluating] = useState(false);
-    const [showVoting, setShowVoting] = useState(false);
+    const [showVoting, setShowVoting]     = useState(false);
 
     const [receivedVotes, setReceivedVotes] = useState<any[]>([]);
-    const [votesLoaded, setVotesLoaded] = useState(false);
-    const [showMyVotes, setShowMyVotes] = useState(false);
+    const [votesLoaded, setVotesLoaded]     = useState(false);
+    const [showMyVotes, setShowMyVotes]     = useState(false);
 
     const loadMyVotes = async () => {
         if (votesLoaded) {
@@ -283,7 +283,7 @@ export const SubmissionCard: React.FC<SubmissionCardProps> = ({ submission }) =>
                                     setShowVoting(false);
                                     userService.getProfile()
                                         .then((p) => setProfile(p))
-                                        .catch(() => { });
+                                        .catch(() => {});
                                 }}
                             />
                         )}
@@ -454,8 +454,8 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         marginBottom: 4,
     },
-    aiLabel: { fontSize: 12, color: Colors.textSecondary },
-    aiScore: { fontSize: 13, fontWeight: '700', color: Colors.secondary },
+    aiLabel:   { fontSize: 12, color: Colors.textSecondary },
+    aiScore:   { fontSize: 13, fontWeight: '700', color: Colors.secondary },
     aiComment: {
         fontSize: 12,
         color: Colors.textSecondary,
@@ -520,9 +520,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     receivedAvatarAnon: { backgroundColor: Colors.textMuted },
-    receivedAvatarTxt: { color: Colors.white, fontWeight: '700', fontSize: 12 },
-    receivedInfo: { flex: 1 },
-    receivedName: { flex: 1, fontSize: 13, color: Colors.textPrimary },
+    receivedAvatarTxt:  { color: Colors.white, fontWeight: '700', fontSize: 12 },
+    receivedInfo:       { flex: 1 },
+    receivedName:       { flex: 1, fontSize: 13, color: Colors.textPrimary },
     receivedComment: {
         fontSize: 11,
         color: Colors.textSecondary,
