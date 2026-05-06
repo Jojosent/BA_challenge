@@ -1,15 +1,14 @@
-// import { Router } from 'express';
-// import { betController } from '../controllers/betController';
-// import { authMiddleware } from '../middleware/auth';
+import { Router } from 'express';
+import { betController } from '../controllers/betController';
+import { authMiddleware } from '../middleware/auth';
 
-// const router = Router();
-// router.use(authMiddleware);
+const router = Router();
 
-// router.get('/my',                          betController.getMy);
-// router.get('/challenge/:challengeId',      betController.getByChallengeId);
-// router.post('/',                           betController.create);
-// router.patch('/:betId/respond',            betController.respond);
-// router.patch('/:betId/cancel',             betController.cancel);
-// router.patch('/:betId/resolve',            betController.resolve);
+router.use(authMiddleware);
 
-// export default router;
+router.post('/', betController.createBet);
+router.post('/:id/join', betController.joinBet);
+router.get('/', betController.getBets);
+router.get('/:id', betController.getBetDetails);
+
+export default router;

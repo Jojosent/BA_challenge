@@ -9,7 +9,7 @@ import { Colors } from '@constants/colors';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@hooks/useAuth';
 import { useProfile } from '@hooks/useProfile';
-import { router } from 'expo-router/build/exports';
+import { router, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
@@ -22,7 +22,6 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 
 export default function ProfileScreen() {
   const { displayUser, isLoading, editProfile, fetchProfile } = useProfile();
@@ -34,6 +33,7 @@ export default function ProfileScreen() {
     challengeCount: 0, wonCount: 0,
   });
   const router = useRouter();
+
   useEffect(() => {
     userService.getStats().then(setStats).catch(console.error);
   }, []);
@@ -60,13 +60,12 @@ export default function ProfileScreen() {
     );
   };
 
+  const isAdminOrModerator = displayUser?.role === 'admin' || displayUser?.role === 'moderator';
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView showsVerticalScrollIndicator={false}>
-
-        {/* Шапка профиля */}
         <View style={styles.profileHeader}>
-          {/* Аватар */}
           <View style={styles.avatarWrapper}>
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>
@@ -80,8 +79,6 @@ export default function ProfileScreen() {
 
           <Text style={styles.username}>{displayUser?.username}</Text>
           <Text style={styles.email}>{displayUser?.email}</Text>
-
-
 
           {displayUser?.role && (
             <View style={styles.badgeRow}>
@@ -101,7 +98,6 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Статистика */}
         <Text style={styles.sectionTitle}>Статистика</Text>
         <View style={styles.statsRow}>
           <StatCard
@@ -124,7 +120,6 @@ export default function ProfileScreen() {
           />
         </View>
 
-        {/* Информация */}
         <Text style={styles.sectionTitle}>Информация</Text>
         <Card style={styles.infoCard}>
           <InfoRow
@@ -146,7 +141,19 @@ export default function ProfileScreen() {
           />
         </Card>
 
-        {/* Настройки */}
+        {isAdminOrModerator && (
+          <>
+            <Text style={styles.sectionTitle}>Управление</Text>
+            <Card style={styles.settingsCard}>
+              <SettingsRow
+                icon="shield-half-outline"
+                label="Панель администратора"
+                onPress={() => router.push('/admin')}
+              />
+            </Card>
+          </>
+        )}
+
         <Text style={styles.sectionTitle}>Настройки</Text>
         <Card style={styles.settingsCard}>
           <SettingsRow icon="notifications-outline" label="Уведомления" onPress={() => router.push('/notifications')} />
@@ -157,16 +164,11 @@ export default function ProfileScreen() {
             onPress={() => router.push('/settings/privacy-settings')}
           />
           <View style={styles.divider} />
-          <SettingsRow icon="language-outline" label="Язык" onPress={function (): void {
-            throw new Error('Function not implemented.');
-          }} />
+          <SettingsRow icon="language-outline" label="Язык" onPress={() => {}} />
           <View style={styles.divider} />
-          <SettingsRow icon="color-palette-outline" label="Тема" onPress={function (): void {
-            throw new Error('Function not implemented.');
-          }} />
+          <SettingsRow icon="color-palette-outline" label="Тема" onPress={() => {}} />
         </Card>
 
-        {/* Кнопка выхода */}
         <View style={styles.logoutSection}>
           <Button
             title="Выйти из аккаунта"
@@ -178,7 +180,6 @@ export default function ProfileScreen() {
         </View>
       </ScrollView>
 
-      {/* Модалка редактирования */}
       <Modal
         visible={editModal}
         transparent
@@ -220,7 +221,6 @@ export default function ProfileScreen() {
   );
 }
 
-// Вспомогательные компоненты
 const InfoRow = ({
   icon,
   label,
@@ -242,7 +242,7 @@ const InfoRow = ({
 const SettingsRow = ({ icon, label, onPress }: {
   icon: string;
   label: string;
-  onPress: () => void;  // ← должен быть этот проп
+  onPress: () => void;
 }) => (
   <TouchableOpacity style={infoStyles.row} onPress={onPress}>
     <Ionicons name={icon as any} size={18} color={Colors.textSecondary} />
@@ -250,8 +250,6 @@ const SettingsRow = ({ icon, label, onPress }: {
     <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
   </TouchableOpacity>
 );
-
-
 
 const infoStyles = StyleSheet.create({
   row: {
@@ -268,7 +266,6 @@ const infoStyles = StyleSheet.create({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
 
-  // Шапка профиля
   profileHeader: {
     alignItems: 'center',
     paddingVertical: 28,
@@ -316,7 +313,6 @@ const styles = StyleSheet.create({
   },
   editBtnText: { color: Colors.primary, fontSize: 14, fontWeight: '500' },
 
-  // Общие
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
@@ -338,12 +334,10 @@ const styles = StyleSheet.create({
     marginVertical: 2,
   },
 
-  // Logout
   logoutSection: { paddingHorizontal: 20, paddingBottom: 32, alignItems: 'center' },
   logoutBtn: { width: '100%', marginBottom: 16, borderColor: Colors.error },
   version: { fontSize: 12, color: Colors.textMuted },
 
-  // Модалка
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.7)',

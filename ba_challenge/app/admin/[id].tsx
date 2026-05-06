@@ -1,0 +1,359 @@
+import { LoadingSpinner } from '@components/shared/LoadingSpinner';
+import { Colors } from '@constants/colors';
+import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import {
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { adminService } from '../../src/services/adminService';
+
+export default function AdminChallengeDetailScreen() {
+  const { id } = useLocalSearchParams();
+  const router = useRouter();
+  const [data, setData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
+      const result = await adminService.getChallengeDetail(Number(id));
+      setData(result);
+    } catch (error) {
+      Alert.alert('Ошибка', 'Не удалось загрузить детали');
+      router.back();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [id]);
+
+  const handleDelete = () => {
+    Alert.alert('Удаление', 'Удалить проект и вернуть коины участникам?', [
+      { text: 'Отмена', style: 'cancel' },
+      {
+        text: 'Удалить',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await adminService.deleteChallenge(Number(id));
+            router.back();
+          } catch (e) {
+            Alert.alert('Ошибка', 'Не удалось удалить');
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleComplete = () => {
+    Alert.alert('Завершение', 'Принудительно завершить?', [
+      { text: 'Отмена', style: 'cancel' },
+      {
+        text: 'Завершить',
+        style: 'default',
+        onPress: async () => {
+          try {
+            await adminService.completeChallenge(Number(id));
+            fetchData();
+          } catch (e) {
+            Alert.alert('Ошибка', 'Не удалось завершить');
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleResolveDispute = (winnerId: number, username: string) => {
+    Alert.alert('Разрешение спора', `Назначить ${username} победителем? Весь призовой пул будет переведен ему.`, [
+      { text: 'Отмена', style: 'cancel' },
+      {
+        text: 'Подтвердить',
+        style: 'default',
+        onPress: async () => {
+          try {
+            await adminService.resolveDispute(Number(id), winnerId);
+            fetchData();
+          } catch (e) {
+            Alert.alert('Ошибка', 'Не удалось разрешить спор');
+          }
+        },
+      },
+    ]);
+  };
+
+  if (isLoading || !data) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
+          </TouchableOpacity>
+        </View>
+        <LoadingSpinner />
+      </SafeAreaView>
+    );
+  }
+
+  const isBet = data.betAmount > 0;
+  const isCompleted = data.status === 'completed';
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Детали: #{data.id}</Text>
+        <View style={{ width: 24 }} />
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <View style={styles.card}>
+          <View style={styles.rowBetween}>
+            <Text style={styles.title}>{data.title}</Text>
+            <Text style={[styles.status, isCompleted && styles.statusCompleted]}>
+              {data.status}
+            </Text>
+          </View>
+          <Text style={styles.description}>{data.description}</Text>
+          
+          <View style={styles.infoGrid}>
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>Тип</Text>
+              <Text style={styles.infoValue}>{isBet ? 'Спор' : 'Челлендж'}</Text>
+            </View>
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>Приватность</Text>
+              <Text style={styles.infoValue}>{data.visibility}</Text>
+            </View>
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>Ставка</Text>
+              <Text style={[styles.infoValue, { color: Colors.rikon }]}>{data.betAmount} 🪙</Text>
+            </View>
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>Создатель</Text>
+              <Text style={styles.infoValue}>{data.creator?.username}</Text>
+            </View>
+          </View>
+        </View>
+
+        <Text style={styles.sectionTitle}>Участники ({data.participants?.length || 0})</Text>
+        {data.participants?.map((p: any) => (
+          <View key={p.id} style={styles.participantCard}>
+            <View style={styles.participantInfo}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{p.user.username.charAt(0).toUpperCase()}</Text>
+              </View>
+              <View>
+                <Text style={styles.participantName}>{p.user.username}</Text>
+                <Text style={styles.participantScore}>Рейтинг: {p.user.rating}</Text>
+              </View>
+            </View>
+            
+            {isBet && !isCompleted && (
+              <TouchableOpacity
+                style={styles.winnerBtn}
+                onPress={() => handleResolveDispute(p.user.id, p.user.username)}
+              >
+                <Ionicons name="trophy-outline" size={16} color={Colors.white} />
+                <Text style={styles.winnerBtnText}>Победитель</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        ))}
+
+        <View style={styles.actionsContainer}>
+          {!isCompleted && (
+            <TouchableOpacity style={[styles.actionBtn, styles.completeBtn]} onPress={handleComplete}>
+              <Ionicons name="checkmark-circle-outline" size={20} color={Colors.white} />
+              <Text style={styles.actionBtnText}>Завершить принудительно</Text>
+            </TouchableOpacity>
+          )}
+          
+          <TouchableOpacity style={[styles.actionBtn, styles.deleteBtn]} onPress={handleDelete}>
+            <Ionicons name="trash-outline" size={20} color={Colors.white} />
+            <Text style={styles.actionBtnText}>Удалить и вернуть средства</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  backBtn: {
+    padding: 4,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+  },
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  card: {
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginBottom: 24,
+  },
+  rowBetween: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    flex: 1,
+    marginRight: 10,
+  },
+  status: {
+    fontSize: 12,
+    color: Colors.warning,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  statusCompleted: {
+    color: Colors.success,
+  },
+  description: {
+    fontSize: 15,
+    color: Colors.textSecondary,
+    marginBottom: 20,
+    lineHeight: 22,
+  },
+  infoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  infoItem: {
+    width: '45%',
+  },
+  infoLabel: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    marginBottom: 4,
+  },
+  infoValue: {
+    fontSize: 15,
+    color: Colors.textPrimary,
+    fontWeight: '600',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    marginBottom: 16,
+  },
+  participantCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.surface,
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  participantInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  avatarText: {
+    color: Colors.white,
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  participantName: {
+    fontSize: 16,
+    color: Colors.textPrimary,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  participantScore: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+  },
+  winnerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.accent,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 6,
+  },
+  winnerBtnText: {
+    color: Colors.white,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  actionsContainer: {
+    marginTop: 24,
+    gap: 12,
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    borderRadius: 12,
+    gap: 10,
+  },
+  completeBtn: {
+    backgroundColor: Colors.primary,
+  },
+  deleteBtn: {
+    backgroundColor: Colors.error,
+  },
+  actionBtnText: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});
