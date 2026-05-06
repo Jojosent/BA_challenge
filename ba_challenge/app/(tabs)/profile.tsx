@@ -38,6 +38,7 @@ export default function ProfileScreen() {
     totalVoters: 0,
     challengeCount: 0,
     wonCount: 0,
+    streakCount: 0,
   });
   const router = useRouter();
 
@@ -172,19 +173,25 @@ export default function ProfileScreen() {
 
         <Text style={styles.sectionTitle}>Статистика</Text>
         <View style={styles.statsRow}>
+          {/* ✅ Карточка серии меняет цвет на серый, если стрик 0 */}
+          <StatCard
+            icon="🔥"
+            label="Серия"
+            value={stats.streakCount}
+            color={stats.streakCount > 0 ? Colors.error : Colors.textMuted}
+          />
           <StatCard
             icon="🪙"
             label="Rikon"
             value={displayUser?.rikonCoins ?? 0}
             color={Colors.rikon}
           />
-          <StatCard
-            icon="⭐"
-            label={`(${stats.totalVoters})`}
-            value={stats.avgRating > 0 ? stats.avgRating.toFixed(2) : '—'}
-            color={Colors.warning}
+          <StatCard 
+            icon="🏆" 
+            label="Победы" 
+            value={stats.wonCount} 
+            color={Colors.accent} 
           />
-          <StatCard icon="🏆" label="Победы" value={stats.wonCount} color={Colors.accent} />
         </View>
 
         <Text style={styles.sectionTitle}>Информация</Text>

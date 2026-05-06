@@ -27,9 +27,6 @@ export default function HomeScreen() {
   const [notifCount, setNotifCount] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Берём счётчик из глобального store — polling уже идёт в _layout.tsx
-  // const notifCount = useNotificationStore((state) => state.count);
-
   const [stats, setStats] = useState({
     avgRating: 0,
     totalVoters: 0,
@@ -37,6 +34,7 @@ export default function HomeScreen() {
     challengeCount: 0,
     wonCount: 0,
     submissionCount: 0,
+    streakCount: 0,
   });
 
   useEffect(() => {
@@ -46,7 +44,7 @@ export default function HomeScreen() {
         setStats(data);
       })
       .catch((e) => console.log('❌ Stats ошибка:', e.message));
-  }, [displayUser?.id]);
+  }, [displayUser?.id, refreshKey]);
 
   if (isLoading && !displayUser) return <LoadingSpinner />;
 
@@ -56,7 +54,6 @@ export default function HomeScreen() {
     if (hour < 18) return 'Добрый день';
     return 'Добрый вечер';
   };
-
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -77,9 +74,24 @@ export default function HomeScreen() {
         <View style={styles.headerRow}>
           <View>
             <Text style={styles.greeting}>{greeting()} 👋</Text>
-            <Text style={styles.username}>
-              {displayUser?.username || 'Пользователь'}
-            </Text>
+            <View style={styles.nameRow}>
+              <Text style={styles.username}>
+                {displayUser?.username || 'Пользователь'}
+              </Text>
+              
+              {/* ✅ Бейдж Серии (Всегда виден, меняет цвет если 0) */}
+              <View style={[
+                styles.streakBadge, 
+                stats.streakCount === 0 && styles.streakBadgeZero
+              ]}>
+                <Text style={[
+                  styles.streakTxt, 
+                  stats.streakCount === 0 && styles.streakTxtZero
+                ]}>
+                  🔥 {stats.streakCount}
+                </Text>
+              </View>
+            </View>
           </View>
 
           <TouchableOpacity
@@ -165,7 +177,7 @@ export default function HomeScreen() {
             <Text style={styles.actionLabel}>Семейное дерево</Text>
           </TouchableOpacity>
 
-          {/* Уведомления с живым бейджем */}
+          {/* Уведомления */}
           <TouchableOpacity
             style={[styles.actionCard, notifCount > 0 && styles.actionCardAlert]}
             onPress={() => router.push('/notifications')}
@@ -202,10 +214,7 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  calendarWrapper: {
-    paddingHorizontal: 20,
-    marginBottom: 24,
-  },
+  calendarWrapper: { paddingHorizontal: 20, marginBottom: 24 },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -215,7 +224,32 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   greeting: { fontSize: 14, color: Colors.textSecondary },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   username: { fontSize: 24, fontWeight: '800', color: Colors.textPrimary },
+  
+  // ✅ Огонек активный
+  streakBadge: {
+    backgroundColor: Colors.error + '15',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.error + '40',
+  },
+  streakTxt: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: Colors.error,
+  },
+  
+  // ✅ Огонек потухший (0 дней)
+  streakBadgeZero: {
+    backgroundColor: Colors.surface,
+    borderColor: Colors.border,
+  },
+  streakTxtZero: {
+    color: Colors.textMuted,
+  },
 
   notifBtn: {
     backgroundColor: Colors.surface,
@@ -314,28 +348,4 @@ const styles = StyleSheet.create({
   actionBadgeTxt: { color: Colors.white, fontSize: 10, fontWeight: '700' },
   actionLabel: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary },
   actionLabelAlert: { color: Colors.error },
-
-  emptyCard: {
-    marginHorizontal: 20,
-    marginBottom: 24,
-    alignItems: 'center',
-    paddingVertical: 32,
-  },
-  emptyIcon: { fontSize: 48, marginBottom: 12 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary, marginBottom: 8 },
-  emptyText: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 20,
-    paddingHorizontal: 16,
-  },
-  emptyBtn: {
-    marginTop: 16,
-    backgroundColor: Colors.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  emptyBtnText: { color: Colors.white, fontWeight: '600', fontSize: 14 },
 });

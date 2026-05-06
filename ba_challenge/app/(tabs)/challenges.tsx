@@ -48,7 +48,6 @@ export default function ChallengesScreen() {
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
-            {/* Шапка */}
             <View style={styles.header}>
                 <Text style={styles.title}>Челленджи</Text>
                 <TouchableOpacity
@@ -59,7 +58,6 @@ export default function ChallengesScreen() {
                 </TouchableOpacity>
             </View>
 
-            {/* Поиск */}
             <View style={styles.searchWrapper}>
                 <Ionicons name="search-outline" size={18} color={Colors.textMuted} />
                 <TextInput
@@ -76,7 +74,6 @@ export default function ChallengesScreen() {
                 )}
             </View>
 
-            {/* Фильтры */}
             <View style={styles.filtersRow}>
                 {filters.map((f) => (
                     <TouchableOpacity
@@ -96,7 +93,6 @@ export default function ChallengesScreen() {
                 ))}
             </View>
 
-            {/* Список */}
             <FlatList
                 data={filtered}
                 keyExtractor={(item) => item.id.toString()}

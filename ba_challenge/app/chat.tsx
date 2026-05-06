@@ -11,16 +11,18 @@ import {
   ActivityIndicator,
   Alert,
   RefreshControl,
+  Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@constants/colors';
+import { Config } from '@constants/config';
 import { Header } from '@components/shared/Header';
 import { chatService, ChatMessage, ChatRoomType } from '@services/chatService';
 import { useAuthStore } from '@store/authStore';
 
-const POLL_INTERVAL = 4000; // опрашиваем каждые 4 сек
+const POLL_INTERVAL = 4000;
 
 export default function ChatScreen() {
   const { roomType, roomId, title } = useLocalSearchParams<{
@@ -32,16 +34,21 @@ export default function ChatScreen() {
   const { user } = useAuthStore();
   const flatListRef = useRef<FlatList>(null);
 
-  const [messages, setMessages]     = useState<ChatMessage[]>([]);
-  const [text, setText]             = useState('');
-  const [isLoading, setIsLoading]   = useState(true);
-  const [isSending, setIsSending]   = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [text, setText] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSending, setIsSending] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const rType  = roomType as ChatRoomType;
-  const rId    = Number(roomId);
+  const rType = roomType as ChatRoomType;
+  const rId = Number(roomId);
 
-  // ── Загрузка сообщений ──────────────────────────────────────────
+  const getAvatarUrl = (url?: string | null) => {
+    if (!url) return null;
+    const baseUrl = Config.API_URL.split('/api')[0];
+    return `${baseUrl}${url.startsWith('/') ? url : `/${url}`}`;
+  };
+
   const fetchMessages = useCallback(async (silent = false) => {
     try {
       if (!silent) setIsLoading(true);
@@ -55,18 +62,15 @@ export default function ChatScreen() {
     }
   }, [rType, rId]);
 
-  // Первая загрузка
   useEffect(() => {
     fetchMessages();
   }, [fetchMessages]);
 
-  // Polling — обновление каждые 4 сек
   useEffect(() => {
     const interval = setInterval(() => fetchMessages(true), POLL_INTERVAL);
     return () => clearInterval(interval);
   }, [fetchMessages]);
 
-  // Скролл вниз при новых сообщениях
   useEffect(() => {
     if (messages.length > 0) {
       setTimeout(() => {
@@ -75,7 +79,6 @@ export default function ChatScreen() {
     }
   }, [messages.length]);
 
-  // ── Отправка сообщения ──────────────────────────────────────────
   const handleSend = async () => {
     const trimmed = text.trim();
     if (!trimmed || isSending) return;
@@ -87,13 +90,12 @@ export default function ChatScreen() {
       setMessages((prev) => [...prev, newMsg]);
     } catch (e: any) {
       Alert.alert('Ошибка', e.message);
-      setText(trimmed); // возвращаем текст если ошибка
+      setText(trimmed);
     } finally {
       setIsSending(false);
     }
   };
 
-  // ── Удаление сообщения ──────────────────────────────────────────
   const handleDelete = (msg: ChatMessage) => {
     if (msg.userId !== user?.id) return;
     Alert.alert('Удалить сообщение?', msg.text.slice(0, 60), [
@@ -113,7 +115,6 @@ export default function ChatScreen() {
     ]);
   };
 
-  // ── Форматирование времени ──────────────────────────────────────
   const formatTime = (iso: string) => {
     const d = new Date(iso);
     const now = new Date();
@@ -131,11 +132,10 @@ export default function ChatScreen() {
     });
   };
 
-  // ── Рендер одного сообщения ─────────────────────────────────────
   const renderMessage = ({ item, index }: { item: ChatMessage; index: number }) => {
-    const isMe      = item.userId === user?.id;
-    const prevItem  = index > 0 ? messages[index - 1] : null;
-    const showMeta  = !prevItem || prevItem.userId !== item.userId;
+    const isMe = item.userId === user?.id;
+    const prevItem = index > 0 ? messages[index - 1] : null;
+    const showMeta = !prevItem || prevItem.userId !== item.userId;
 
     return (
       <TouchableOpacity
@@ -143,19 +143,24 @@ export default function ChatScreen() {
         onLongPress={() => isMe && handleDelete(item)}
         style={[styles.msgRow, isMe && styles.msgRowMe]}
       >
-        {/* Аватар — только для чужих и только первое в группе */}
         {!isMe && (
           <View style={[styles.avatar, !showMeta && styles.avatarHidden]}>
             {showMeta && (
-              <Text style={styles.avatarTxt}>
-                {item.user.username.charAt(0).toUpperCase()}
-              </Text>
+              item.user.avatarUrl ? (
+                <Image 
+                  source={{ uri: getAvatarUrl(item.user.avatarUrl)! }} 
+                  style={{ width: '100%', height: '100%', borderRadius: 16 }} 
+                />
+              ) : (
+                <Text style={styles.avatarTxt}>
+                  {item.user.username.charAt(0).toUpperCase()}
+                </Text>
+              )
             )}
           </View>
         )}
 
         <View style={[styles.msgCol, isMe && styles.msgColMe]}>
-          {/* Имя — только первое в группе и только чужие */}
           {!isMe && showMeta && (
             <Text style={styles.senderName}>{item.user.username}</Text>
           )}
@@ -174,7 +179,6 @@ export default function ChatScreen() {
     );
   };
 
-  // ── Разделитель по датам ────────────────────────────────────────
   const renderDateSeparator = (dateStr: string) => (
     <View style={styles.dateSep}>
       <View style={styles.dateLine} />
@@ -202,7 +206,6 @@ export default function ChatScreen() {
     );
   };
 
-  // ── Пустое состояние ────────────────────────────────────────────
   const EmptyState = () => (
     <View style={styles.empty}>
       <Text style={styles.emptyIcon}>
@@ -219,17 +222,13 @@ export default function ChatScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <Header
-        title={decodeURIComponent(title || 'Чат')}
-        showBack
-      />
+      <Header title={decodeURIComponent(title || 'Чат')} showBack />
 
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={0}
       >
-        {/* Список сообщений */}
         {isLoading ? (
           <View style={styles.loadingBox}>
             <ActivityIndicator size="large" color={Colors.primary} />
@@ -240,26 +239,16 @@ export default function ChatScreen() {
             data={messages}
             keyExtractor={(item) => String(item.id)}
             renderItem={renderItem}
-            contentContainerStyle={[
-              styles.listContent,
-              messages.length === 0 && styles.listContentEmpty,
-            ]}
+            contentContainerStyle={[styles.listContent, messages.length === 0 && styles.listContentEmpty]}
             showsVerticalScrollIndicator={false}
             refreshControl={
-              <RefreshControl
-                refreshing={isRefreshing}
-                onRefresh={() => { setIsRefreshing(true); fetchMessages(); }}
-                tintColor={Colors.primary}
-              />
+              <RefreshControl refreshing={isRefreshing} onRefresh={() => { setIsRefreshing(true); fetchMessages(); }} tintColor={Colors.primary} />
             }
             ListEmptyComponent={<EmptyState />}
-            onContentSizeChange={() =>
-              flatListRef.current?.scrollToEnd({ animated: false })
-            }
+            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
           />
         )}
 
-        {/* Поле ввода */}
         <View style={styles.inputBar}>
           <TextInput
             style={styles.input}
@@ -272,10 +261,7 @@ export default function ChatScreen() {
             returnKeyType="default"
           />
           <TouchableOpacity
-            style={[
-              styles.sendBtn,
-              (!text.trim() || isSending) && styles.sendBtnDisabled,
-            ]}
+            style={[styles.sendBtn, (!text.trim() || isSending) && styles.sendBtnDisabled]}
             onPress={handleSend}
             disabled={!text.trim() || isSending}
           >
@@ -299,103 +285,38 @@ const styles = StyleSheet.create({
   listContent:      { padding: 12, paddingBottom: 8 },
   listContentEmpty: { flex: 1, justifyContent: 'center' },
 
-  // Пустой чат
   empty:      { alignItems: 'center', paddingVertical: 32 },
   emptyIcon:  { fontSize: 52, marginBottom: 12 },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary, marginBottom: 6 },
   emptyText:  { fontSize: 14, color: Colors.textSecondary, textAlign: 'center', lineHeight: 20 },
 
-  // Разделитель дат
   dateSep:  { flexDirection: 'row', alignItems: 'center', marginVertical: 16, gap: 8 },
   dateLine: { flex: 1, height: 1, backgroundColor: Colors.border },
   dateText: { fontSize: 11, color: Colors.textMuted, fontWeight: '500' },
 
-  // Строка сообщения
-  msgRow: {
-    flexDirection: 'row',
-    alignItems:    'flex-end',
-    marginBottom:  4,
-    gap:           8,
-  },
+  msgRow: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 4, gap: 8 },
   msgRowMe: { flexDirection: 'row-reverse' },
 
-  // Аватар
-  avatar: {
-    width:           32,
-    height:          32,
-    borderRadius:    16,
-    backgroundColor: Colors.primary,
-    justifyContent:  'center',
-    alignItems:      'center',
-  },
+  avatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.primary, justifyContent: 'center', alignItems: 'center' },
   avatarHidden: { backgroundColor: 'transparent' },
   avatarTxt:    { color: Colors.white, fontWeight: '700', fontSize: 13 },
 
-  // Колонка сообщения
   msgCol:   { maxWidth: '75%' },
   msgColMe: { alignItems: 'flex-end' },
 
-  senderName: {
-    fontSize:     11,
-    color:        Colors.textMuted,
-    marginBottom: 3,
-    marginLeft:   4,
-    fontWeight:   '500',
-  },
+  senderName: { fontSize: 11, color: Colors.textMuted, marginBottom: 3, marginLeft: 4, fontWeight: '500' },
 
-  // Пузырь
-  bubble: {
-    paddingHorizontal: 14,
-    paddingVertical:   10,
-    borderRadius:      18,
-  },
-  bubbleThem: {
-    backgroundColor:      Colors.surface,
-    borderWidth:          1,
-    borderColor:          Colors.border,
-    borderBottomLeftRadius: 4,
-  },
-  bubbleMe: {
-    backgroundColor:       Colors.primary,
-    borderBottomRightRadius: 4,
-  },
+  bubble: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 18 },
+  bubbleThem: { backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, borderBottomLeftRadius: 4 },
+  bubbleMe: { backgroundColor: Colors.primary, borderBottomRightRadius: 4 },
   bubbleText:   { fontSize: 15, color: Colors.textPrimary, lineHeight: 21 },
   bubbleTextMe: { color: Colors.white },
 
-  // Время
   time:   { fontSize: 10, color: Colors.textMuted, marginTop: 3, marginLeft: 4 },
   timeMe: { marginLeft: 0, marginRight: 4 },
 
-  // Поле ввода
-  inputBar: {
-    flexDirection:   'row',
-    alignItems:      'flex-end',
-    padding:         12,
-    gap:             10,
-    borderTopWidth:  1,
-    borderTopColor:  Colors.border,
-    backgroundColor: Colors.background,
-  },
-  input: {
-    flex:              1,
-    minHeight:         42,
-    maxHeight:         120,
-    backgroundColor:   Colors.surface,
-    borderRadius:      21,
-    paddingHorizontal: 16,
-    paddingVertical:   10,
-    fontSize:          15,
-    color:             Colors.textPrimary,
-    borderWidth:       1,
-    borderColor:       Colors.border,
-  },
-  sendBtn: {
-    width:           42,
-    height:          42,
-    borderRadius:    21,
-    backgroundColor: Colors.primary,
-    justifyContent:  'center',
-    alignItems:      'center',
-  },
+  inputBar: { flexDirection: 'row', alignItems: 'flex-end', padding: 12, gap: 10, borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.background },
+  input: { flex: 1, minHeight: 42, maxHeight: 120, backgroundColor: Colors.surface, borderRadius: 21, paddingHorizontal: 16, paddingVertical: 10, fontSize: 15, color: Colors.textPrimary, borderWidth: 1, borderColor: Colors.border },
+  sendBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: Colors.primary, justifyContent: 'center', alignItems: 'center' },
   sendBtnDisabled: { opacity: 0.4 },
 });

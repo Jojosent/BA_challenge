@@ -31,15 +31,16 @@ export const userService = {
         return response.data;
     },
 
-getStats: async (): Promise<{
-  avgRating: number;
-  totalVoters: number;
-  totalVoteCount: number;  // ✅ добавили
-  challengeCount: number;
-  wonCount: number;
-  submissionCount: number;
-}> => {
-  const response = await api.get('/users/stats');
-  return response.data;
-},
+    getStats: async (): Promise<{
+      avgRating: number;
+      totalVoters: number;
+      totalVoteCount: number;
+      challengeCount: number;
+      wonCount: number;
+      submissionCount: number;
+      streakCount: number; // ✅ добавили
+    }> => {
+      const response = await api.get('/users/stats');
+      return response.data;
+    },
 };

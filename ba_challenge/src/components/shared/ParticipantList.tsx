@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import { Colors } from '@constants/colors';
+import { Config } from '@constants/config';
 import { Participant } from '@/types/index';
 
 interface ParticipantListProps {
@@ -25,6 +26,13 @@ const getPrizePercent = (place: number, total: number): number | null => {
   if (place === 2) return 30;
   if (place === 3) return 20;
   return null;
+};
+
+// Функция сборки полного URL для картинки
+const getAvatarUrl = (url?: string | null) => {
+  if (!url) return null;
+  const baseUrl = Config.API_URL.split('/api')[0];
+  return `${baseUrl}${url.startsWith('/') ? url : `/${url}`}`;
 };
 
 export const ParticipantList: React.FC<ParticipantListProps> = ({
@@ -89,9 +97,16 @@ export const ParticipantList: React.FC<ParticipantListProps> = ({
               index === 1 && styles.avatarSecond,
               index === 2 && styles.avatarThird,
             ]}>
-              <Text style={styles.avatarText}>
-                {p.user?.username?.charAt(0).toUpperCase() ?? '?'}
-              </Text>
+              {p.user?.avatarUrl ? (
+                <Image 
+                  source={{ uri: getAvatarUrl(p.user.avatarUrl)! }} 
+                  style={styles.avatarImage} 
+                />
+              ) : (
+                <Text style={styles.avatarText}>
+                  {p.user?.username?.charAt(0).toUpperCase() ?? '?'}
+                </Text>
+              )}
             </View>
 
             {/* Имя + метки */}
@@ -153,7 +168,6 @@ export const ParticipantList: React.FC<ParticipantListProps> = ({
 const styles = StyleSheet.create({
   container: {},
 
-  // Шапка призового пула
   prizeHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -175,7 +189,6 @@ const styles = StyleSheet.create({
   prizeHeaderSub:   { fontSize: 11, color: Colors.textSecondary, marginTop: 1 },
   prizeHeaderTotal: { fontSize: 20, fontWeight: '800', color: Colors.rikon },
 
-  // Строка участника
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -205,6 +218,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 2,
     borderColor: 'transparent',
+    overflow: 'hidden', // 👈 Важно для обрезки Image
+  },
+  avatarImage: { // 👈 Новый стиль для Image
+    width: '100%',
+    height: '100%',
   },
   avatarCreator: {
     borderColor: Colors.rikon,
