@@ -11,7 +11,6 @@ import chatRoutes       from './chatRoutes';
 import privacyRoutes    from './privacyRoutes';
 import notificationRoutes from './notificationRoutes';
 import adminRoutes      from './adminRoutes';
-import betRoutes        from './betRoutes';
 
 const router = Router();
 
@@ -27,6 +26,5 @@ router.use('/chat',          chatRoutes);
 router.use('/privacy',       privacyRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/admin',         adminRoutes);   
-router.use('/bets',          betRoutes);
 
 export default router;

@@ -21,7 +21,6 @@ export default function AdminPanelScreen() {
   const [search, setSearch] = useState('');
   const [challenges, setChallenges] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [filterType, setFilterType] = useState<'all' | 'challenge' | 'bet'>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'active' | 'completed'>('all');
 
   const fetchChallenges = async () => {
@@ -41,11 +40,8 @@ export default function AdminPanelScreen() {
   }, []);
 
   const filteredData = challenges.filter((c) => {
-    const matchType =
-      filterType === 'all' ||
-      (filterType === 'bet' ? c.betAmount > 0 : c.betAmount === 0);
     const matchStatus = filterStatus === 'all' || c.status === filterStatus;
-    return matchType && matchStatus;
+    return matchStatus;
   });
 
   const renderFilterButton = (label: string, active: boolean, onPress: () => void) => (
@@ -80,8 +76,7 @@ export default function AdminPanelScreen() {
       <View style={styles.infoRow}>
         <Ionicons name="eye-outline" size={14} color={Colors.textSecondary} />
         <Text style={styles.infoText}>{item.visibility}</Text>
-        <Ionicons name="cash-outline" size={14} color={Colors.textSecondary} style={{ marginLeft: 10 }} />
-        <Text style={styles.infoText}>{item.betAmount} Rikon</Text>
+        {/* Ставка убрана, так как она относилась к спорам */}
       </View>
     </TouchableOpacity>
   );
@@ -100,21 +95,13 @@ export default function AdminPanelScreen() {
         <Ionicons name="search" size={20} color={Colors.textSecondary} style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Поиск челленджей и споров..."
+          placeholder="Поиск челленджей..."
           placeholderTextColor={Colors.textSecondary}
           value={search}
           onChangeText={setSearch}
           onSubmitEditing={fetchChallenges}
           returnKeyType="search"
         />
-      </View>
-
-      <View style={styles.filtersWrapper}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersScroll}>
-          {renderFilterButton('Все типы', filterType === 'all', () => setFilterType('all'))}
-          {renderFilterButton('Челленджи', filterType === 'challenge', () => setFilterType('challenge'))}
-          {renderFilterButton('Споры', filterType === 'bet', () => setFilterType('bet'))}
-        </ScrollView>
       </View>
 
       <View style={styles.filtersWrapper}>

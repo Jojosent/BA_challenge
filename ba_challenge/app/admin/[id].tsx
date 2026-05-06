@@ -38,7 +38,7 @@ export default function AdminChallengeDetailScreen() {
   }, [id]);
 
   const handleDelete = () => {
-    Alert.alert('Удаление', 'Удалить проект и вернуть коины участникам?', [
+    Alert.alert('Удаление', 'Удалить челлендж и вернуть коины участникам?', [
       { text: 'Отмена', style: 'cancel' },
       {
         text: 'Удалить',
@@ -56,7 +56,7 @@ export default function AdminChallengeDetailScreen() {
   };
 
   const handleComplete = () => {
-    Alert.alert('Завершение', 'Принудительно завершить?', [
+    Alert.alert('Завершение', 'Принудительно завершить челлендж?', [
       { text: 'Отмена', style: 'cancel' },
       {
         text: 'Завершить',
@@ -67,24 +67,6 @@ export default function AdminChallengeDetailScreen() {
             fetchData();
           } catch (e) {
             Alert.alert('Ошибка', 'Не удалось завершить');
-          }
-        },
-      },
-    ]);
-  };
-
-  const handleResolveDispute = (winnerId: number, username: string) => {
-    Alert.alert('Разрешение спора', `Назначить ${username} победителем? Весь призовой пул будет переведен ему.`, [
-      { text: 'Отмена', style: 'cancel' },
-      {
-        text: 'Подтвердить',
-        style: 'default',
-        onPress: async () => {
-          try {
-            await adminService.resolveDispute(Number(id), winnerId);
-            fetchData();
-          } catch (e) {
-            Alert.alert('Ошибка', 'Не удалось разрешить спор');
           }
         },
       },
@@ -104,7 +86,6 @@ export default function AdminChallengeDetailScreen() {
     );
   }
 
-  const isBet = data.betAmount > 0;
   const isCompleted = data.status === 'completed';
 
   return (
@@ -113,7 +94,7 @@ export default function AdminChallengeDetailScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Детали: #{data.id}</Text>
+        <Text style={styles.headerTitle}>Челлендж: #{data.id}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -129,16 +110,8 @@ export default function AdminChallengeDetailScreen() {
           
           <View style={styles.infoGrid}>
             <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Тип</Text>
-              <Text style={styles.infoValue}>{isBet ? 'Спор' : 'Челлендж'}</Text>
-            </View>
-            <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>Приватность</Text>
               <Text style={styles.infoValue}>{data.visibility}</Text>
-            </View>
-            <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Ставка</Text>
-              <Text style={[styles.infoValue, { color: Colors.rikon }]}>{data.betAmount} 🪙</Text>
             </View>
             <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>Создатель</Text>
@@ -159,16 +132,6 @@ export default function AdminChallengeDetailScreen() {
                 <Text style={styles.participantScore}>Рейтинг: {p.user.rating}</Text>
               </View>
             </View>
-            
-            {isBet && !isCompleted && (
-              <TouchableOpacity
-                style={styles.winnerBtn}
-                onPress={() => handleResolveDispute(p.user.id, p.user.username)}
-              >
-                <Ionicons name="trophy-outline" size={16} color={Colors.white} />
-                <Text style={styles.winnerBtnText}>Победитель</Text>
-              </TouchableOpacity>
-            )}
           </View>
         ))}
 
@@ -189,7 +152,6 @@ export default function AdminChallengeDetailScreen() {
     </SafeAreaView>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
