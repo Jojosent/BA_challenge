@@ -1,4 +1,3 @@
-import { ReceivedVotes } from '@/components/shared/ReceivedVotes';
 import { userService } from '@/services/userService';
 import { LoadingSpinner } from '@components/shared/LoadingSpinner';
 import { RoleBadge } from '@components/shared/RoleBadge';
@@ -6,13 +5,17 @@ import { StatCard } from '@components/shared/StatCard';
 import { Button } from '@components/ui/Button';
 import { Card } from '@components/ui/Card';
 import { Colors } from '@constants/colors';
+import { Config } from '@constants/config';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@hooks/useAuth';
 import { useProfile } from '@hooks/useProfile';
-import { router, useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
+  Image,
   Modal,
   ScrollView,
   StyleSheet,
@@ -20,6 +23,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -28,9 +32,12 @@ export default function ProfileScreen() {
   const { logout } = useAuth();
   const [editModal, setEditModal] = useState(false);
   const [newUsername, setNewUsername] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
   const [stats, setStats] = useState({
-    avgRating: 0, totalVoters: 0,
-    challengeCount: 0, wonCount: 0,
+    avgRating: 0,
+    totalVoters: 0,
+    challengeCount: 0,
+    wonCount: 0,
   });
   const router = useRouter();
 
@@ -39,6 +46,55 @@ export default function ProfileScreen() {
   }, []);
 
   if (isLoading && !displayUser) return <LoadingSpinner />;
+
+  // Выбор и загрузка фото
+  const handlePickAvatar = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Ошибка', 'Нужен доступ к галерее для выбора фото');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        await uploadAvatar(result.assets[0].uri);
+      }
+    } catch (error) {
+      Alert.alert('Ошибка', 'Не удалось выбрать изображение');
+    }
+  };
+
+  const uploadAvatar = async (uri: string) => {
+    try {
+      setIsUploading(true);
+      const formData = new FormData();
+      const filename = uri.split('/').pop() || 'avatar.jpg';
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : `image/jpeg`;
+
+      formData.append('avatar', {
+        uri: Platform.OS === 'android' ? uri : uri.replace('file://', ''),
+        name: filename,
+        type,
+      } as any);
+
+      await userService.uploadAvatar(formData);
+      await fetchProfile(); // Обновляем данные пользователя
+      Alert.alert('Успех', 'Аватар обновлен');
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Ошибка', 'Не удалось загрузить фото');
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleEdit = async () => {
     if (!newUsername.trim()) return;
@@ -50,17 +106,20 @@ export default function ProfileScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      'Выйти',
-      'Ты уверен что хочешь выйти?',
-      [
-        { text: 'Отмена', style: 'cancel' },
-        { text: 'Выйти', style: 'destructive', onPress: logout },
-      ]
-    );
+    Alert.alert('Выйти', 'Ты уверен что хочешь выйти?', [
+      { text: 'Отмена', style: 'cancel' },
+      { text: 'Выйти', style: 'destructive', onPress: logout },
+    ]);
   };
 
-  const isAdminOrModerator = displayUser?.role === 'admin' || displayUser?.role === 'moderator';
+  const getFullAvatarUrl = () => {
+    if (!displayUser?.avatarUrl) return null;
+    const baseUrl = Config.API_URL.split('/api')[0];
+    return `${baseUrl}${displayUser.avatarUrl}`;
+  };
+
+  const isAdminOrModerator =
+    displayUser?.role === 'admin' || displayUser?.role === 'moderator';
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -68,11 +127,24 @@ export default function ProfileScreen() {
         <View style={styles.profileHeader}>
           <View style={styles.avatarWrapper}>
             <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {displayUser?.username?.charAt(0).toUpperCase() ?? '?'}
-              </Text>
+              {displayUser?.avatarUrl ? (
+                <Image source={{ uri: getFullAvatarUrl()! }} style={styles.avatarImage} />
+              ) : (
+                <Text style={styles.avatarText}>
+                  {displayUser?.username?.charAt(0).toUpperCase() ?? '?'}
+                </Text>
+              )}
+              {isUploading && (
+                <View style={styles.loadingOverlay}>
+                  <ActivityIndicator color={Colors.white} />
+                </View>
+              )}
             </View>
-            <TouchableOpacity style={styles.avatarEdit}>
+            <TouchableOpacity
+              style={styles.avatarEdit}
+              onPress={handlePickAvatar}
+              disabled={isUploading}
+            >
               <Ionicons name="camera" size={14} color={Colors.white} />
             </TouchableOpacity>
           </View>
@@ -112,12 +184,7 @@ export default function ProfileScreen() {
             value={stats.avgRating > 0 ? stats.avgRating.toFixed(2) : '—'}
             color={Colors.warning}
           />
-          <StatCard
-            icon="🏆"
-            label="Победы"
-            value={stats.wonCount}
-            color={Colors.accent}
-          />
+          <StatCard icon="🏆" label="Победы" value={stats.wonCount} color={Colors.accent} />
         </View>
 
         <Text style={styles.sectionTitle}>Информация</Text>
@@ -128,11 +195,7 @@ export default function ProfileScreen() {
             value={displayUser?.username ?? '-'}
           />
           <View style={styles.divider} />
-          <InfoRow
-            icon="mail-outline"
-            label="Email"
-            value={displayUser?.email ?? '-'}
-          />
+          <InfoRow icon="mail-outline" label="Email" value={displayUser?.email ?? '-'} />
           <View style={styles.divider} />
           <InfoRow
             icon="shield-checkmark-outline"
@@ -156,7 +219,11 @@ export default function ProfileScreen() {
 
         <Text style={styles.sectionTitle}>Настройки</Text>
         <Card style={styles.settingsCard}>
-          <SettingsRow icon="notifications-outline" label="Уведомления" onPress={() => router.push('/notifications')} />
+          <SettingsRow
+            icon="notifications-outline"
+            label="Уведомления"
+            onPress={() => router.push('/notifications')}
+          />
           <View style={styles.divider} />
           <SettingsRow
             icon="lock-closed-outline"
@@ -221,15 +288,7 @@ export default function ProfileScreen() {
   );
 }
 
-const InfoRow = ({
-  icon,
-  label,
-  value,
-}: {
-  icon: string;
-  label: string;
-  value: string;
-}) => (
+const InfoRow = ({ icon, label, value }: { icon: string; label: string; value: string }) => (
   <View style={infoStyles.row}>
     <Ionicons name={icon as any} size={18} color={Colors.textSecondary} />
     <View style={infoStyles.texts}>
@@ -239,11 +298,7 @@ const InfoRow = ({
   </View>
 );
 
-const SettingsRow = ({ icon, label, onPress }: {
-  icon: string;
-  label: string;
-  onPress: () => void;
-}) => (
+const SettingsRow = ({ icon, label, onPress }: { icon: string; label: string; onPress: () => void }) => (
   <TouchableOpacity style={infoStyles.row} onPress={onPress}>
     <Ionicons name={icon as any} size={18} color={Colors.textSecondary} />
     <Text style={[infoStyles.label, { flex: 1, marginLeft: 12 }]}>{label}</Text>
@@ -252,12 +307,7 @@ const SettingsRow = ({ icon, label, onPress }: {
 );
 
 const infoStyles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    gap: 12,
-  },
+  row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, gap: 12 },
   texts: { flex: 1 },
   label: { fontSize: 14, color: Colors.textSecondary },
   value: { fontSize: 15, color: Colors.textPrimary, fontWeight: '500' },
@@ -265,12 +315,7 @@ const infoStyles = StyleSheet.create({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-
-  profileHeader: {
-    alignItems: 'center',
-    paddingVertical: 28,
-    paddingHorizontal: 20,
-  },
+  profileHeader: { alignItems: 'center', paddingVertical: 28, paddingHorizontal: 20 },
   avatarWrapper: { position: 'relative', marginBottom: 12 },
   avatar: {
     width: 90,
@@ -281,6 +326,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 3,
     borderColor: Colors.border,
+    overflow: 'hidden',
+  },
+  avatarImage: { width: '100%', height: '100%' },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   avatarText: { fontSize: 36, fontWeight: '800', color: Colors.white },
   avatarEdit: {
@@ -293,12 +346,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: Colors.background,
   },
-  username: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: Colors.textPrimary,
-    marginBottom: 4,
-  },
+  username: { fontSize: 24, fontWeight: '800', color: Colors.textPrimary, marginBottom: 4 },
   email: { fontSize: 14, color: Colors.textSecondary, marginBottom: 12 },
   badgeRow: { marginBottom: 16 },
   editBtn: {
@@ -312,7 +360,6 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary,
   },
   editBtnText: { color: Colors.primary, fontSize: 14, fontWeight: '500' },
-
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
@@ -321,28 +368,14 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     marginTop: 8,
   },
-  statsRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    marginBottom: 20,
-  },
+  statsRow: { flexDirection: 'row', paddingHorizontal: 16, marginBottom: 20 },
   infoCard: { marginHorizontal: 20, marginBottom: 20 },
   settingsCard: { marginHorizontal: 20, marginBottom: 20 },
-  divider: {
-    height: 1,
-    backgroundColor: Colors.border,
-    marginVertical: 2,
-  },
-
+  divider: { height: 1, backgroundColor: Colors.border, marginVertical: 2 },
   logoutSection: { paddingHorizontal: 20, paddingBottom: 32, alignItems: 'center' },
   logoutBtn: { width: '100%', marginBottom: 16, borderColor: Colors.error },
   version: { fontSize: 12, color: Colors.textMuted },
-
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'flex-end',
-  },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
   modalContent: {
     backgroundColor: Colors.surface,
     borderTopLeftRadius: 24,
@@ -350,12 +383,7 @@ const styles = StyleSheet.create({
     padding: 24,
     paddingBottom: 40,
   },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    marginBottom: 20,
-  },
+  modalTitle: { fontSize: 20, fontWeight: '700', color: Colors.textPrimary, marginBottom: 20 },
   modalInput: {
     backgroundColor: Colors.card,
     borderRadius: 12,

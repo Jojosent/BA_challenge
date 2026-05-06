@@ -17,6 +17,15 @@ export const userService = {
         return response.data;
     },
 
+    uploadAvatar: async (formData: FormData): Promise<User> => {
+        const response = await api.post('/users/avatar', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+        return response.data;
+    },
+
     getUserById: async (id: number): Promise<User> => {
         const response = await api.get(`/users/${id}`);
         return response.data;
