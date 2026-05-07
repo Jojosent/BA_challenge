@@ -1,14 +1,11 @@
 import { Response } from 'express';
-import path from 'path';
-import fs from 'fs';
 import { AuthRequest } from '../types';
-import { Submission, Task, Participant, Challenge } from '../models';
-import { ENV } from '../config/env';
-import { encryptFile } from '../utils/fileEncryption';
+import { Submission, SubmissionMedia, Task, Participant, User } from '../models';
 
 export const submissionController = {
 
-    // POST /api/submissions  (с файлом)
+    // POST /api/submissions
+    // Загружает ОДИН файл и добавляет его к submission (создаёт если нет)
     create: async (req: AuthRequest, res: Response): Promise<void> => {
         try {
             const { taskId } = req.body;
@@ -20,7 +17,6 @@ export const submissionController = {
                 return;
             }
 
-            // Проверяем что задача существует
             const task = await Task.findByPk(taskId);
             if (!task) {
                 res.status(404).json({ message: 'Задача не найдена' });
@@ -31,45 +27,132 @@ export const submissionController = {
             const participant = await Participant.findOne({
                 where: { challengeId: task.challengeId, userId },
             });
-
             if (!participant) {
                 res.status(403).json({ message: 'Ты не участник этого челленджа' });
                 return;
             }
 
-            // Определяем тип файла
             const isVideo = file.mimetype.startsWith('video/');
             const mediaType = isVideo ? 'video' : 'photo';
+            const { ENV } = await import('../config/env');
+            const mediaUrl = `${ENV.BASE_URL}/uploads/${isVideo ? 'videos' : 'photos'}/${file.filename}`;
 
-            // --- ШИФРОВАНИЕ ---
-            // file.path содержит путь к загруженному файлу на диске
-            const encryptedPath = encryptFile(file.path);
-            // encryptedPath = uploads/photos/uuid.jpg.enc  (оригинал удалён)
+            // ✅ Ищем существующий submission для этой задачи и пользователя
+            let submission = await Submission.findOne({
+                where: { taskId: Number(taskId), userId },
+            });
 
-            console.log(`🔐 Файл зашифрован: ${encryptedPath}`);
+            // Если нет — создаём новый
+            if (!submission) {
+                submission = await Submission.create({
+                    taskId: Number(taskId),
+                    userId,
+                });
+            }
 
-            // Сохраняем в БД зашифрованный путь (НЕ публичный URL)
-            // Формат: enc:uploads/photos/uuid.jpg.enc
-            const storedPath = `enc:${encryptedPath}`;
+            // ✅ Считаем текущий порядок медиа
+            const mediaCount = await SubmissionMedia.count({
+                where: { submissionId: submission.id },
+            });
 
-            const submission = await Submission.create({
-                taskId: Number(taskId),
-                userId,
-                mediaUrl: storedPath,   // храним зашифрованный путь
+            // ✅ Добавляем медиафайл к submission
+            const media = await SubmissionMedia.create({
+                submissionId: submission.id,
+                mediaUrl,
                 mediaType,
+                order: mediaCount,
             });
 
-            // Возвращаем клиенту подписанный URL для просмотра (через наш endpoint)
-            const viewUrl = `${ENV.BASE_URL}/api/submissions/${submission.id}/media`;
-
-            res.status(201).json({
-                ...submission.toJSON(),
-                mediaUrl: viewUrl,   // клиент получает защищённый URL
+            // Возвращаем submission со всеми медиа
+            const full = await Submission.findByPk(submission.id, {
+                include: [
+                    {
+                        model: SubmissionMedia,
+                        as: 'media',
+                        order: [['order', 'ASC']],
+                    },
+                    {
+                        model: User,
+                        as: 'user',
+                        attributes: ['id', 'username', 'avatarUrl'],
+                    },
+                ],
             });
 
+            res.status(201).json(full);
         } catch (error: any) {
-            console.error('Submission error:', error);
+            console.error('Submission create error:', error);
             res.status(500).json({ message: 'Ошибка загрузки файла' });
+        }
+    },
+
+    // DELETE /api/submissions/media/:mediaId
+    // Удаляет один медиафайл из submission
+    deleteMedia: async (req: AuthRequest, res: Response): Promise<void> => {
+        try {
+            const { mediaId } = req.params;
+            const userId = req.user!.id;
+
+            const media = await SubmissionMedia.findByPk(mediaId);
+            if (!media) {
+                res.status(404).json({ message: 'Медиафайл не найден' });
+                return;
+            }
+
+            // Проверяем что submission принадлежит пользователю
+            const submission = await Submission.findByPk(media.submissionId);
+            if (!submission || submission.userId !== userId) {
+                res.status(403).json({ message: 'Нет прав' });
+                return;
+            }
+
+            // Удаляем файл с диска
+            const path = await import('path');
+            const fs = await import('fs');
+            const filename = media.mediaUrl.split('/').pop();
+            const folder = media.mediaType === 'video' ? 'videos' : 'photos';
+            const filePath = path.join(process.cwd(), 'uploads', folder, filename || '');
+            if (fs.existsSync(filePath)) {
+                fs.unlinkSync(filePath);
+            }
+
+            await media.destroy();
+
+            // Пересчитываем order оставшихся медиа
+            const remaining = await SubmissionMedia.findAll({
+                where: { submissionId: submission.id },
+                order: [['order', 'ASC']],
+            });
+            await Promise.all(
+                remaining.map((m, i) => m.update({ order: i }))
+            );
+
+            // Если медиа не осталось — удаляем весь submission
+            if (remaining.length === 0) {
+                await submission.destroy();
+                res.json({ message: 'Медиа удалено, submission удалён' });
+                return;
+            }
+
+            const full = await Submission.findByPk(submission.id, {
+                include: [
+                    {
+                        model: SubmissionMedia,
+                        as: 'media',
+                        order: [['order', 'ASC']],
+                    },
+                    {
+                        model: User,
+                        as: 'user',
+                        attributes: ['id', 'username', 'avatarUrl'],
+                    },
+                ],
+            });
+
+            res.json(full);
+        } catch (error: any) {
+            console.error('deleteMedia error:', error.message);
+            res.status(500).json({ message: 'Ошибка удаления медиа' });
         }
     },
 
@@ -77,32 +160,17 @@ export const submissionController = {
     getByTask: async (req: AuthRequest, res: Response): Promise<void> => {
         try {
             const { taskId } = req.params;
-            const userId = req.user!.id;
-
-            // Проверяем что пользователь участник этого челленджа
-            const task = await Task.findByPk(taskId);
-            if (!task) {
-                res.status(404).json({ message: 'Задача не найдена' });
-                return;
-            }
-
-            const participant = await Participant.findOne({
-                where: { challengeId: task.challengeId, userId },
-            });
-
-            const challenge = await Challenge.findByPk(task.challengeId);
-            const isCreator = challenge?.creatorId === userId;
-
-            if (!participant && !isCreator) {
-                res.status(403).json({ message: 'Нет доступа' });
-                return;
-            }
 
             const submissions = await Submission.findAll({
                 where: { taskId: Number(taskId) },
                 include: [
                     {
-                        model: require('../models').User,
+                        model: SubmissionMedia,
+                        as: 'media',
+                        order: [['order', 'ASC']],
+                    },
+                    {
+                        model: User,
                         as: 'user',
                         attributes: ['id', 'username', 'avatarUrl'],
                     },
@@ -110,17 +178,8 @@ export const submissionController = {
                 order: [['createdAt', 'DESC']],
             });
 
-            // Заменяем зашифрованный путь на защищённый URL для просмотра
-            const result = submissions.map((s: any) => ({
-                ...s.toJSON(),
-                mediaUrl: s.mediaUrl.startsWith('enc:')
-                    ? `${ENV.BASE_URL}/api/submissions/${s.id}/media`
-                    : s.mediaUrl,   // старые записи без шифрования — оставляем как есть
-            }));
-
-            res.json(result);
+            res.json(submissions);
         } catch (error) {
-            console.error('getByTask error:', error);
             res.status(500).json({ message: 'Ошибка' });
         }
     },
@@ -140,6 +199,11 @@ export const submissionController = {
                 where: { userId, taskId: taskIds },
                 include: [
                     {
+                        model: SubmissionMedia,
+                        as: 'media',
+                        order: [['order', 'ASC']],
+                    },
+                    {
                         model: Task,
                         as: 'task',
                         attributes: ['id', 'title', 'day'],
@@ -148,79 +212,9 @@ export const submissionController = {
                 order: [['createdAt', 'DESC']],
             });
 
-            // Заменяем зашифрованный путь на защищённый URL
-            const result = submissions.map((s: any) => ({
-                ...s.toJSON(),
-                mediaUrl: s.mediaUrl.startsWith('enc:')
-                    ? `${ENV.BASE_URL}/api/submissions/${s.id}/media`
-                    : s.mediaUrl,
-            }));
-
-            res.json(result);
+            res.json(submissions);
         } catch (error) {
             res.status(500).json({ message: 'Ошибка' });
-        }
-    },
-
-    // GET /api/submissions/:submissionId/media
-    // Защищённый endpoint — расшифровывает и отдаёт файл только участникам
-    serveMedia: async (req: AuthRequest, res: Response): Promise<void> => {
-        try {
-            const { submissionId } = req.params;
-            const userId = req.user!.id;
-
-            const submission = await Submission.findByPk(submissionId);
-            if (!submission) {
-                res.status(404).json({ message: 'Не найдено' });
-                return;
-            }
-
-            // Проверка доступа — только участники челленджа
-            const task = await Task.findByPk(submission.taskId);
-            if (!task) {
-                res.status(404).json({ message: 'Задача не найдена' });
-                return;
-            }
-
-            const participant = await Participant.findOne({
-                where: { challengeId: task.challengeId, userId },
-            });
-
-            const challenge = await Challenge.findByPk(task.challengeId);
-            const isCreator = challenge?.creatorId === userId;
-            const isOwner = submission.userId === userId;
-
-            if (!participant && !isCreator && !isOwner) {
-                res.status(403).json({ message: 'Нет доступа к этому файлу' });
-                return;
-            }
-
-            // Если файл зашифрован — расшифровываем и отдаём
-            if (submission.mediaUrl.startsWith('enc:')) {
-                const encPath = submission.mediaUrl.replace('enc:', '');
-
-                if (!fs.existsSync(encPath)) {
-                    res.status(404).json({ message: 'Файл не найден или удалён' });
-                    return;
-                }
-
-                const { decryptFile, getMimeType } = await import('../utils/fileEncryption');
-                const decryptedBuffer = decryptFile(encPath);
-                const mimeType = getMimeType(encPath);
-
-                res.set('Content-Type', mimeType);
-                res.set('Content-Length', String(decryptedBuffer.length));
-                res.set('Cache-Control', 'private, max-age=3600');
-                res.send(decryptedBuffer);
-                return;
-            }
-
-            // Старые файлы без шифрования — редиректим на статику
-            res.redirect(submission.mediaUrl);
-
-        } catch (error: any) {
-            console.error('serveMedia error:', error.message);
-            res.status(500).json({ message: 'Ошибка получения файла' });
         }
     },
 };

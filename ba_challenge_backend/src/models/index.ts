@@ -3,15 +3,13 @@ import Challenge from './Challenge';
 import Participant from './Participant';
 import Task from './Task';
 import Submission from './Submission';
+import SubmissionMedia from './SubmissionMedia';
 import Vote from './Vote';
 import FamilyMember from './FamilyMember';
 import FamilyEvent from './FamilyEvent';
 import FamilyInvite from './FamilyInvite';
 import ChallengeInvite from './ChallengeInvite';
 import Message from './Message';
-import Notification from './Notification';
-
-
 
 User.hasMany(Challenge, { foreignKey: 'creatorId', as: 'createdChallenges' });
 Challenge.belongsTo(User, { foreignKey: 'creatorId', as: 'creator' });
@@ -30,6 +28,10 @@ Submission.belongsTo(Task, { foreignKey: 'taskId' });
 
 User.hasMany(Submission, { foreignKey: 'userId', as: 'submissions' });
 Submission.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+// ✅ Submission → SubmissionMedia (один submission = много медиафайлов)
+Submission.hasMany(SubmissionMedia, { foreignKey: 'submissionId', as: 'media' });
+SubmissionMedia.belongsTo(Submission, { foreignKey: 'submissionId' });
 
 Submission.hasMany(Vote, { foreignKey: 'submissionId', as: 'votes' });
 Vote.belongsTo(Submission, { foreignKey: 'submissionId' });
@@ -54,11 +56,14 @@ Challenge.hasMany(ChallengeInvite, { foreignKey: 'challengeId', as: 'challengeIn
 ChallengeInvite.belongsTo(Challenge, { foreignKey: 'challengeId' });
 ChallengeInvite.belongsTo(User, { foreignKey: 'fromUserId', as: 'inviteSender' });
 ChallengeInvite.belongsTo(User, { foreignKey: 'toUserId', as: 'inviteReceiver' });
-User.hasMany(Notification, { foreignKey: 'userId', as: 'notifications' });
-Notification.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+// Challenge.hasMany(Bet, { foreignKey: 'challengeId', as: 'bets' });
+// Bet.belongsTo(Challenge, { foreignKey: 'challengeId' });
+// Bet.belongsTo(User, { foreignKey: 'fromUserId', as: 'betCreator' });
+// Bet.belongsTo(User, { foreignKey: 'toUserId', as: 'betOpponent' });
 
 export {
-  User, Challenge, Participant, Task, Submission,
+  User, Challenge, Participant, Task, Submission, SubmissionMedia,
   Vote, FamilyMember, FamilyEvent, FamilyInvite,
-  ChallengeInvite, Message, Notification
+  ChallengeInvite, Message,
 };

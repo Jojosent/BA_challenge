@@ -1,4 +1,4 @@
-import { Submission, Task, Challenge } from '../models';
+import { Submission, SubmissionMedia, Task, Challenge } from '../models';
 import { deleteEncryptedFile } from './fileEncryption';
 
 /**
@@ -25,7 +25,7 @@ export const deleteChallengFiles = async (challengeId: number): Promise<void> =>
         // Получаем все сабмишены этих задач
         const submissions = await Submission.findAll({
             where: { taskId: taskIds },
-            attributes: ['id', 'mediaUrl'],
+            attributes: ['id'],
         });
 
         if (submissions.length === 0) {
@@ -33,18 +33,31 @@ export const deleteChallengFiles = async (challengeId: number): Promise<void> =>
             return;
         }
 
+        const submissionIds = submissions.map((s) => s.id);
+
+        // ✅ Получаем все медиафайлы этих сабмишенов
+        const mediaItems = await SubmissionMedia.findAll({
+            where: { submissionId: submissionIds },
+            attributes: ['id', 'submissionId', 'mediaUrl'],
+        });
+
+        if (mediaItems.length === 0) {
+            console.log(`ℹ️ Челлендж #${challengeId} — медиафайлов нет`);
+            return;
+        }
+
         let deletedCount = 0;
         let skippedCount = 0;
 
-        for (const submission of submissions) {
-            if (submission.mediaUrl.startsWith('enc:')) {
+        for (const mediaItem of mediaItems) {
+            if (mediaItem.mediaUrl.startsWith('enc:')) {
                 // Зашифрованный файл — удаляем с диска
-                const encPath = submission.mediaUrl.replace('enc:', '');
+                const encPath = mediaItem.mediaUrl.replace('enc:', '');
                 deleteEncryptedFile(encPath);
                 deletedCount++;
             } else {
                 // Старый формат без шифрования — просто логируем
-                console.log(`⚠️ Submission #${submission.id} — старый формат, пропускаем`);
+                console.log(`⚠️ Media #${mediaItem.id} (submission #${mediaItem.submissionId}) — старый формат, пропускаем`);
                 skippedCount++;
             }
         }
@@ -65,7 +78,7 @@ export const deleteChallengFiles = async (challengeId: number): Promise<void> =>
 /**
  * Проверяет все завершённые челленджи и удаляет файлы старше N дней.
  * Можно запускать по расписанию (cron) как дополнительную очистку.
- * 
+ *
  * @param daysAfterCompletion — сколько дней после завершения хранить файлы (по умолчанию 0 = сразу)
  */
 export const cleanupCompletedChallenges = async (
