@@ -91,6 +91,21 @@ export const useChallenge = () => {
         }
     };
 
+    const kickParticipant = async (challengeId: number, userId: number) => {
+        try {
+            setIsLoading(true);
+            const result = await challengeService.kickParticipant(challengeId, userId);
+            // Обновляем текущий челлендж чтобы список участников обновился
+            await fetchChallenge(challengeId);
+            return result;
+        } catch (e: any) {
+            setError(e.message);
+            return null;
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     return {
         challenges,
         currentChallenge,
@@ -103,5 +118,6 @@ export const useChallenge = () => {
         joinChallenge,
         fetchTasks,
         setCurrentTasks,
+        kickParticipant,
     };
 };

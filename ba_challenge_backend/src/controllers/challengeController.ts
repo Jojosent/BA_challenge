@@ -617,4 +617,74 @@ export const challengeController = {
             res.status(500).json({ message: 'Ошибка поиска' });
         }
     },
+    // DELETE /api/challenges/:id/kick/:userId
+kickParticipant: async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+        const challengeId = Number(req.params.id);
+        const targetUserId = Number(req.params.userId);
+        const requesterId = req.user!.id;
+
+        // Находим челлендж
+        const challenge = await Challenge.findByPk(challengeId);
+        if (!challenge) {
+            res.status(404).json({ message: 'Челлендж не найден' });
+            return;
+        }
+
+        // Только создатель может выгонять
+        if (challenge.creatorId !== requesterId) {
+            res.status(403).json({ message: 'Только создатель может удалять участников' });
+            return;
+        }
+
+        // Нельзя выгнать самого себя (создателя)
+        if (targetUserId === requesterId) {
+            res.status(400).json({ message: 'Нельзя выгнать себя из своего челленджа' });
+            return;
+        }
+
+        // Нельзя выгнать если челлендж завершён или отменён
+        if (challenge.status === 'completed' || challenge.status === 'cancelled') {
+            res.status(400).json({ message: 'Нельзя выгнать участника из завершённого челленджа' });
+            return;
+        }
+
+        // Проверяем что участник вообще есть в челлендже
+        const participant = await Participant.findOne({
+            where: { challengeId, userId: targetUserId },
+        });
+
+        if (!participant) {
+            res.status(404).json({ message: 'Участник не найден в этом челлендже' });
+            return;
+        }
+
+        // Возвращаем монеты если был взнос
+        if (challenge.betAmount > 0) {
+            await User.increment('rikonCoins', {
+                by: challenge.betAmount,
+                where: { id: targetUserId },
+            });
+        }
+
+        // Удаляем участника
+        await participant.destroy();
+
+        // Получаем имя пользователя для ответа
+        const kickedUser = await User.findByPk(targetUserId, {
+            attributes: ['username'],
+        });
+
+        res.json({
+            message: challenge.betAmount > 0
+                ? `${kickedUser?.username ?? 'Участник'} удалён. ${challenge.betAmount} 🪙 возвращены.`
+                : `${kickedUser?.username ?? 'Участник'} удалён из челленджа.`,
+            refundedCoins: challenge.betAmount,
+        });
+
+    } catch (error: any) {
+        console.error('kickParticipant error:', error.message);
+        res.status(500).json({ message: 'Ошибка удаления участника' });
+    }
+},
 };
