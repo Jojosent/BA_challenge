@@ -101,6 +101,35 @@ avgRating = votes.length > 0
     }
   },
 
+  uploadAvatar: async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+      const userId = req.user!.id;
+
+      if (!req.file) {
+        res.status(400).json({ message: 'Файл не выбран' });
+        return;
+      }
+
+      // Формируем путь к файлу (аналогично вашим прошлым настройкам)
+      const avatarUrl = `/uploads/photos/${req.file.filename}`;
+
+      // Обновляем поле avatarUrl в модели User
+      await User.update(
+        { avatarUrl },
+        { where: { id: userId } }
+      );
+
+      const updated = await User.findByPk(userId, {
+        attributes: { exclude: ['password'] },
+      });
+
+      res.json(updated);
+    } catch (error) {
+      console.error('uploadAvatar error:', error);
+      res.status(500).json({ message: 'Ошибка загрузки аватара' });
+    }
+  },
+  
   getUserById: async (req: AuthRequest, res: Response): Promise<void> => {
     try {
       const user = await User.findByPk(req.params.id, {

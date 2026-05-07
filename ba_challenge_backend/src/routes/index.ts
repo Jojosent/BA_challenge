@@ -10,19 +10,21 @@ import familyRoutes     from './familyRoutes';
 import chatRoutes       from './chatRoutes';
 import privacyRoutes    from './privacyRoutes';
 import notificationRoutes from './notificationRoutes';
+import adminRoutes      from './adminRoutes';
 
 const router = Router();
 
-router.use('/auth',        authRoutes);
-router.use('/users',       userRoutes);
-router.use('/challenges',  challengeRoutes);
-router.use('/submissions', submissionRoutes);
-router.use('/ai',          aiRoutes);
-router.use('/votes',       voteRoutes);
-router.use('/tasks',       taskRoutes);
-router.use('/family',      familyRoutes);
-router.use('/chat',        chatRoutes);
-router.use('/privacy',     privacyRoutes);
+router.use('/auth',          authRoutes);
+router.use('/users',         userRoutes);
+router.use('/challenges',    challengeRoutes);
+router.use('/submissions',   submissionRoutes);
+router.use('/ai',            aiRoutes);
+router.use('/votes',         voteRoutes);
+router.use('/tasks',         taskRoutes);
+router.use('/family',        familyRoutes);
+router.use('/chat',          chatRoutes);
+router.use('/privacy',       privacyRoutes);
 router.use('/notifications', notificationRoutes);
+router.use('/admin',         adminRoutes);   
 
 export default router;
