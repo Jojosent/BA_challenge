@@ -10,6 +10,7 @@ import { userService } from '@services/userService';
 import { Ionicons } from '@expo/vector-icons';
 import { useNotificationStore } from '@hooks/useNotifications';
 import { DeadlineCalendar } from '@components/shared/DeadlineCalendar';
+import { ImageBackground } from 'react-native';
 
 import {
   RefreshControl,
@@ -40,10 +41,10 @@ export default function HomeScreen() {
   useEffect(() => {
     userService.getStats()
       .then((data) => {
-        console.log('📊 Stats загружены:', data);
+        console.log('Stats загружены:', data);
         setStats(data);
       })
-      .catch((e) => console.log('❌ Stats ошибка:', e.message));
+      .catch((e) => console.log('Stats ошибка:', e.message));
   }, [displayUser?.id, refreshKey]);
 
   if (isLoading && !displayUser) return <LoadingSpinner />;
@@ -153,56 +154,81 @@ export default function HomeScreen() {
 
         {/* Быстрые действия */}
         <Text style={styles.sectionTitle}>Быстрые действия</Text>
-        <View style={styles.actionsGrid}>
-          <TouchableOpacity
-            style={styles.actionCard}
-            onPress={() => router.push('/(tabs)/challenges')}
-          >
-            <Text style={styles.actionIcon}>🎯</Text>
-            <Text style={styles.actionLabel}>Челленджи</Text>
-          </TouchableOpacity>
+        <View style={styles.quickSection}>
 
-          <TouchableOpacity
-            style={styles.actionCard}
-            onPress={() => router.push('/(tabs)/ai-assistant')}
-          >
-            <Text style={styles.actionIcon}>🤖</Text>
-            <Text style={styles.actionLabel}>AI Ассистент</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.actionCard}
-            onPress={() => router.push('/family')}
-          >
-            <Text style={styles.actionIcon}>🌳</Text>
-            <Text style={styles.actionLabel}>Семейное дерево</Text>
-          </TouchableOpacity>
-
-          {/* Уведомления */}
-          <TouchableOpacity
-            style={[styles.actionCard, notifCount > 0 && styles.actionCardAlert]}
-            onPress={() => router.push('/notifications')}
-          >
-            <View style={styles.actionIconWrapper}>
-              <Text style={styles.actionIcon}>🔔</Text>
-              {notifCount > 0 && (
-                <View style={styles.actionBadge}>
-                  <Text style={styles.actionBadgeTxt}>
-                    {notifCount > 9 ? '9+' : notifCount}
-                  </Text>
+          <View style={styles.quickGrid}>
+            <TouchableOpacity
+              style={styles.quickItem}
+              activeOpacity={0.85}
+              onPress={() => router.push('/(tabs)/challenges')}
+            >
+              <ImageBackground
+                source={require('../../assets/images/challenge.png')}
+                style={styles.quickBg}
+                imageStyle={styles.quickBgImage}
+                resizeMode="cover"
+              >
+                <View style={styles.quickOverlay}>
+                  <Text style={styles.quickTitle}>Челленджи</Text>
                 </View>
-              )}
-            </View>
-            <Text style={[
-              styles.actionLabel,
-              notifCount > 0 && styles.actionLabelAlert,
-            ]}>
-              Уведомления
-            </Text>
-          </TouchableOpacity>
+              </ImageBackground>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.quickItem}
+              activeOpacity={0.85}
+              onPress={() => router.push('/(tabs)/ai-assistant')}
+            >
+              <ImageBackground
+                source={require('../../assets/images/ai.png')}
+                style={styles.quickBg}
+                imageStyle={styles.quickBgImage}
+                resizeMode="cover"
+              >
+                <View style={styles.quickOverlay}>
+                  <Text style={styles.quickTitle}>AI Ассистент</Text>
+                </View>
+              </ImageBackground>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.quickItem}
+              activeOpacity={0.85}
+              onPress={() => router.push('/family')}
+            >
+              <ImageBackground
+                source={require('../../assets/images/family.png')}
+                style={styles.quickBg}
+                imageStyle={styles.quickBgImage}
+                resizeMode="cover"
+              >
+                <View style={styles.quickOverlay}>
+                                  <Text style={styles.quickTitle}>Семейное дерево</Text>
+                                </View>
+              </ImageBackground>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.quickItem}
+              activeOpacity={0.85}
+              onPress={() => router.push('/notifications')}
+            >
+              <ImageBackground
+                source={require('../../assets/images/notification.png')}
+                style={styles.quickBg}
+                imageStyle={styles.quickBgImage}
+                resizeMode="cover"
+              >
+                <View style={styles.quickOverlay}>
+                                  <Text style={styles.quickTitle}>Уведомления</Text>
+                                </View>
+              </ImageBackground>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Лента активности */}
-        <Text style={styles.sectionTitle}>📅 Календарь задач</Text>
+        <Text style={styles.sectionTitle}>Календарь задач</Text>
         <View style={styles.calendarWrapper}>
           <DeadlineCalendar key={refreshKey} />
         </View>
@@ -213,6 +239,62 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+quickSection: {
+  paddingHorizontal: 20,
+},
+
+mainSectionTitle: {
+  fontSize: 24,
+  fontWeight: '900',
+  color: Colors.textPrimary,
+  marginTop: 28,
+  marginBottom: 16,
+  paddingHorizontal: 20,
+},
+
+quickGrid: {
+  flexDirection: 'row',
+  flexWrap: 'wrap',
+  justifyContent: 'space-between',
+  rowGap: 12,
+},
+
+quickItem: {
+  width: '48.5%',
+  height: 118,
+  borderRadius: 25,
+  overflow: 'hidden',
+  backgroundColor: Colors.white,
+  borderWidth: 1,
+  borderColor: '#E5E7EB',
+},
+
+quickBg: {
+  flex: 1,
+  justifyContent: 'center',
+},
+
+quickBgImage: {
+  borderRadius: 20,
+},
+
+quickTitle: {
+  fontSize: 15,
+  fontWeight: '900',
+  color: '#0F172A',
+  lineHeight: 18,
+
+  textShadowColor: '#FFFFFF',
+  textShadowOffset: { width: 0.5, height: 0.5 },
+  textShadowRadius: 5,
+},
+
+quickOverlay: {
+  height: '100%',
+  width: '60%',
+  justifyContent: 'center',
+  paddingLeft: 18,
+},
   container: { flex: 1, backgroundColor: Colors.background },
   calendarWrapper: { paddingHorizontal: 20, marginBottom: 24 },
   headerRow: {
