@@ -1,31 +1,31 @@
 export const Colors = {
-    // Основные цвета приложения
-    primary: '#6C63FF',      // Фиолетовый — главный цвет
-    secondary: '#FF6584',    // Розовый — акцентный
-    accent: '#43D9AD',       // Зелёный — успех/победа
+  primary: '#7C3AED',
+  primaryDark: '#5B21B6',
+  secondary: '#FF4D8D',
+  accent: '#00C2A8',
+  yellow: '#FFC857',
+  orange: '#FF8A3D',
 
-    // Фоны
-    background: '#1a1a2e',   // Тёмно-синий фон
-    surface: '#16213e',      // Поверхность карточек
-    card: '#0f3460',         // Карточки
+  background: '#F8FAFF',
+  surface: '#FFFFFF',
+  card: '#FFFFFF',
 
-    // Текст
-    textPrimary: '#FFFFFF',
-    textSecondary: '#A0AEC0',
-    textMuted: '#4A5568',
+  textPrimary: '#111827',
+  textSecondary: '#64748B',
+  textMuted: '#94A3B8',
 
-    // Статусы
-    success: '#48BB78',
-    warning: '#ECC94B',
-    error: '#FC8181',
-    info: '#63B3ED',
+  success: '#16A34A',
+  warning: '#F59E0B',
+  error: '#EF4444',
+  info: '#2563EB',
 
-    // Монета Rikon
-    rikon: '#FFD700',        // Золотой
+  rikon: '#F59E0B',
 
-    // Прочее
-    border: '#2D3748',
-    white: '#FFFFFF',
-    black: '#000000',
-    transparent: 'transparent',
+  border: '#E5E7EB',
+  softBorder: '#EEF2FF',
+  white: '#FFFFFF',
+  black: '#000000',
+  transparent: 'transparent',
+
+  shadow: '#1E293B',
 } as const;
