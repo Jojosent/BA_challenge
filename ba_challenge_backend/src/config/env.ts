@@ -8,8 +8,8 @@ export const ENV = {
   DB_HOST: process.env.DB_HOST || 'localhost',
   DB_PORT: Number(process.env.DB_PORT) || 5432,
   DB_NAME: process.env.DB_NAME || 'ba_challenge',
-  DB_USER: process.env.DB_USER || 'aizhan',
-  DB_PASSWORD: process.env.DB_PASSWORD || '',
+  DB_USER: process.env.DB_USER || 'postgres',
+  DB_PASSWORD: process.env.DB_PASSWORD || '1234',
 
   JWT_SECRET: process.env.JWT_SECRET || 'fallback_secret',
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '30d',
