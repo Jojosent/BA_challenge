@@ -6,15 +6,16 @@ import {
   ScrollView,
   ActivityIndicator,
   TouchableOpacity,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@constants/colors';
 import { voteService } from '@services/voteService';
 
 export const ReceivedVotes: React.FC = () => {
-  const [data, setData]           = useState<any[]>([]);
+  const [data, setData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [expanded, setExpanded]   = useState<number | null>(null);
+  const [expanded, setExpanded] = useState<number | null>(null);
 
   useEffect(() => {
     voteService.getMyReceivedVotes()
@@ -34,13 +35,12 @@ export const ReceivedVotes: React.FC = () => {
     );
   }
 
-  // Считаем общий средний рейтинг
   const allVotes = data.flatMap((d) => d.votes);
   const overallAvg = allVotes.length > 0
     ? Math.round(
-        allVotes.reduce((sum: number, v: any) => sum + v.score, 0)
-        / allVotes.length * 100
-      ) / 100
+      allVotes.reduce((sum: number, v: any) => sum + v.score, 0)
+      / allVotes.length * 100
+    ) / 100
     : 0;
 
   const uniqueVoters = new Set(
@@ -119,14 +119,22 @@ export const ReceivedVotes: React.FC = () => {
             <View style={styles.votesList}>
               {item.votes.map((vote: any) => (
                 <View key={vote.id} style={styles.voteRow}>
-                  {/* Аватар */}
+                  {/* Аватар оценщика */}
                   <View style={[
                     styles.avatar,
                     vote.voter.id === null && styles.avatarAnon,
                   ]}>
-                    <Text style={styles.avatarTxt}>
-                      {vote.voter.username.charAt(0).toUpperCase()}
-                    </Text>
+                    {vote.voter.avatarUrl && vote.voter.id !== null ? (
+                      <Image
+                        source={{ uri: vote.voter.avatarUrl }}
+                        style={styles.avatarImage}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <Text style={styles.avatarTxt}>
+                        {vote.voter.username.charAt(0).toUpperCase()}
+                      </Text>
+                    )}
                   </View>
 
                   {/* Имя */}
@@ -158,7 +166,7 @@ const styles = StyleSheet.create({
   container: {},
   empty: { alignItems: 'center', paddingVertical: 24 },
   emptyIcon: { fontSize: 36, marginBottom: 8 },
-  emptyTxt:  { color: Colors.textMuted, fontSize: 14 },
+  emptyTxt: { color: Colors.textMuted, fontSize: 14 },
 
   overallCard: {
     flexDirection: 'row',
@@ -171,11 +179,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.rikon + '40',
   },
-  overallLeft:  { alignItems: 'center', gap: 4 },
-  overallAvg:   { fontSize: 32, fontWeight: '800', color: Colors.rikon },
-  starsRow:     { flexDirection: 'row', gap: 2 },
+  overallLeft: { alignItems: 'center', gap: 4 },
+  overallAvg: { fontSize: 32, fontWeight: '800', color: Colors.rikon },
+  starsRow: { flexDirection: 'row', gap: 2 },
   overallRight: { alignItems: 'flex-end' },
-  voterCount:   { fontSize: 13, color: Colors.textSecondary },
+  voterCount: { fontSize: 13, color: Colors.textSecondary },
 
   submissionBlock: {
     backgroundColor: Colors.surface,
@@ -198,8 +206,8 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     marginBottom: 4,
   },
-  avgRow:     { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  avgTxt:     { fontSize: 13, fontWeight: '700', color: Colors.rikon, marginLeft: 4 },
+  avgRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  avgTxt: { fontSize: 13, fontWeight: '700', color: Colors.rikon, marginLeft: 4 },
   voteCountTxt: { fontSize: 12, color: Colors.textMuted },
 
   votesList: {
@@ -214,6 +222,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
+
+  // Аватар оценщика
   avatar: {
     width: 32,
     height: 32,
@@ -221,10 +231,17 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
   },
   avatarAnon: { backgroundColor: Colors.textMuted },
-  avatarTxt:  { color: Colors.white, fontWeight: '700', fontSize: 13 },
-  voterName:  { flex: 1, fontSize: 14, color: Colors.textPrimary },
-  voteStars:  { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  voteScore:  { fontSize: 13, fontWeight: '700', color: Colors.rikon, marginLeft: 4 },
+  avatarImage: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
+  avatarTxt: { color: Colors.white, fontWeight: '700', fontSize: 13 },
+
+  voterName: { flex: 1, fontSize: 14, color: Colors.textPrimary },
+  voteStars: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  voteScore: { fontSize: 13, fontWeight: '700', color: Colors.rikon, marginLeft: 4 },
 });

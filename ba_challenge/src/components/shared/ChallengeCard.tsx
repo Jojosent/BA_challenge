@@ -8,6 +8,7 @@ import {
     Text,
     TouchableOpacity,
     View,
+    Image,
 } from 'react-native';
 
 interface ChallengeCardProps {
@@ -15,16 +16,16 @@ interface ChallengeCardProps {
 }
 
 const statusConfig = {
-    active:    { label: 'Активен',  color: Colors.accent,  icon: '🔥' },
-    pending:   { label: 'Ожидание', color: Colors.warning, icon: '⏳' },
+    active: { label: 'Активен', color: Colors.accent, icon: '🔥' },
+    pending: { label: 'Ожидание', color: Colors.warning, icon: '⏳' },
     completed: { label: 'Завершён', color: Colors.primary, icon: '🏆' },
-    cancelled: { label: 'Отменён',  color: Colors.error,   icon: '❌' },
+    cancelled: { label: 'Отменён', color: Colors.error, icon: '❌' },
 };
 
 const visibilityIcon = {
-    secret:    '🔒',
+    secret: '🔒',
     protected: '🛡️',
-    public:    '🌍',
+    public: '🌍',
 };
 
 export const ChallengeCard: React.FC<ChallengeCardProps> = ({ challenge }) => {
@@ -32,15 +33,14 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({ challenge }) => {
     const status = statusConfig[challenge.status];
 
     const daysLeft = () => {
-        const end  = new Date(challenge.endDate);
-        const now  = new Date();
+        const end = new Date(challenge.endDate);
+        const now = new Date();
         const diff = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
         if (diff < 0) return 'Завершён';
         if (diff === 0) return 'Последний день!';
         return `${diff} дн. осталось`;
     };
 
-    // ✅ Призовой пул = betAmount * participantCount (приходит с бэкенда)
     const prizePool = challenge.prizePool ?? (challenge.betAmount * (challenge.participants?.length ?? 0));
 
     return (
@@ -69,8 +69,21 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({ challenge }) => {
             {/* Нижняя строка */}
             <View style={styles.bottomRow}>
                 {challenge.creator && (
-                    <View style={styles.infoItem}>
-                        <Ionicons name="person-outline" size={13} color={Colors.textSecondary} />
+                    <View style={styles.creatorRow}>
+                        {/* Аватар создателя */}
+                        <View style={styles.creatorAvatar}>
+                            {(challenge.creator as any).avatarUrl ? (
+                                <Image
+                                    source={{ uri: (challenge.creator as any).avatarUrl }}
+                                    style={styles.creatorAvatarImage}
+                                    resizeMode="cover"
+                                />
+                            ) : (
+                                <Text style={styles.creatorAvatarText}>
+                                    {challenge.creator.username?.charAt(0).toUpperCase()}
+                                </Text>
+                            )}
+                        </View>
                         <Text style={styles.infoText}>{challenge.creator.username}</Text>
                     </View>
                 )}
@@ -87,7 +100,6 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({ challenge }) => {
                     <Text style={styles.infoText}>{daysLeft()}</Text>
                 </View>
 
-                {/* ✅ Показываем призовой пул если betAmount > 0 */}
                 {challenge.betAmount > 0 && (
                     <View style={styles.prizeItem}>
                         <Text style={styles.prizeCoin}>🏆</Text>
@@ -142,14 +154,40 @@ const styles = StyleSheet.create({
     },
     bottomRow: {
         flexDirection: 'row',
-        gap: 12,
+        gap: 10,
         flexWrap: 'wrap',
         alignItems: 'center',
     },
+
+    // Создатель с аватаркой
+    creatorRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    creatorAvatar: {
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        backgroundColor: Colors.primary,
+        justifyContent: 'center',
+        alignItems: 'center',
+        overflow: 'hidden',
+    },
+    creatorAvatarImage: {
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+    },
+    creatorAvatarText: {
+        color: Colors.white,
+        fontSize: 10,
+        fontWeight: '700',
+    },
+
     infoItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     infoText: { fontSize: 12, color: Colors.textSecondary },
 
-    // ✅ Призовой пул
     prizeItem: {
         flexDirection: 'row',
         alignItems: 'center',

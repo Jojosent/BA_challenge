@@ -1,16 +1,15 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { Colors } from '@constants/colors';
 import { Participant } from '@/types/index';
-import { Ionicons } from '@expo/vector-icons';
 
 interface ParticipantListProps {
   participants: Participant[];
   creatorId?: number;
   betAmount?: number;
   prizePool?: number;
-  currentUserId?: number;        // ✅ кто сейчас смотрит
-  onKick?: (participant: Participant) => void;  // ✅ коллбэк кика
+  currentUserId?: number;
+  onKick?: (participant: Participant) => Promise<void>;
 }
 
 const MEDAL = ['🥇', '🥈', '🥉'];
@@ -18,43 +17,21 @@ const MEDAL = ['🥇', '🥈', '🥉'];
 export const ParticipantList: React.FC<ParticipantListProps> = ({
   participants,
   creatorId,
-  betAmount = 0,
-  prizePool = 0,
   currentUserId,
   onKick,
 }) => {
   const sorted = [...participants].sort((a, b) => b.score - a.score);
-  const isCreator = currentUserId === creatorId;
-
-  const handleKick = (p: Participant) => {
-    const refundMsg = betAmount > 0
-      ? `\n\n${betAmount} 🪙 будут возвращены участнику.`
-      : '';
-
-    Alert.alert(
-      '👢 Удалить участника?',
-      `Удалить ${p.user?.username ?? 'участника'} из челленджа?${refundMsg}`,
-      [
-        { text: 'Отмена', style: 'cancel' },
-        {
-          text: 'Удалить',
-          style: 'destructive',
-          onPress: () => onKick?.(p),
-        },
-      ]
-    );
-  };
 
   return (
     <View style={styles.container}>
       {sorted.map((p, index) => {
-        const isThisCreator = p.userId === creatorId;
+        const isCreator = p.userId === creatorId;
         const isMe = p.userId === currentUserId;
-        const canKick = isCreator && !isThisCreator && !isMe && onKick;
+        const avatarUrl = p.user?.avatarUrl;
+        const canKick = !!onKick && currentUserId === creatorId && !isCreator && !isMe;
 
         return (
-          <View key={p.id} style={[styles.row, isThisCreator && styles.rowCreator]}>
-
+          <View key={p.id} style={[styles.row, isCreator && styles.rowCreator]}>
             {/* Место */}
             <View style={styles.rankCol}>
               {index < 3 ? (
@@ -65,26 +42,30 @@ export const ParticipantList: React.FC<ParticipantListProps> = ({
             </View>
 
             {/* Аватар */}
-            <View style={[styles.avatar, isThisCreator && styles.avatarCreator]}>
-              <Text style={styles.avatarText}>
-                {p.user?.username?.charAt(0).toUpperCase() ?? '?'}
-              </Text>
+            <View style={[styles.avatar, isCreator && styles.avatarCreator]}>
+              {avatarUrl ? (
+                <Image
+                  source={{ uri: avatarUrl }}
+                  style={styles.avatarImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <Text style={styles.avatarText}>
+                  {p.user?.username?.charAt(0).toUpperCase() ?? '?'}
+                </Text>
+              )}
             </View>
 
-            {/* Имя + метка */}
+            {/* Имя + метка создателя */}
             <View style={styles.nameCol}>
               <View style={styles.nameRow}>
                 <Text style={styles.username} numberOfLines={1}>
                   {p.user?.username ?? `Участник ${p.userId}`}
+                  {isMe && <Text style={styles.youLabel}> (ты)</Text>}
                 </Text>
-                {isThisCreator && (
+                {isCreator && (
                   <View style={styles.creatorBadge}>
                     <Text style={styles.creatorBadgeTxt}>👑 Создатель</Text>
-                  </View>
-                )}
-                {isMe && !isThisCreator && (
-                  <View style={styles.meBadge}>
-                    <Text style={styles.meBadgeTxt}>ты</Text>
                   </View>
                 )}
               </View>
@@ -99,16 +80,15 @@ export const ParticipantList: React.FC<ParticipantListProps> = ({
               <Text style={styles.scoreLabel}>очков</Text>
             </View>
 
-            {/* Кнопка кика — только для создателя */}
+            {/* Кнопка кик */}
             {canKick && (
               <TouchableOpacity
                 style={styles.kickBtn}
-                onPress={() => handleKick(p)}
+                onPress={() => onKick(p)}
               >
-                <Ionicons name="person-remove-outline" size={16} color={Colors.error} />
+                <Text style={styles.kickBtnTxt}>✕</Text>
               </TouchableOpacity>
             )}
-
           </View>
         );
       })}
@@ -136,9 +116,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.rikon + '08',
   },
 
-  rankCol:  { width: 32, alignItems: 'center' },
-  medal:    { fontSize: 18 },
-  rankNum:  { fontSize: 13, fontWeight: '700', color: Colors.textMuted },
+  rankCol: { width: 32, alignItems: 'center' },
+  medal: { fontSize: 18 },
+  rankNum: { fontSize: 13, fontWeight: '700', color: Colors.textMuted },
 
   avatar: {
     width: 38,
@@ -147,18 +127,25 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
   },
   avatarCreator: {
     backgroundColor: Colors.rikon,
     borderWidth: 2,
     borderColor: Colors.rikon,
   },
+  avatarImage: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+  },
   avatarText: { color: Colors.white, fontWeight: '700', fontSize: 15 },
 
-  nameCol:  { flex: 1 },
-  nameRow:  { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
+  nameCol: { flex: 1 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
   username: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary },
-  rating:   { fontSize: 11, color: Colors.textMuted, marginTop: 2 },
+  youLabel: { color: Colors.primary, fontWeight: '400', fontSize: 13 },
+  rating: { fontSize: 11, color: Colors.textMuted, marginTop: 2 },
 
   creatorBadge: {
     backgroundColor: Colors.rikon + '25',
@@ -174,30 +161,24 @@ const styles = StyleSheet.create({
     color: Colors.rikon,
   },
 
-  meBadge: {
-    backgroundColor: Colors.primary + '25',
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: Colors.primary + '60',
-  },
-  meBadgeTxt: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: Colors.primary,
-  },
-
   scoreCol: { alignItems: 'flex-end', paddingRight: 4 },
-  score:      { fontSize: 16, fontWeight: '800', color: Colors.accent },
+  score: { fontSize: 16, fontWeight: '800', color: Colors.accent },
   scoreLabel: { fontSize: 10, color: Colors.textMuted },
 
   kickBtn: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: Colors.error + '15',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Colors.error + '18',
     borderWidth: 1,
-    borderColor: Colors.error + '30',
+    borderColor: Colors.error + '50',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  kickBtnTxt: {
+    color: Colors.error,
+    fontSize: 13,
+    fontWeight: '700',
   },
 
   empty: { color: Colors.textMuted, textAlign: 'center', paddingVertical: 16 },
