@@ -15,10 +15,10 @@ interface ChallengeCardProps {
 }
 
 const statusConfig = {
-    active:    { label: 'Активен',   color: Colors.accent,   icon: '🔥' },
-    pending:   { label: 'Ожидание',  color: Colors.warning,  icon: '⏳' },
-    completed: { label: 'Завершён',  color: Colors.primary,  icon: '🏆' },
-    cancelled: { label: 'Отменён',   color: Colors.error,    icon: '❌' },
+    active:    { label: 'Активен',  color: Colors.accent,  icon: '🔥' },
+    pending:   { label: 'Ожидание', color: Colors.warning, icon: '⏳' },
+    completed: { label: 'Завершён', color: Colors.primary, icon: '🏆' },
+    cancelled: { label: 'Отменён',  color: Colors.error,   icon: '❌' },
 };
 
 const visibilityIcon = {

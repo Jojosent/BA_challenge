@@ -26,6 +26,7 @@ import { TaskFormModal } from '@components/shared/TaskFormModal';
 import { taskService } from '@services/taskService';
 import { Task } from '@/types/index';
 import { InviteToChallengeModal } from '@components/shared/InviteToChallengeModal';
+import { challengeService } from '@services/challengeService';
 
 export default function ChallengeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -47,8 +48,8 @@ export default function ChallengeDetailScreen() {
   const [taskModalVisible, setTaskModalVisible] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [taskLoading, setTaskLoading] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
-  // ✅ Состояния для модального окна пароля
   const [passwordModal, setPasswordModal] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [passwordError, setPasswordError] = useState('');
@@ -97,6 +98,31 @@ export default function ChallengeDetailScreen() {
     }
     confirmJoin();
   };
+
+  const handleActivate = () => {
+    Alert.alert(
+      '🚀 Запустить челлендж?',
+      'Статус изменится на "Активен" и участники смогут выполнять задачи',
+      [
+        { text: 'Отмена', style: 'cancel' },
+        {
+          text: 'Запустить',
+          onPress: async () => {
+            try {
+              setIsUpdatingStatus(true);
+              await challengeService.updateStatus(Number(id), 'active');
+              await fetchChallenge(Number(id));
+            } catch (e: any) {
+              Alert.alert('Ошибка', e.message);
+            } finally {
+              setIsUpdatingStatus(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
 
   // ✅ Выполняет вступление (с паролем или без)
   const confirmJoin = (password?: string) => {
@@ -325,6 +351,20 @@ export default function ChallengeDetailScreen() {
               onPress={handleJoin}
               isLoading={isLoading}
             />
+          </View>
+        )}
+
+        {canEdit && c.status === 'pending' && (
+          <View style={styles.joinSection}>
+            <Button
+              title={isUpdatingStatus ? 'Запускаем...' : '🚀 Запустить челлендж'}
+              onPress={handleActivate}
+              isLoading={isUpdatingStatus}
+              variant="outline"
+            />
+            <Text style={styles.activateHint}>
+              Или дождись даты начала — запустится автоматически
+            </Text>
           </View>
         )}
 
@@ -694,6 +734,12 @@ const chatTitleStyle = { fontSize: 15, fontWeight: '700' as const, color: Colors
 const chatSubStyle = { fontSize: 12, color: Colors.textSecondary, marginTop: 2 };
 
 const styles = StyleSheet.create({
+  activateHint: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    marginTop: 6,
+},
   container: { flex: 1, backgroundColor: Colors.background },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   errorText: { color: Colors.textSecondary, fontSize: 16 },

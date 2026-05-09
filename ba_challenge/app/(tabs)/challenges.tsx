@@ -6,6 +6,8 @@ import { useChallenge } from '@hooks/useChallenge';
 import { Challenge } from '@/types';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 import {
     FlatList,
     RefreshControl,
@@ -25,10 +27,11 @@ export default function ChallengesScreen() {
     const [filter, setFilter] = useState<FilterType>('all');
     const [search, setSearch] = useState('');
 
-    useEffect(() => {
-        fetchChallenges();
-    }, []);
-
+    useFocusEffect(
+        useCallback(() => {
+            fetchChallenges();
+        }, [])
+    );
     const filtered = challenges.filter((c: Challenge) => {
         const matchesFilter = filter === 'all' || c.status === filter;
         const matchesSearch =
@@ -37,7 +40,14 @@ export default function ChallengesScreen() {
         return matchesFilter && matchesSearch;
     });
 
-    const filters: { key: FilterType; label: string }[] = [
+    const counts = {
+        all: challenges.length,
+        active: challenges.filter((c: Challenge) => c.status === 'active').length,
+        pending: challenges.filter((c: Challenge) => c.status === 'pending').length,
+        completed: challenges.filter((c: Challenge) => c.status === 'completed').length,
+    };
+
+    const filters: { key: FilterType; label: string; count?: number }[] = [
         { key: 'all', label: 'Все' },
         { key: 'active', label: '🔥 Активные' },
         { key: 'pending', label: '⏳ Ожидание' },
@@ -73,7 +83,6 @@ export default function ChallengesScreen() {
                     </TouchableOpacity>
                 )}
             </View>
-
             <View style={styles.filtersRow}>
                 {filters.map((f) => (
                     <TouchableOpacity
@@ -89,9 +98,23 @@ export default function ChallengesScreen() {
                         >
                             {f.label}
                         </Text>
+                        {counts[f.key] > 0 && (
+                            <View style={[
+                                styles.filterBadge,
+                                filter === f.key && styles.filterBadgeActive,
+                            ]}>
+                                <Text style={[
+                                    styles.filterBadgeTxt,
+                                    filter === f.key && styles.filterBadgeTxtActive,
+                                ]}>
+                                    {counts[f.key]}
+                                </Text>
+                            </View>
+                        )}
                     </TouchableOpacity>
                 ))}
             </View>
+
 
             <FlatList
                 data={filtered}
@@ -127,6 +150,24 @@ export default function ChallengesScreen() {
 }
 
 const styles = StyleSheet.create({
+    filterBadge: {
+        backgroundColor: Colors.border,
+        borderRadius: 10,
+        paddingHorizontal: 6,
+        paddingVertical: 1,
+        marginLeft: 4,
+    },
+    filterBadgeActive: {
+        backgroundColor: 'rgba(255,255,255,0.25)',
+    },
+    filterBadgeTxt: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: Colors.textMuted,
+    },
+    filterBadgeTxtActive: {
+        color: Colors.white,
+    },
     container: { flex: 1, backgroundColor: Colors.background },
     header: {
         flexDirection: 'row',
