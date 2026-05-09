@@ -12,6 +12,7 @@ import { Colors } from '@constants/colors';
 import { challengeService } from '@services/challengeService';
 import { useRouter } from 'expo-router';
 import { Linking } from 'react-native';
+import { PartyPopper } from 'lucide-react-native';
 
 interface DeadlineItem {
     taskId: number;
@@ -168,8 +169,8 @@ export const DeadlineCalendar: React.FC = () => {
                     <Ionicons name="alarm-outline" size={16} color={Colors.warning} />
                     <Text style={styles.urgentTxt}>
                         {upcomingDeadlines.length === 1
-                            ? `🔥 Дедлайн через ${upcomingDeadlines[0].daysLeft} дн: "${upcomingDeadlines[0].taskTitle}"`
-                            : `🔥 ${upcomingDeadlines.length} дедлайна в ближайшие 7 дней`}
+                            ? `Дедлайн через ${upcomingDeadlines[0].daysLeft} дн: "${upcomingDeadlines[0].taskTitle}"`
+                            : `${upcomingDeadlines.length} дедлайна в ближайшие 7 дней`}
                     </Text>
                 </View>
             )}
@@ -286,9 +287,9 @@ export const DeadlineCalendar: React.FC = () => {
                                         <View style={[styles.statusPill, { backgroundColor: accent + '22', borderColor: accent }]}>
                                             <Text style={[styles.statusPillTxt, { color: accent }]}>
                                                 {expired
-                                                    ? '⏰ Просрочено'
+                                                    ? 'Просрочено'
                                                     : item.daysLeft === 0
-                                                        ? '🔥 Сегодня!'
+                                                        ? 'Сегодня!'
                                                         : `${item.daysLeft} дн.`}
                                             </Text>
                                         </View>
@@ -312,11 +313,15 @@ export const DeadlineCalendar: React.FC = () => {
             {/* Все предстоящие дедлайны (если ничего не выбрано) */}
             {!selectedDate && (
                 <View style={styles.upcomingBlock}>
-                    <Text style={styles.upcomingTitle}>📋 Предстоящие дедлайны</Text>
+                    <Text style={styles.upcomingTitle}>Предстоящие дедлайны</Text>
 
                     {deadlines.filter((d) => !d.isExpired).length === 0 ? (
                         <View style={styles.emptyBox}>
-                            <Text style={styles.emptyIcon}>🎉</Text>
+                            <PartyPopper
+                                size={42}
+                                color={Colors.primary}
+                                strokeWidth={2.4}
+                            />
                             <Text style={styles.emptyTxt}>Все задачи выполнены!</Text>
                         </View>
                     ) : (
@@ -567,7 +572,7 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     upcomingTitle: {
-        fontSize: 16,
+        fontSize: 18,
         fontWeight: '700',
         color: Colors.textPrimary,
         marginBottom: 10,
@@ -580,7 +585,6 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: Colors.border,
     },
-    emptyIcon: { fontSize: 36, marginBottom: 8 },
     emptyTxt: { fontSize: 14, color: Colors.textMuted },
 
     upcomingCard: {

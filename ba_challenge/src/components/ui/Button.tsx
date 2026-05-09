@@ -25,6 +25,8 @@ export const Button: React.FC<ButtonProps> = ({
   variant = 'primary',
   style,
 }) => {
+  const textColor = variant === 'outline' ? Colors.primary : Colors.white;
+
   return (
     <TouchableOpacity
       style={[
@@ -35,14 +37,12 @@ export const Button: React.FC<ButtonProps> = ({
       ]}
       onPress={onPress}
       disabled={disabled || isLoading}
-      activeOpacity={0.8}
+      activeOpacity={0.85}
     >
       {isLoading ? (
-        <ActivityIndicator color={Colors.white} size="small" />
+        <ActivityIndicator color={textColor} size="small" />
       ) : (
-        <Text style={[styles.text, variant === 'outline' && styles.outlineText]}>
-          {title}
-        </Text>
+        <Text style={[styles.text, { color: textColor }]}>{title}</Text>
       )}
     </TouchableOpacity>
   );
@@ -51,19 +51,33 @@ export const Button: React.FC<ButtonProps> = ({
 const styles = StyleSheet.create({
   base: {
     paddingVertical: 15,
-    borderRadius: 12,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 52,
+    minHeight: 54,
+    shadowColor: Colors.shadow,
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 3,
   },
-  primary: { backgroundColor: Colors.primary },
-  secondary: { backgroundColor: Colors.secondary },
+  primary: {
+    backgroundColor: Colors.primary,
+  },
+  secondary: {
+    backgroundColor: Colors.secondary,
+  },
   outline: {
-    backgroundColor: Colors.transparent,
-    borderWidth: 1,
+    backgroundColor: Colors.white,
+    borderWidth: 1.5,
     borderColor: Colors.primary,
+    shadowOpacity: 0.04,
   },
-  disabled: { opacity: 0.5 },
-  text: { color: Colors.white, fontSize: 16, fontWeight: '600' },
-  outlineText: { color: Colors.primary },
+  disabled: {
+    opacity: 0.55,
+  },
+  text: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
 });

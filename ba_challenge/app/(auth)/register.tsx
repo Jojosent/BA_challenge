@@ -50,7 +50,7 @@ export default function RegisterScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
-          <Text style={styles.logo}>⚡ B&A</Text>
+          <Text style={styles.logo}>BA Challenge</Text>
           <Text style={styles.title}>Создай аккаунт</Text>
           <Text style={styles.subtitle}>Начни свой первый челлендж!</Text>
         </View>
@@ -58,7 +58,7 @@ export default function RegisterScreen() {
         <View style={styles.form}>
           {error && (
             <View style={styles.errorBox}>
-              <Text style={styles.errorBoxText}>⚠️ {error}</Text>
+              <Text style={styles.errorBoxText}>{error}</Text>
             </View>
           )}
 
@@ -146,17 +146,22 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   scroll: { flexGrow: 1, justifyContent: 'center', padding: 24 },
   header: { alignItems: 'center', marginBottom: 40 },
-  logo: { fontSize: 48, marginBottom: 16 },
+  logo: {
+    fontSize: 34,
+    fontWeight: '900',
+    color: Colors.primary,
+    marginBottom: 16,
+  },
   title: { fontSize: 28, fontWeight: '700', color: Colors.textPrimary, marginBottom: 8 },
   subtitle: { fontSize: 16, color: Colors.textSecondary },
   form: { width: '100%' },
   errorBox: {
-    backgroundColor: '#2D1F1F',
-    borderRadius: 10,
-    padding: 12,
+    backgroundColor: '#FFF1F2',
+    borderRadius: 16,
+    padding: 14,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: Colors.error,
+    borderColor: '#FECDD3',
   },
   errorBoxText: { color: Colors.error, fontSize: 14 },
   button: { marginTop: 8 },

@@ -49,9 +49,9 @@ export default function ChallengesScreen() {
 
     const filters: { key: FilterType; label: string; count?: number }[] = [
         { key: 'all', label: 'Все' },
-        { key: 'active', label: '🔥 Активные' },
-        { key: 'pending', label: '⏳ Ожидание' },
-        { key: 'completed', label: '🏆 Завершённые' },
+        { key: 'active', label: 'Активные' },
+        { key: 'pending', label: 'Ожидание' },
+        { key: 'completed', label: 'Завершённые' },
     ];
 
     if (isLoading && challenges.length === 0) return <LoadingSpinner />;
@@ -131,7 +131,6 @@ export default function ChallengesScreen() {
                 }
                 ListEmptyComponent={
                     <View style={styles.empty}>
-                        <Text style={styles.emptyIcon}>🎯</Text>
                         <Text style={styles.emptyTitle}>Пока нет челленджей</Text>
                         <Text style={styles.emptyText}>
                             Создай первый и пригласи друзей!

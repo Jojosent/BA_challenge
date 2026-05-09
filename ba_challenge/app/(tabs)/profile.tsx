@@ -171,29 +171,6 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.sectionTitle}>Статистика</Text>
-        <View style={styles.statsRow}>
-          {/* ✅ Карточка серии меняет цвет на серый, если стрик 0 */}
-          <StatCard
-            icon="🔥"
-            label="Серия"
-            value={stats.streakCount}
-            color={stats.streakCount > 0 ? Colors.error : Colors.textMuted}
-          />
-          <StatCard
-            icon="🪙"
-            label="Rikon"
-            value={displayUser?.rikonCoins ?? 0}
-            color={Colors.rikon}
-          />
-          <StatCard 
-            icon="🏆" 
-            label="Победы" 
-            value={stats.wonCount} 
-            color={Colors.accent} 
-          />
-        </View>
-
         <Text style={styles.sectionTitle}>Информация</Text>
         <Card style={styles.infoCard}>
           <InfoRow

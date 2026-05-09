@@ -3,7 +3,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 interface StatCardProps {
-  icon: string;
+  icon: React.ReactNode;
   label: string;
   value: string | number;
   color?: string;
@@ -16,7 +16,9 @@ export const StatCard: React.FC<StatCardProps> = ({
   color = Colors.primary,
 }) => (
   <View style={[styles.container, { borderTopColor: color }]}>
-    <Text style={styles.icon}>{icon}</Text>
+    <View style={styles.icon}>
+      {icon}
+    </View>
     <Text style={[styles.value, { color }]}>{value}</Text>
     <Text style={styles.label}>{label}</Text>
   </View>

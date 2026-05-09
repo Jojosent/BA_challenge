@@ -1,148 +1,155 @@
 import { Colors } from '@constants/colors';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import { StyleSheet, View, Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useNotificationStore } from '@hooks/useNotifications';
 
-// Кастомная иконка с точкой фокуса
 const TabIcon = ({
-    name,
-    color,
-    focused,
+  name,
+  color,
+  focused,
 }: {
-    name: any;
-    color: string;
-    focused: boolean;
+  name: any;
+  color: string;
+  focused: boolean;
 }) => (
-    <View style={tabStyles.iconWrapper}>
-        <Ionicons name={name} size={24} color={color} />
-        {focused && <View style={tabStyles.dot} />}
-    </View>
+  <View style={[styles.iconWrapper, focused && styles.iconWrapperActive]}>
+    <Ionicons name={name} size={22} color={color} />
+  </View>
 );
 
-
-// Иконка главной вкладки с бейджем уведомлений
 const HomeTabIcon = ({
-    color,
-    focused,
+  color,
+  focused,
 }: {
-    color: string;
-    focused: boolean;
+  color: string;
+  focused: boolean;
 }) => {
-    const count = useNotificationStore((state) => state.count);
+  const count = useNotificationStore((state) => state.count);
 
-    return (
-        <View style={tabStyles.iconWrapper}>
-            <View style={tabStyles.iconWithBadge}>
-                <Ionicons
-                    name={focused ? 'home' : 'home-outline'}
-                    size={24}
-                    color={color}
-                />
-                {count > 0 && (
-                    <View style={tabStyles.badge}>
-                        <Text style={tabStyles.badgeTxt}>
-                            {count > 9 ? '9+' : count}
-                        </Text>
-                    </View>
-                )}
-            </View>
-            {focused && <View style={tabStyles.dot} />}
+  return (
+    <View style={[styles.iconWrapper, focused && styles.iconWrapperActive]}>
+      <Ionicons name={focused ? 'home' : 'home-outline'} size={22} color={color} />
+
+      {count > 0 && (
+        <View style={styles.badge}>
+          <Text style={styles.badgeTxt}>{count > 9 ? '9+' : count}</Text>
         </View>
-    );
+      )}
+    </View>
+  );
 };
 
 export default function TabsLayout() {
-    return (
-        <Tabs
-            screenOptions={{
-                headerShown: false,
-                tabBarStyle: {
-                    backgroundColor: Colors.surface,
-                    borderTopColor: Colors.border,
-                    borderTopWidth: 1,
-                    height: 65,
-                    paddingBottom: 10,
-                },
-                tabBarActiveTintColor: Colors.primary,
-                tabBarInactiveTintColor: Colors.textMuted,
-                tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
-            }}
-        >
-            <Tabs.Screen
-                name="index"
-                options={{
-                    title: 'Главная',
-                    tabBarIcon: ({ color, focused }) => (
-                        <TabIcon name={focused ? 'home' : 'home-outline'} color={color} focused={focused} />
-                    ),
-                }}
+  return (
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: Colors.white,
+          borderTopColor: Colors.softBorder,
+          borderTopWidth: 1,
+          height: 76,
+          paddingTop: 8,
+          paddingBottom: 14,
+          shadowColor: Colors.shadow,
+          shadowOpacity: 0.08,
+          shadowRadius: 16,
+          shadowOffset: { width: 0, height: -6 },
+          elevation: 10,
+        },
+        tabBarActiveTintColor: Colors.primary,
+        tabBarInactiveTintColor: Colors.textMuted,
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '800',
+          marginTop: 2,
+        },
+      }}
+    >
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Главная',
+          tabBarIcon: ({ color, focused }) => (
+            <HomeTabIcon color={color} focused={focused} />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="challenges"
+        options={{
+          title: 'Челленджи',
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon
+              name={focused ? 'trophy' : 'trophy-outline'}
+              color={color}
+              focused={focused}
             />
-            <Tabs.Screen
-                name="challenges"
-                options={{
-                    title: 'Челленджи',
-                    tabBarIcon: ({ color, focused }) => (
-                        <TabIcon name={focused ? 'trophy' : 'trophy-outline'} color={color} focused={focused} />
-                    ),
-                }}
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="ai-assistant"
+        options={{
+          title: 'AI',
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon
+              name={focused ? 'sparkles' : 'sparkles-outline'}
+              color={color}
+              focused={focused}
             />
-            <Tabs.Screen
-                name="ai-assistant"
-                options={{
-                    title: 'AI',
-                    tabBarIcon: ({ color, focused }) => (
-                        <TabIcon
-                            name={focused ? 'sparkles' : 'sparkles-outline'}
-                            color={color}
-                            focused={focused}
-                        />
-                    ),
-                }}
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Профиль',
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon
+              name={focused ? 'person' : 'person-outline'}
+              color={color}
+              focused={focused}
             />
-            <Tabs.Screen
-                name="profile"
-                options={{
-                    title: 'Профиль',
-                    tabBarIcon: ({ color, focused }) => (
-                        <TabIcon name={focused ? 'person' : 'person-outline'} color={color} focused={focused} />
-                    ),
-                }}
-            />
-        </Tabs>
-    );
+          ),
+        }}
+      />
+    </Tabs>
+  );
 }
 
-const tabStyles = StyleSheet.create({
-    iconWrapper: { alignItems: 'center', justifyContent: 'center' },
-    dot: {
-        width: 4,
-        height: 4,
-        borderRadius: 2,
-        backgroundColor: Colors.primary,
-        marginTop: 3,
-    },
-    iconWithBadge: {
-        position: 'relative',
-    },
-
-    badge: {
-        position: 'absolute',
-        top: -6,
-        right: -10,
-        backgroundColor: Colors.error,
-        borderRadius: 9,
-        minWidth: 18,
-        height: 18,
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingHorizontal: 4,
-        borderWidth: 2,
-        borderColor: Colors.surface,
-    },
-    badgeTxt: {
-        color: Colors.white,
-        fontSize: 10,
-        fontWeight: '800',
-    },
+const styles = StyleSheet.create({
+  iconWrapper: {
+    width: 38,
+    height: 30,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconWrapperActive: {
+    backgroundColor: '#F1EEFF',
+  },
+  badge: {
+    position: 'absolute',
+    top: -5,
+    right: -7,
+    backgroundColor: Colors.secondary,
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: Colors.white,
+  },
+  badgeTxt: {
+    color: Colors.white,
+    fontSize: 10,
+    fontWeight: '900',
+  },
 });
