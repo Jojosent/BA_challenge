@@ -15,68 +15,143 @@ import { Colors } from '@constants/colors';
 import { Header } from '@components/shared/Header';
 import { privacyService, ProfilePrivacySettings } from '@services/privacyService';
 
-interface SettingRowProps {
-  icon:     string;
+// ─── Design tokens ────────────────────────────────────────────────────────────
+const T = {
+  violet:    '#6C5CE7',
+  violetMid: '#8B7CF6',
+  violetSoft:'#EDE9FE',
+  teal:      '#00B894',
+  tealSoft:  '#D4F5EE',
+  coral:     '#E17055',
+  coralSoft: '#FDE8E4',
+  amber:     '#FDCB6E',
+  amberSoft: '#FEF5DC',
+  surface:   '#FFFFFF',
+  bg:        '#F4F3F8',
+  border:    '#E5E3EF',
+  text:      '#1A1730',
+  textSub:   '#6B6585',
+  textMuted: '#A09CB8',
+};
+
+// ─── SettingCard ──────────────────────────────────────────────────────────────
+interface SettingCardProps {
+  icon:     keyof typeof Ionicons.glyphMap;
   title:    string;
   desc:     string;
   value:    boolean;
   onToggle: (v: boolean) => void;
-  color?:   string;
+  accent:   string;
+  accentSoft: string;
+  isLast?:  boolean;
 }
 
-const SettingRow: React.FC<SettingRowProps> = ({
-  icon, title, desc, value, onToggle, color = Colors.primary,
+const SettingCard: React.FC<SettingCardProps> = ({
+  icon, title, desc, value, onToggle, accent, accentSoft, isLast,
 }) => (
-  <View style={rowStyles.row}>
-    <View style={[rowStyles.iconBox, { backgroundColor: color + '18' }]}>
-      <Text style={rowStyles.icon}>{icon}</Text>
+  <View style={[card.wrap, !isLast && card.separator]}>
+    <View style={[card.iconBox, { backgroundColor: accentSoft }]}>
+      <Ionicons name={icon} size={18} color={accent} />
     </View>
-    <View style={rowStyles.texts}>
-      <Text style={rowStyles.title}>{title}</Text>
-      <Text style={rowStyles.desc}>{desc}</Text>
+    <View style={card.texts}>
+      <Text style={card.title}>{title}</Text>
+      <Text style={card.desc}>{desc}</Text>
     </View>
     <Switch
       value={value}
       onValueChange={onToggle}
-      trackColor={{ false: Colors.border, true: color + '80' }}
-      thumbColor={value ? color : Colors.textMuted}
+      trackColor={{ false: T.border, true: accent + 'AA' }}
+      thumbColor={value ? accent : '#C4BEDD'}
+      ios_backgroundColor={T.border}
     />
   </View>
 );
 
-const rowStyles = StyleSheet.create({
-  row: {
+const card = StyleSheet.create({
+  wrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    gap: 14,
+    backgroundColor: T.surface,
+  },
+  separator: {
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    gap: 12,
+    borderBottomColor: T.border,
   },
   iconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 38,
+    height: 38,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  icon:  { fontSize: 20 },
   texts: { flex: 1 },
-  title: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary, marginBottom: 2 },
-  desc:  { fontSize: 12, color: Colors.textSecondary, lineHeight: 16 },
+  title: { fontSize: 14, fontWeight: '600', color: T.text, marginBottom: 3 },
+  desc:  { fontSize: 12, color: T.textSub, lineHeight: 17 },
 });
 
+// ─── VisibilityBadge ──────────────────────────────────────────────────────────
+interface VisibilityBadgeProps {
+  icon:  keyof typeof Ionicons.glyphMap;
+  label: string;
+  desc:  string;
+  color: string;
+  soft:  string;
+}
+
+const VisibilityBadge: React.FC<VisibilityBadgeProps> = ({ icon, label, desc, color, soft }) => (
+  <View style={badge.wrap}>
+    <View style={[badge.dot, { backgroundColor: color }]} />
+    <View style={[badge.iconBox, { backgroundColor: soft }]}>
+      <Ionicons name={icon} size={15} color={color} />
+    </View>
+    <View style={badge.texts}>
+      <Text style={[badge.label, { color }]}>{label}</Text>
+      <Text style={badge.desc}>{desc}</Text>
+    </View>
+  </View>
+);
+
+const badge = StyleSheet.create({
+  wrap:    { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 6 },
+  dot:     { width: 6, height: 6, borderRadius: 3, marginTop: 6 },
+  iconBox: { width: 28, height: 28, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+  texts:   { flex: 1 },
+  label:   { fontSize: 13, fontWeight: '700', marginBottom: 2 },
+  desc:    { fontSize: 12, color: T.textSub, lineHeight: 16 },
+});
+
+// ─── SectionLabel ─────────────────────────────────────────────────────────────
+const SectionLabel = ({ children }: { children: string }) => (
+  <Text style={sec.label}>{children}</Text>
+);
+
+const sec = StyleSheet.create({
+  label: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: T.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    marginBottom: 8,
+    marginTop: 4,
+    paddingHorizontal: 2,
+  },
+});
+
+// ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function PrivacySettingsScreen() {
   const [settings, setSettings] = useState<ProfilePrivacySettings>({
     showChallengesPublic:  true,
     allowFamilyInvites:    true,
     allowChallengeInvites: true,
   });
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving,  setIsSaving]  = useState(false);
+  const [isLoading,  setIsLoading]  = useState(true);
+  const [isSaving,   setIsSaving]   = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
-  const [original,  setOriginal]  = useState<ProfilePrivacySettings | null>(null);
+  const [original,   setOriginal]   = useState<ProfilePrivacySettings | null>(null);
 
   useEffect(() => { loadSettings(); }, []);
 
@@ -105,7 +180,7 @@ export default function PrivacySettingsScreen() {
       await privacyService.updateProfilePrivacy(settings);
       setOriginal(settings);
       setHasChanges(false);
-      Alert.alert('✅ Сохранено', 'Настройки приватности обновлены');
+      Alert.alert('Сохранено', 'Настройки приватности обновлены');
     } catch (e: any) {
       Alert.alert('Ошибка', e.message);
     } finally {
@@ -115,30 +190,32 @@ export default function PrivacySettingsScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <Header title="🔒 Приватность" showBack />
-        <View style={styles.loadingBox}>
-          <ActivityIndicator size="large" color={Colors.primary} />
+      <SafeAreaView style={s.container} edges={['top']}>
+        <Header title="Приватность" showBack />
+        <View style={s.loadingBox}>
+          <ActivityIndicator size="large" color={T.violet} />
         </View>
       </SafeAreaView>
     );
   }
 
+  const anyInviteOff = !settings.allowFamilyInvites || !settings.allowChallengeInvites;
+
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={s.container} edges={['top']}>
       <Header
-        title="🔒 Приватность"
+        title="Приватность"
         showBack
         rightElement={
           hasChanges ? (
             <TouchableOpacity
-              style={styles.saveHeaderBtn}
+              style={s.saveHeaderBtn}
               onPress={handleSave}
               disabled={isSaving}
             >
               {isSaving
-                ? <ActivityIndicator size="small" color={Colors.white} />
-                : <Text style={styles.saveHeaderTxt}>Сохранить</Text>
+                ? <ActivityIndicator size="small" color={T.surface} />
+                : <Text style={s.saveHeaderTxt}>Сохранить</Text>
               }
             </TouchableOpacity>
           ) : undefined
@@ -147,213 +224,243 @@ export default function PrivacySettingsScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={s.content}
       >
-        {/* Информационная карточка */}
-        <View style={styles.infoCard}>
-          <Text style={styles.infoIcon}>🛡️</Text>
-          <View style={styles.infoTexts}>
-            <Text style={styles.infoTitle}>Управление приватностью</Text>
-            <Text style={styles.infoDesc}>
-              Настрой кто может видеть твою информацию и кто может тебя приглашать
-            </Text>
+
+        {/* ── Hero banner ── */}
+        <View style={s.heroBanner}>
+          <View style={s.heroLeft}>
+            <View style={s.heroIconBox}>
+              <Ionicons name="shield-checkmark" size={24} color={T.violet} />
+            </View>
+            <View>
+              <Text style={s.heroTitle}>Управление приватностью</Text>
+              <Text style={s.heroSub}>Кто видит тебя и кто может приглашать</Text>
+            </View>
+          </View>
+          <View style={s.heroPill}>
+            <View style={[s.heroDot, { backgroundColor: T.teal }]} />
+            <Text style={s.heroPillTxt}>Защищено</Text>
           </View>
         </View>
 
-        {/* Профиль */}
-        <Text style={styles.sectionTitle}>Профиль</Text>
-        <View style={styles.section}>
-          <SettingRow
-            icon="🏆"
+        {/* ── Profile section ── */}
+        <SectionLabel>Профиль</SectionLabel>
+        <View style={s.section}>
+          <SettingCard
+            icon="trophy-outline"
             title="Показывать мои челленджи"
-            desc="Другие пользователи смогут видеть твои публичные челленджи"
+            desc="Другие пользователи видят твои публичные челленджи"
             value={settings.showChallengesPublic}
             onToggle={handleToggle('showChallengesPublic')}
-            color={Colors.accent}
+            accent={T.teal}
+            accentSoft={T.tealSoft}
+            isLast
           />
         </View>
 
-        {/* Приглашения */}
-        <Text style={styles.sectionTitle}>Приглашения</Text>
-        <View style={styles.section}>
-          <SettingRow
-            icon="🌳"
+        {/* ── Invites section ── */}
+        <SectionLabel>Приглашения</SectionLabel>
+        <View style={s.section}>
+          <SettingCard
+            icon="git-branch-outline"
             title="Приглашения в семью"
-            desc="Если выключено — никто не сможет пригласить тебя в семейное дерево"
+            desc="Выключи, чтобы никто не мог пригласить тебя в семейное дерево"
             value={settings.allowFamilyInvites}
             onToggle={handleToggle('allowFamilyInvites')}
-            color={Colors.primary}
+            accent={T.violet}
+            accentSoft={T.violetSoft}
           />
-          <SettingRow
-            icon="🎯"
+          <SettingCard
+            icon="flag-outline"
             title="Приглашения в челленджи"
-            desc="Если выключено — никто не сможет пригласить тебя в челлендж"
+            desc="Выключи, чтобы никто не мог пригласить тебя в челлендж"
             value={settings.allowChallengeInvites}
             onToggle={handleToggle('allowChallengeInvites')}
-            color={Colors.secondary}
+            accent={T.coral}
+            accentSoft={T.coralSoft}
+            isLast
           />
         </View>
 
-        {/* Подсказка */}
-        {(!settings.allowFamilyInvites || !settings.allowChallengeInvites) && (
-          <View style={styles.warningCard}>
-            <Text style={styles.warningIcon}>⚠️</Text>
-            <Text style={styles.warningText}>
-              Когда кто-то попытается тебя пригласить — он увидит сообщение что ты отключил приглашения
+        {/* ── Warning card (conditional) ── */}
+        {anyInviteOff && (
+          <View style={s.warnCard}>
+            <View style={s.warnIconBox}>
+              <Ionicons name="alert-circle-outline" size={18} color={T.coral} />
+            </View>
+            <Text style={s.warnText}>
+              Когда кто-то попытается пригласить тебя — он увидит сообщение, что приглашения отключены.
             </Text>
           </View>
         )}
 
-        {/* Уровни видимости */}
-        <Text style={styles.sectionTitle}>Уровни видимости челленджей</Text>
-        <View style={styles.visibilityGuide}>
-          {[
-            {
-              icon:  '🌍',
-              label: 'Публичный',
-              desc:  'Все пользователи видят и могут вступить свободно',
-              color: Colors.accent,
-            },
-            {
-              icon:  '🔐',
-              label: 'Защищённый',
-              desc:  'Виден всем в поиске, но вступить можно только по паролю',
-              color: Colors.warning,
-            },
-            {
-              icon:  '🔒',
-              label: 'Секретный',
-              desc:  'Виден только приглашённым участникам, скрыт из поиска',
-              color: Colors.error,
-            },
-          ].map((item) => (
-            <View key={item.label} style={styles.guideRow}>
-              <View style={[styles.guideDot, { backgroundColor: item.color }]} />
-              <Text style={styles.guideIcon}>{item.icon}</Text>
-              <View style={styles.guideTexts}>
-                <Text style={[styles.guideLabel, { color: item.color }]}>{item.label}</Text>
-                <Text style={styles.guideDesc}>{item.desc}</Text>
-              </View>
-            </View>
-          ))}
+        {/* ── Visibility guide ── */}
+        <SectionLabel>Уровни видимости</SectionLabel>
+        <View style={s.section}>
+          <View style={s.visGuide}>
+            <VisibilityBadge
+              icon="globe-outline"
+              label="Публичный"
+              desc="Все пользователи видят и могут вступить свободно"
+              color={T.teal}
+              soft={T.tealSoft}
+            />
+            <View style={s.vDivider} />
+            <VisibilityBadge
+              icon="lock-closed-outline"
+              label="Защищённый"
+              desc="Виден всем в поиске, вступить — только по паролю"
+              color={T.amber}
+              soft={T.amberSoft}
+            />
+            <View style={s.vDivider} />
+            <VisibilityBadge
+              icon="eye-off-outline"
+              label="Секретный"
+              desc="Виден только приглашённым, скрыт из поиска"
+              color={T.coral}
+              soft={T.coralSoft}
+            />
+          </View>
         </View>
 
-        {/* Кнопка сохранить */}
+        {/* ── Save button ── */}
         {hasChanges && (
           <TouchableOpacity
-            style={[styles.saveBtn, isSaving && styles.saveBtnDisabled]}
+            style={[s.saveBtn, isSaving && s.saveBtnDisabled]}
             onPress={handleSave}
             disabled={isSaving}
+            activeOpacity={0.85}
           >
-            {isSaving
-              ? <ActivityIndicator size="small" color={Colors.white} />
-              : (
-                <>
-                  <Ionicons name="checkmark-circle" size={18} color={Colors.white} />
-                  <Text style={styles.saveBtnTxt}>Сохранить изменения</Text>
-                </>
-              )
-            }
+            {isSaving ? (
+              <ActivityIndicator size="small" color={T.surface} />
+            ) : (
+              <>
+                <Ionicons name="checkmark-circle-outline" size={18} color={T.surface} />
+                <Text style={s.saveBtnTxt}>Сохранить изменения</Text>
+              </>
+            )}
           </TouchableOpacity>
         )}
 
-        <Text style={styles.note}>
-          🔐 Твои личные данные защищены и не передаются третьим лицам
-        </Text>
+        {/* ── Footer note ── */}
+        <View style={s.footerRow}>
+          <Ionicons name="lock-closed" size={12} color={T.textMuted} />
+          <Text style={s.footerTxt}>Твои данные защищены и не передаются третьим лицам</Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container:  { flex: 1, backgroundColor: Colors.background },
+// ─── Styles ───────────────────────────────────────────────────────────────────
+const s = StyleSheet.create({
+  container:  { flex: 1, backgroundColor: T.bg },
   loadingBox: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  content:    { padding: 20, paddingBottom: 40 },
+  content:    { padding: 20, paddingBottom: 48 },
 
+  // Header save button
   saveHeaderBtn: {
-    backgroundColor: Colors.primary,
+    backgroundColor: T.violet,
     borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
   },
-  saveHeaderTxt: { color: Colors.white, fontWeight: '700', fontSize: 13 },
+  saveHeaderTxt: { color: T.surface, fontWeight: '700', fontSize: 13 },
 
-  infoCard: {
+  // Hero banner
+  heroBanner: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    backgroundColor: Colors.primary + '15',
-    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: T.surface,
+    borderRadius: 16,
     padding: 16,
-    marginBottom: 24,
+    marginBottom: 28,
     borderWidth: 1,
-    borderColor: Colors.primary + '30',
+    borderColor: T.border,
   },
-  infoIcon:  { fontSize: 28 },
-  infoTexts: { flex: 1 },
-  infoTitle: { fontSize: 15, fontWeight: '700', color: Colors.textPrimary, marginBottom: 4 },
-  infoDesc:  { fontSize: 13, color: Colors.textSecondary, lineHeight: 18 },
+  heroLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  heroIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: T.violetSoft,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  heroTitle: { fontSize: 14, fontWeight: '700', color: T.text, marginBottom: 2 },
+  heroSub:   { fontSize: 12, color: T.textSub, lineHeight: 16 },
+  heroPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: T.tealSoft,
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  heroDot:     { width: 6, height: 6, borderRadius: 3 },
+  heroPillTxt: { fontSize: 12, fontWeight: '600', color: T.teal },
 
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: Colors.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 8,
-    marginTop: 4,
-  },
+  // Section card wrapper
   section: {
-    backgroundColor: Colors.surface,
+    backgroundColor: T.surface,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: T.border,
     overflow: 'hidden',
     marginBottom: 24,
   },
 
-  warningCard: {
+  // Warning card
+  warnCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 10,
-    backgroundColor: Colors.warning + '15',
+    backgroundColor: T.coralSoft,
     borderRadius: 12,
     padding: 14,
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: Colors.warning + '40',
+    borderColor: T.coral + '33',
   },
-  warningIcon: { fontSize: 18 },
-  warningText: { flex: 1, fontSize: 13, color: Colors.warning, lineHeight: 18 },
-
-  visibilityGuide: {
-    backgroundColor: Colors.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    padding: 16,
-    gap: 12,
-    marginBottom: 24,
+  warnIconBox: {
+    marginTop: 1,
   },
-  guideRow:   { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  guideDot:   { width: 8, height: 8, borderRadius: 4, marginTop: 5 },
-  guideIcon:  { fontSize: 18 },
-  guideTexts: { flex: 1 },
-  guideLabel: { fontSize: 13, fontWeight: '700', marginBottom: 2 },
-  guideDesc:  { fontSize: 12, color: Colors.textSecondary, lineHeight: 16 },
+  warnText: { flex: 1, fontSize: 13, color: T.coral, lineHeight: 18 },
 
+  // Visibility guide
+  visGuide: { padding: 16, gap: 0 },
+  vDivider: { height: 1, backgroundColor: T.border, marginVertical: 10, marginLeft: 44 },
+
+  // Save button
   saveBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: Colors.primary,
+    backgroundColor: T.violet,
     borderRadius: 14,
     paddingVertical: 15,
-    marginBottom: 16,
+    marginBottom: 20,
+    shadowColor: T.violet,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 4,
   },
   saveBtnDisabled: { opacity: 0.5 },
-  saveBtnTxt:      { color: Colors.white, fontWeight: '700', fontSize: 15 },
+  saveBtnTxt:      { color: T.surface, fontWeight: '700', fontSize: 15 },
 
-  note: { fontSize: 12, color: Colors.textMuted, textAlign: 'center', lineHeight: 17 },
+  // Footer
+  footerRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 4,
+  },
+  footerTxt: { fontSize: 12, color: T.textMuted, textAlign: 'center', lineHeight: 17 },
 });
