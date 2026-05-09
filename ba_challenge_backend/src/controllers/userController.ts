@@ -4,75 +4,101 @@ import { User, Submission, Vote, Participant, Task, Challenge } from '../models'
 
 export const userController = {
   getStats: async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    const userId = req.user!.id;
-    console.log(`📊 getStats для userId: ${userId}`);
+    try {
+      const userId = req.user!.id;
+      console.log(`📊 getStats для userId: ${userId}`);
 
-    const submissions = await Submission.findAll({
-      where: { userId },
-      attributes: ['id', 'score'],
-    });
-    console.log(`📊 Сабмишенов: ${submissions.length}`);
+      // === ЛОГИКА СБРОСА СЕРИИ (STREAK) ===
+      const user = await User.findByPk(userId);
+      let currentStreak = user?.streakCount || 0;
 
-    const submissionIds = submissions.map((s) => s.id);
+      if (user && user.lastActiveDate) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
-    let avgRating      = 0;
-    let totalVoters    = 0;
-    let totalVoteCount = 0;
+        const lastActive = new Date(user.lastActiveDate);
+        lastActive.setHours(0, 0, 0, 0);
 
-    if (submissionIds.length > 0) {
-      const votes = await Vote.findAll({
-        where: { submissionId: submissionIds },
-        attributes: ['score', 'voterId'],
+        const diffDays = Math.round((today.getTime() - lastActive.getTime()) / (1000 * 60 * 60 * 24));
+        
+        // Если прошло больше 1 дня и стрик больше 0 — он сгорает
+        if (diffDays > 1 && user.streakCount > 0) {
+            user.streakCount = 0;
+            // Важно: мы НЕ обновляем lastActiveDate здесь, 
+            // чтобы при следующем выполнении задачи стрик начался с 1
+            await user.save();
+            currentStreak = 0;
+        }
+      }
+      // === КОНЕЦ ЛОГИКИ СБРОСА ===
+
+      const submissions = await Submission.findAll({
+        where: { userId },
+        attributes: ['id', 'score'],
+      });
+      console.log(`📊 Сабмишенов: ${submissions.length}`);
+
+      const submissionIds = submissions.map((s) => s.id);
+
+      let avgRating      = 0;
+      let totalVoters    = 0;
+      let totalVoteCount = 0;
+
+      if (submissionIds.length > 0) {
+        const votes = await Vote.findAll({
+          where: { submissionId: submissionIds },
+          attributes: ['score', 'voterId'],
+        });
+
+        console.log(`📊 Голосов получено: ${votes.length}`);
+        totalVoteCount = votes.length;
+        totalVoters = new Set(votes.map((v: { voterId: number }) => v.voterId)).size;
+
+        avgRating = votes.length > 0
+          ? Math.round(
+              votes.reduce((sum: number, v: { score: number }) => sum + v.score, 0) / votes.length * 100
+            ) / 100
+          : 0;
+      }
+
+      const challengeCount = await Participant.count({ where: { userId } });
+
+      let wonCount = 0;
+      const participations = await Participant.findAll({
+        where: { userId },
       });
 
-      console.log(`📊 Голосов получено: ${votes.length}`);
-      totalVoteCount = votes.length;
-      totalVoters = new Set(votes.map((v: { voterId: number }) => v.voterId)).size;
+      for (const p of participations) {
+        const challenge = await Challenge.findByPk(p.challengeId);
+        if (!challenge || challenge.status !== 'completed') continue;
 
-avgRating = votes.length > 0
-  ? Math.round(
-      votes.reduce((sum: number, v: { score: number }) => sum + v.score, 0) / votes.length * 100
-    ) / 100
-  : 0;
+        const top = await Participant.findOne({
+          where: { challengeId: p.challengeId },
+          order: [['score', 'DESC']],
+        });
+
+        if (top && top.userId === userId) wonCount++;
+      }
+
+      const result = {
+        avgRating,
+        totalVoters,
+        totalVoteCount,
+        challengeCount,
+        wonCount,
+        submissionCount: submissions.length,
+        streakCount: currentStreak, // ✅ Возвращаем серию на фронтенд
+      };
+
+      console.log('📊 Результат stats:', result);
+      res.json(result);
+
+    } catch (error: any) {
+      console.error('getStats error:', error.message);
+      res.status(500).json({ message: 'Ошибка статистики: ' + error.message });
     }
+  },
 
-    const challengeCount = await Participant.count({ where: { userId } });
-
-    let wonCount = 0;
-    const participations = await Participant.findAll({
-      where: { userId },
-    });
-
-    for (const p of participations) {
-      const challenge = await Challenge.findByPk(p.challengeId);
-      if (!challenge || challenge.status !== 'completed') continue;
-
-      const top = await Participant.findOne({
-        where: { challengeId: p.challengeId },
-        order: [['score', 'DESC']],
-      });
-
-      if (top && top.userId === userId) wonCount++;
-    }
-
-    const result = {
-      avgRating,
-      totalVoters,
-      totalVoteCount,
-      challengeCount,
-      wonCount,
-      submissionCount: submissions.length,
-    };
-
-    console.log('📊 Результат stats:', result);
-    res.json(result);
-
-  } catch (error: any) {
-    console.error('getStats error:', error.message);
-    res.status(500).json({ message: 'Ошибка статистики: ' + error.message });
-  }
-},
   updateProfile: async (req: AuthRequest, res: Response): Promise<void> => {
     try {
       const { username } = req.body;
@@ -110,10 +136,8 @@ avgRating = votes.length > 0
         return;
       }
 
-      // Формируем путь к файлу (аналогично вашим прошлым настройкам)
       const avatarUrl = `/uploads/photos/${req.file.filename}`;
 
-      // Обновляем поле avatarUrl в модели User
       await User.update(
         { avatarUrl },
         { where: { id: userId } }
@@ -129,7 +153,7 @@ avgRating = votes.length > 0
       res.status(500).json({ message: 'Ошибка загрузки аватара' });
     }
   },
-  
+
   getUserById: async (req: AuthRequest, res: Response): Promise<void> => {
     try {
       const user = await User.findByPk(req.params.id, {

@@ -2,7 +2,7 @@ import { Response } from 'express';
 import path from 'path';
 import fs from 'fs';
 import { AuthRequest } from '../types';
-import { Submission, Task, Participant, Challenge } from '../models';
+import { Submission, Task, Participant, Challenge, User } from '../models'; // ✅ Добавили User
 import { ENV } from '../config/env';
 import { encryptFile } from '../utils/fileEncryption';
 
@@ -42,29 +42,54 @@ export const submissionController = {
             const mediaType = isVideo ? 'video' : 'photo';
 
             // --- ШИФРОВАНИЕ ---
-            // file.path содержит путь к загруженному файлу на диске
             const encryptedPath = encryptFile(file.path);
-            // encryptedPath = uploads/photos/uuid.jpg.enc  (оригинал удалён)
-
             console.log(`🔐 Файл зашифрован: ${encryptedPath}`);
-
-            // Сохраняем в БД зашифрованный путь (НЕ публичный URL)
-            // Формат: enc:uploads/photos/uuid.jpg.enc
             const storedPath = `enc:${encryptedPath}`;
 
             const submission = await Submission.create({
                 taskId: Number(taskId),
                 userId,
-                mediaUrl: storedPath,   // храним зашифрованный путь
+                mediaUrl: storedPath,
                 mediaType,
             });
 
-            // Возвращаем клиенту подписанный URL для просмотра (через наш endpoint)
+            // === ЛОГИКА НАЧИСЛЕНИЯ СТРИКА ПРИ ВЫПОЛНЕНИИ ЗАДАЧИ ===
+            const user = await User.findByPk(userId);
+            if (user) {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                const lastActive = user.lastActiveDate ? new Date(user.lastActiveDate) : null;
+                if (lastActive) lastActive.setHours(0, 0, 0, 0);
+
+                if (!lastActive) {
+                    // Самое первое выполнение задачи
+                    user.streakCount = 1;
+                } else {
+                    const diffDays = Math.round((today.getTime() - lastActive.getTime()) / (1000 * 60 * 60 * 24));
+                    
+                    if (diffDays === 1) {
+                        // Выполнил задачу на следующий день — стрик растет!
+                        user.streakCount += 1;
+                    } else if (diffDays > 1) {
+                        // Пропустил день, но сейчас выполнил — начинаем заново
+                        user.streakCount = 1;
+                    }
+                    // Если diffDays === 0, значит он уже выполнял задачу сегодня. Стрик не меняется.
+                }
+                
+                // Обновляем дату активности на СЕГОДНЯ
+                user.lastActiveDate = new Date();
+                await user.save();
+            }
+            // === КОНЕЦ ЛОГИКИ НАЧИСЛЕНИЯ ===
+
+            // Возвращаем клиенту подписанный URL
             const viewUrl = `${ENV.BASE_URL}/api/submissions/${submission.id}/media`;
 
             res.status(201).json({
                 ...submission.toJSON(),
-                mediaUrl: viewUrl,   // клиент получает защищённый URL
+                mediaUrl: viewUrl,
             });
 
         } catch (error: any) {
@@ -79,7 +104,6 @@ export const submissionController = {
             const { taskId } = req.params;
             const userId = req.user!.id;
 
-            // Проверяем что пользователь участник этого челленджа
             const task = await Task.findByPk(taskId);
             if (!task) {
                 res.status(404).json({ message: 'Задача не найдена' });
@@ -110,12 +134,11 @@ export const submissionController = {
                 order: [['createdAt', 'DESC']],
             });
 
-            // Заменяем зашифрованный путь на защищённый URL для просмотра
             const result = submissions.map((s: any) => ({
                 ...s.toJSON(),
                 mediaUrl: s.mediaUrl.startsWith('enc:')
                     ? `${ENV.BASE_URL}/api/submissions/${s.id}/media`
-                    : s.mediaUrl,   // старые записи без шифрования — оставляем как есть
+                    : s.mediaUrl,
             }));
 
             res.json(result);
@@ -148,7 +171,6 @@ export const submissionController = {
                 order: [['createdAt', 'DESC']],
             });
 
-            // Заменяем зашифрованный путь на защищённый URL
             const result = submissions.map((s: any) => ({
                 ...s.toJSON(),
                 mediaUrl: s.mediaUrl.startsWith('enc:')
@@ -163,7 +185,6 @@ export const submissionController = {
     },
 
     // GET /api/submissions/:submissionId/media
-    // Защищённый endpoint — расшифровывает и отдаёт файл только участникам
     serveMedia: async (req: AuthRequest, res: Response): Promise<void> => {
         try {
             const { submissionId } = req.params;
@@ -175,7 +196,6 @@ export const submissionController = {
                 return;
             }
 
-            // Проверка доступа — только участники челленджа
             const task = await Task.findByPk(submission.taskId);
             if (!task) {
                 res.status(404).json({ message: 'Задача не найдена' });
@@ -195,7 +215,6 @@ export const submissionController = {
                 return;
             }
 
-            // Если файл зашифрован — расшифровываем и отдаём
             if (submission.mediaUrl.startsWith('enc:')) {
                 const encPath = submission.mediaUrl.replace('enc:', '');
 
@@ -215,7 +234,6 @@ export const submissionController = {
                 return;
             }
 
-            // Старые файлы без шифрования — редиректим на статику
             res.redirect(submission.mediaUrl);
 
         } catch (error: any) {
