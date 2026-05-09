@@ -146,4 +146,5 @@ avgRating = votes.length > 0
       res.status(500).json({ message: 'Ошибка' });
     }
   },
+  
 };
