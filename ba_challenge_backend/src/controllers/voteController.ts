@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { Op } from 'sequelize';
 import { AuthRequest } from '../types';
-import { Vote, Submission, Participant, Task, User } from '../models';
+import { Vote, Submission, SubmissionMedia, Participant, Task, User } from '../models';
 import { notificationHelper } from '../services/notificationHelper';
 
 export const voteController = {
@@ -118,7 +118,15 @@ export const voteController = {
       // Все сабмишены пользователя
       const submissions = await Submission.findAll({
         where: { userId },
-        attributes: ['id', 'mediaUrl', 'mediaType', 'score', 'taskId'],
+        attributes: ['id', 'score', 'taskId'],
+        include: [
+          {
+            model: SubmissionMedia,
+            as: 'media',
+            attributes: ['id', 'mediaUrl', 'mediaType', 'order'],
+            order: [['order', 'ASC']],
+          },
+        ],
       });
 
       if (submissions.length === 0) {
@@ -176,10 +184,13 @@ export const voteController = {
             ) / 100
             : 0;
 
+          const subMedia = (sub as any).media ?? [];
+
           return {
             submissionId: sub.id,
-            mediaUrl: sub.mediaUrl,
-            mediaType: sub.mediaType,
+            media: subMedia,
+            mediaUrl: subMedia[0]?.mediaUrl ?? null,
+            mediaType: subMedia[0]?.mediaType ?? null,
             task: task ? { id: task.id, title: task.title, day: task.day } : null,
             avgScore: avg,
             votes: votesWithVoters,

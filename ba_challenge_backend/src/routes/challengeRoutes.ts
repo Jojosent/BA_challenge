@@ -21,6 +21,7 @@ router.post('/:id/join',            challengeController.join);
 router.get('/:id/tasks',            challengeController.getTasks);
 router.patch('/:id/status',         challengeController.updateStatus);
 router.post('/:id/invite',          challengeController.inviteUser);
+router.delete('/:id/kick/:userId', challengeController.kickParticipant);
 router.get('/:id/prize-pool',       challengeController.getPrizePool);
 
 // ✅ Приватность и видимость

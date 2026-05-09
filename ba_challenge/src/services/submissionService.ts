@@ -3,11 +3,9 @@ import api from './api';
 
 export const submissionService = {
 
-    // Загрузка фото/видео
+    // ✅ Загружает ОДИН файл — добавляет к submission или создаёт новый
     upload: async (taskId: number, fileUri: string, fileType: string): Promise<Submission> => {
-        // FormData нужен для отправки файла
         const formData = new FormData();
-
         formData.append('taskId', String(taskId));
         formData.append('media', {
             uri: fileUri,
@@ -16,11 +14,14 @@ export const submissionService = {
         } as any);
 
         const response = await api.post('/submissions', formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-            },
+            headers: { 'Content-Type': 'multipart/form-data' },
         });
+        return response.data;
+    },
 
+    // ✅ Удалить один медиафайл
+    deleteMedia: async (mediaId: number): Promise<Submission | null> => {
+        const response = await api.delete(`/submissions/media/${mediaId}`);
         return response.data;
     },
 

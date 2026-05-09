@@ -1,546 +1,715 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
-    View,
-    Text,
-    StyleSheet,
-    Image,
-    TouchableOpacity,
-    Alert,
-    ActivityIndicator,
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+  ScrollView,
+  Modal,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@constants/colors';
-import { Submission } from '@/types/index';
+import { Submission, SubmissionMediaItem } from '@/types/index';
 import { StarRating } from '@components/shared/StarRating';
 import { aiService } from '@services/aiService';
 import { useAuthStore } from '@store/authStore';
 import { useUserStore } from '@/store/userStore';
 import { userService } from '@/services/userService';
 import { voteService } from '@/services/voteService';
-import * as SecureStore from 'expo-secure-store';
-import { Config } from '@constants/config';
+import { submissionService } from '@/services/submissionService';
+
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
 interface SubmissionCardProps {
-    submission: Submission;
+  submission: Submission;
+  onUpdated?: () => void; // ✅ Callback при удалении медиа
 }
 
-// ─── Хук для загрузки защищённого медиа с токеном ───────────
-const useProtectedMedia = (mediaUrl: string, mediaType: 'photo' | 'video') => {
-    const [dataUri, setDataUri]     = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError]         = useState(false);
+export const SubmissionCard: React.FC<SubmissionCardProps> = ({
+  submission,
+  onUpdated,
+}) => {
+  const { user } = useAuthStore();
+  const { setProfile } = useUserStore();
 
-    useEffect(() => {
-        // Загружаем только фото — видео пока показываем плейсхолдер
-        if (mediaType !== 'photo' || !mediaUrl) return;
+  const [currentScore, setCurrentScore] = useState(submission.score);
+  const [aiScore, setAiScore] = useState(submission.aiScore);
+  const [aiComment, setAiComment] = useState(submission.aiComment);
+  const [isEvaluating, setIsEvaluating] = useState(false);
+  const [showVoting, setShowVoting] = useState(false);
+  const [deletingMediaId, setDeletingMediaId] = useState<number | null>(null);
 
-        let cancelled = false;
+  // ✅ Просмотр медиа на весь экран
+  const [viewerVisible, setViewerVisible] = useState(false);
+  const [viewerMedia, setViewerMedia] = useState<SubmissionMediaItem | null>(null);
 
-        const loadImage = async () => {
+  // Голоса
+  const [receivedVotes, setReceivedVotes] = useState<any[]>([]);
+  const [votesLoaded, setVotesLoaded] = useState(false);
+  const [showMyVotes, setShowMyVotes] = useState(false);
+
+  const isOwner = user?.id === submission.userId;
+
+  // ✅ Получаем список медиа (с защитой от undefined)
+  const mediaList: SubmissionMediaItem[] = submission.media ?? [];
+
+  const date = new Date(submission.createdAt).toLocaleDateString('ru-RU', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  // ✅ Открыть просмотр медиа
+  const openViewer = (media: SubmissionMediaItem) => {
+    setViewerMedia(media);
+    setViewerVisible(true);
+  };
+
+  // ✅ Удалить медиафайл (только владелец)
+  const handleDeleteMedia = (media: SubmissionMediaItem) => {
+    Alert.alert(
+      'Удалить файл?',
+      'Этот медиафайл будет удалён безвозвратно',
+      [
+        { text: 'Отмена', style: 'cancel' },
+        {
+          text: 'Удалить',
+          style: 'destructive',
+          onPress: async () => {
             try {
-                setIsLoading(true);
-                setError(false);
-
-                const token = await SecureStore.getItemAsync(Config.TOKEN_KEY);
-
-                // Если URL — защищённый endpoint (содержит /api/submissions/)
-                // загружаем с токеном
-                if (mediaUrl.includes('/api/submissions/') && token) {
-                    const response = await fetch(mediaUrl, {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}`);
-                    }
-
-                    // Конвертируем blob в base64
-                    const blob = await response.blob();
-                    const base64 = await new Promise<string>((resolve, reject) => {
-                        const reader = new FileReader();
-                        reader.onload  = () => resolve(reader.result as string);
-                        reader.onerror = () => reject(new Error('FileReader error'));
-                        reader.readAsDataURL(blob);
-                    });
-
-                    if (!cancelled) {
-                        setDataUri(base64);
-                    }
-                } else {
-                    // Старый формат — прямой URL, используем как есть
-                    if (!cancelled) {
-                        setDataUri(mediaUrl);
-                    }
-                }
+              setDeletingMediaId(media.id);
+              await submissionService.deleteMedia(media.id);
+              onUpdated?.();
             } catch (e: any) {
-                console.log('❌ Ошибка загрузки медиа:', e.message);
-                if (!cancelled) setError(true);
+              Alert.alert('Ошибка', e.message);
             } finally {
-                if (!cancelled) setIsLoading(false);
+              setDeletingMediaId(null);
             }
-        };
-
-        loadImage();
-
-        return () => { cancelled = true; };
-    }, [mediaUrl, mediaType]);
-
-    return { dataUri, isLoading, error };
-};
-
-// ─── Компонент медиа ─────────────────────────────────────────
-const ProtectedMedia: React.FC<{
-    mediaUrl:  string;
-    mediaType: 'photo' | 'video';
-}> = ({ mediaUrl, mediaType }) => {
-    const { dataUri, isLoading, error } = useProtectedMedia(mediaUrl, mediaType);
-
-    if (mediaType === 'video') {
-        return (
-            <View style={styles.videoPlaceholder}>
-                <Ionicons name="play-circle" size={52} color={Colors.white} />
-                <Text style={styles.videoText}>Видео доказательство</Text>
-            </View>
-        );
-    }
-
-    if (isLoading) {
-        return (
-            <View style={styles.mediaLoading}>
-                <ActivityIndicator size="large" color={Colors.primary} />
-                <Text style={styles.mediaLoadingText}>Загрузка фото...</Text>
-            </View>
-        );
-    }
-
-    if (error || !dataUri) {
-        return (
-            <View style={styles.mediaError}>
-                <Ionicons name="image-outline" size={40} color={Colors.textMuted} />
-                <Text style={styles.mediaErrorText}>Не удалось загрузить фото</Text>
-            </View>
-        );
-    }
-
-    return (
-        <Image
-            source={{ uri: dataUri }}
-            style={styles.media}
-            resizeMode="cover"
-        />
+          },
+        },
+      ]
     );
-};
+  };
 
-// ─── Основной компонент ──────────────────────────────────────
-export const SubmissionCard: React.FC<SubmissionCardProps> = ({ submission }) => {
-    const { user } = useAuthStore();
-    const [currentScore, setCurrentScore] = useState(submission.score);
-    const [aiScore, setAiScore]           = useState(submission.aiScore);
-    const [aiComment, setAiComment]       = useState(submission.aiComment);
-    const [isEvaluating, setIsEvaluating] = useState(false);
-    const [showVoting, setShowVoting]     = useState(false);
+  // AI оценка
+  const handleAIEvaluate = async () => {
+    try {
+      setIsEvaluating(true);
+      const result = await aiService.evaluateSubmission(submission.id);
+      setAiScore(result.score);
+      setAiComment(result.comment);
+      Alert.alert(
+        '🤖 AI оценил!',
+        `Оценка: ${result.score}/100\n\n${result.comment}`
+      );
+    } catch (e: any) {
+      Alert.alert('Ошибка', e.message);
+    } finally {
+      setIsEvaluating(false);
+    }
+  };
 
-    const [receivedVotes, setReceivedVotes] = useState<any[]>([]);
-    const [votesLoaded, setVotesLoaded]     = useState(false);
-    const [showMyVotes, setShowMyVotes]     = useState(false);
+  // Загрузить голоса
+  const loadMyVotes = async () => {
+    if (votesLoaded) {
+      setShowMyVotes(!showMyVotes);
+      return;
+    }
+    try {
+      const data = await voteService.getVotesBySubmission(submission.id);
+      setReceivedVotes(data.votes);
+      setVotesLoaded(true);
+      setShowMyVotes(true);
+    } catch (e) {
+      console.log('Ошибка загрузки голосов:', e);
+    }
+  };
 
-    const loadMyVotes = async () => {
-        if (votesLoaded) {
-            setShowMyVotes(!showMyVotes);
-            return;
-        }
-        try {
-            const data = await voteService.getVotesBySubmission(submission.id);
-            setReceivedVotes(data.votes);
-            setVotesLoaded(true);
-            setShowMyVotes(true);
-        } catch (e) {
-            console.log('Ошибка загрузки голосов:', e);
-        }
-    };
+  return (
+    <View style={styles.card}>
 
-    const isOwner = user?.id === submission.userId;
-
-    const date = new Date(submission.createdAt).toLocaleDateString('ru-RU', {
-        day: 'numeric', month: 'short',
-        hour: '2-digit', minute: '2-digit',
-    });
-
-    const handleAIEvaluate = async () => {
-        try {
-            setIsEvaluating(true);
-            const result = await aiService.evaluateSubmission(submission.id);
-            setAiScore(result.score);
-            setAiComment(result.comment);
-            Alert.alert(
-                '🤖 AI оценил!',
-                `Оценка: ${result.score}/100\n\n${result.comment}`
-            );
-        } catch (e: any) {
-            Alert.alert('Ошибка', e.message);
-        } finally {
-            setIsEvaluating(false);
-        }
-    };
-
-    const { setProfile } = useUserStore();
-
-    return (
-        <View style={styles.card}>
-
-            {/* ── Медиа ── */}
-            <View style={styles.mediaWrapper}>
-                <ProtectedMedia
-                    mediaUrl={submission.mediaUrl}
-                    mediaType={submission.mediaType}
-                />
-                <View style={styles.typeBadge}>
-                    <Text style={styles.typeTxt}>
-                        {submission.mediaType === 'video' ? '🎥' : '📷'}
-                    </Text>
-                </View>
-            </View>
-
-            {/* ── Инфо ── */}
-            <View style={styles.info}>
-
-                {/* Пользователь */}
-                <View style={styles.userRow}>
-                    <View style={styles.avatar}>
-                        <Text style={styles.avatarTxt}>
-                            {submission.user?.username?.charAt(0).toUpperCase() ?? '?'}
-                        </Text>
-                    </View>
-                    <View style={styles.userInfo}>
-                        <Text style={styles.username}>
-                            {submission.user?.username ?? 'Пользователь'}
-                        </Text>
-                        <Text style={styles.date}>{date}</Text>
-                    </View>
-                    {currentScore > 0 && (
-                        <View style={styles.scoreBadge}>
-                            <Ionicons name="star" size={12} color={Colors.rikon} />
-                            <Text style={styles.scoreText}>
-                                {typeof currentScore === 'number' && currentScore > 0
-                                    ? currentScore.toFixed(2)
-                                    : '—'}
-                            </Text>
-                        </View>
-                    )}
-                </View>
-
-                {/* AI оценка */}
-                {aiScore !== undefined && aiScore !== null ? (
-                    <View style={styles.aiBlock}>
-                        <View style={styles.aiHeader}>
-                            <Text style={styles.aiLabel}>🤖 AI оценка:</Text>
-                            <Text style={styles.aiScore}>{aiScore}/100</Text>
-                        </View>
-                        {aiComment && (
-                            <Text style={styles.aiComment}>{aiComment}</Text>
-                        )}
-                    </View>
+      {/* ── Горизонтальный скролл медиа ── */}
+      {mediaList.length > 0 ? (
+        <View style={styles.mediaSection}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            pagingEnabled={mediaList.length === 1}
+            contentContainerStyle={styles.mediaScroll}
+          >
+            {mediaList.map((media, index) => (
+              <TouchableOpacity
+                key={media.id}
+                style={styles.mediaItem}
+                onPress={() => openViewer(media)}
+                activeOpacity={0.9}
+              >
+                {media.mediaType === 'photo' ? (
+                  <Image
+                    source={{ uri: media.mediaUrl }}
+                    style={styles.mediaImage}
+                    resizeMode="cover"
+                  />
                 ) : (
-                    !isOwner && (
-                        <TouchableOpacity
-                            style={styles.aiBtn}
-                            onPress={handleAIEvaluate}
-                            disabled={isEvaluating}
-                        >
-                            {isEvaluating ? (
-                                <ActivityIndicator size="small" color={Colors.secondary} />
-                            ) : (
-                                <Text style={styles.aiBtnTxt}>🤖 Оценить через AI</Text>
-                            )}
-                        </TouchableOpacity>
-                    )
+                  <View style={styles.videoPlaceholder}>
+                    <Ionicons name="play-circle" size={44} color={Colors.white} />
+                    <Text style={styles.videoText}>Видео</Text>
+                  </View>
                 )}
 
-                {/* Голосование — только не за своё */}
-                {!isOwner && (
-                    <>
-                        <TouchableOpacity
-                            style={styles.voteToggle}
-                            onPress={() => setShowVoting(!showVoting)}
-                        >
-                            <Ionicons
-                                name={showVoting ? 'chevron-up' : 'chevron-down'}
-                                size={16}
-                                color={Colors.primary}
-                            />
-                            <Text style={styles.voteToggleTxt}>
-                                {showVoting ? 'Скрыть голосование' : '⭐ Проголосовать'}
-                            </Text>
-                        </TouchableOpacity>
+                {/* Бейдж типа */}
+                <View style={styles.typeBadge}>
+                  <Text style={styles.typeTxt}>
+                    {media.mediaType === 'video' ? '🎥' : '📷'}
+                  </Text>
+                </View>
 
-                        {showVoting && (
-                            <StarRating
-                                submissionId={submission.id}
-                                onVoted={(newScore) => {
-                                    setCurrentScore(newScore);
-                                    setShowVoting(false);
-                                    userService.getProfile()
-                                        .then((p) => setProfile(p))
-                                        .catch(() => {});
-                                }}
-                            />
-                        )}
-                    </>
+                {/* Номер если несколько */}
+                {mediaList.length > 1 && (
+                  <View style={styles.indexBadge}>
+                    <Text style={styles.indexTxt}>
+                      {index + 1}/{mediaList.length}
+                    </Text>
+                  </View>
                 )}
 
-                {/* Кто оценил меня */}
+                {/* ✅ Кнопка удалить — только владелец */}
                 {isOwner && (
-                    <View>
-                        <TouchableOpacity style={styles.myVotesBtn} onPress={loadMyVotes}>
-                            <Ionicons
-                                name={showMyVotes ? 'chevron-up' : 'chevron-down'}
-                                size={14}
-                                color={Colors.primary}
-                            />
-                            <Text style={styles.myVotesBtnTxt}>
-                                {showMyVotes
-                                    ? 'Скрыть оценки'
-                                    : `👥 Кто меня оценил (${currentScore > 0 ? currentScore.toFixed(2) : '—'} ⭐)`}
-                            </Text>
-                        </TouchableOpacity>
-
-                        {showMyVotes && (
-                            <View style={styles.receivedList}>
-                                {receivedVotes.length === 0 ? (
-                                    <Text style={styles.noVotesTxt}>Пока никто не оценил</Text>
-                                ) : (
-                                    receivedVotes.map((v) => (
-                                        <View key={v.id} style={styles.receivedRow}>
-                                            <View style={[
-                                                styles.receivedAvatar,
-                                                v.voter.id === null && styles.receivedAvatarAnon,
-                                            ]}>
-                                                <Text style={styles.receivedAvatarTxt}>
-                                                    {v.voter.username.charAt(0).toUpperCase()}
-                                                </Text>
-                                            </View>
-                                            <View style={styles.receivedInfo}>
-                                                <Text style={styles.receivedName}>{v.voter.username}</Text>
-                                                {v.comment && (
-                                                    <Text style={styles.receivedComment}>💬 {v.comment}</Text>
-                                                )}
-                                            </View>
-                                            <View style={styles.receivedStars}>
-                                                {[1, 2, 3, 4, 5].map((s) => (
-                                                    <Ionicons
-                                                        key={s}
-                                                        name={s <= v.score ? 'star' : 'star-outline'}
-                                                        size={13}
-                                                        color={Colors.rikon}
-                                                    />
-                                                ))}
-                                                <Text style={styles.receivedScore}>{v.score}</Text>
-                                            </View>
-                                        </View>
-                                    ))
-                                )}
-                            </View>
-                        )}
-                    </View>
+                  <TouchableOpacity
+                    style={styles.deleteMediaBtn}
+                    onPress={() => handleDeleteMedia(media)}
+                    disabled={deletingMediaId === media.id}
+                  >
+                    {deletingMediaId === media.id ? (
+                      <ActivityIndicator size="small" color={Colors.white} />
+                    ) : (
+                      <Ionicons name="trash" size={14} color={Colors.white} />
+                    )}
+                  </TouchableOpacity>
                 )}
+
+                {/* Оверлей загрузки */}
+                {deletingMediaId === media.id && (
+                  <View style={styles.deletingOverlay}>
+                    <ActivityIndicator size="large" color={Colors.white} />
+                  </View>
+                )}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          {/* Индикаторы точек */}
+          {mediaList.length > 1 && (
+            <View style={styles.dots}>
+              {mediaList.map((_, i) => (
+                <View key={i} style={styles.dot} />
+              ))}
             </View>
+          )}
         </View>
-    );
+      ) : (
+        <View style={styles.emptyMedia}>
+          <Ionicons name="images-outline" size={32} color={Colors.textMuted} />
+          <Text style={styles.emptyMediaTxt}>Медиа удалено</Text>
+        </View>
+      )}
+
+      {/* ── Инфо ── */}
+      <View style={styles.info}>
+
+        {/* Пользователь + score */}
+        <View style={styles.userRow}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarTxt}>
+              {submission.user?.username?.charAt(0).toUpperCase() ?? '?'}
+            </Text>
+          </View>
+          <View style={styles.userInfo}>
+            <Text style={styles.username}>
+              {submission.user?.username ?? 'Пользователь'}
+            </Text>
+            <Text style={styles.date}>{date}</Text>
+          </View>
+          {currentScore > 0 && (
+            <View style={styles.scoreBadge}>
+              <Ionicons name="star" size={12} color={Colors.rikon} />
+              <Text style={styles.scoreText}>
+                {typeof currentScore === 'number' && currentScore > 0
+                  ? currentScore.toFixed(2)
+                  : '—'}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Количество медиа */}
+        {mediaList.length > 0 && (
+          <View style={styles.mediaCountRow}>
+            <Ionicons name="images-outline" size={13} color={Colors.textMuted} />
+            <Text style={styles.mediaCountTxt}>
+              {mediaList.length} {mediaList.length === 1 ? 'файл' : 'файлов'} · листай вправо
+            </Text>
+          </View>
+        )}
+
+        {/* AI оценка */}
+        {aiScore !== undefined && aiScore !== null ? (
+          <View style={styles.aiBlock}>
+            <View style={styles.aiHeader}>
+              <Text style={styles.aiLabel}>🤖 AI оценка:</Text>
+              <Text style={styles.aiScore}>{aiScore}/100</Text>
+            </View>
+            {aiComment && (
+              <Text style={styles.aiComment}>{aiComment}</Text>
+            )}
+          </View>
+        ) : (
+          !isOwner && (
+            <TouchableOpacity
+              style={styles.aiBtn}
+              onPress={handleAIEvaluate}
+              disabled={isEvaluating}
+            >
+              {isEvaluating ? (
+                <ActivityIndicator size="small" color={Colors.secondary} />
+              ) : (
+                <Text style={styles.aiBtnTxt}>🤖 Оценить через AI</Text>
+              )}
+            </TouchableOpacity>
+          )
+        )}
+
+        {/* Голосование — только не за своё */}
+        {!isOwner && (
+          <>
+            <TouchableOpacity
+              style={styles.voteToggle}
+              onPress={() => setShowVoting(!showVoting)}
+            >
+              <Ionicons
+                name={showVoting ? 'chevron-up' : 'chevron-down'}
+                size={16}
+                color={Colors.primary}
+              />
+              <Text style={styles.voteToggleTxt}>
+                {showVoting ? 'Скрыть голосование' : '⭐ Проголосовать'}
+              </Text>
+            </TouchableOpacity>
+
+            {showVoting && (
+              <StarRating
+                submissionId={submission.id}
+                onVoted={(newScore) => {
+                  setCurrentScore(newScore);
+                  setShowVoting(false);
+                  userService.getProfile()
+                    .then((p) => setProfile(p))
+                    .catch(() => {});
+                }}
+              />
+            )}
+          </>
+        )}
+
+        {/* Кто оценил — только владелец */}
+        {isOwner && (
+          <View>
+            <TouchableOpacity style={styles.myVotesBtn} onPress={loadMyVotes}>
+              <Ionicons
+                name={showMyVotes ? 'chevron-up' : 'chevron-down'}
+                size={14}
+                color={Colors.primary}
+              />
+              <Text style={styles.myVotesBtnTxt}>
+                {showMyVotes
+                  ? 'Скрыть оценки'
+                  : `👥 Кто меня оценил (${currentScore > 0 ? currentScore.toFixed(2) : '—'} ⭐)`}
+              </Text>
+            </TouchableOpacity>
+
+            {showMyVotes && (
+              <View style={styles.receivedList}>
+                {receivedVotes.length === 0 ? (
+                  <Text style={styles.noVotesTxt}>Пока никто не оценил</Text>
+                ) : (
+                  receivedVotes.map((v) => (
+                    <View key={v.id} style={styles.receivedRow}>
+                      <View style={[
+                        styles.receivedAvatar,
+                        v.voter.id === null && styles.receivedAvatarAnon,
+                      ]}>
+                        <Text style={styles.receivedAvatarTxt}>
+                          {v.voter.username.charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+                      <View style={styles.receivedInfo}>
+                        <Text style={styles.receivedName}>{v.voter.username}</Text>
+                        {v.comment && (
+                          <Text style={styles.receivedComment}>💬 {v.comment}</Text>
+                        )}
+                      </View>
+                      <View style={styles.receivedStars}>
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Ionicons
+                            key={s}
+                            name={s <= v.score ? 'star' : 'star-outline'}
+                            size={13}
+                            color={Colors.rikon}
+                          />
+                        ))}
+                        <Text style={styles.receivedScore}>{v.score}</Text>
+                      </View>
+                    </View>
+                  ))
+                )}
+              </View>
+            )}
+          </View>
+        )}
+      </View>
+
+      {/* ✅ Полноэкранный просмотр медиа */}
+      <Modal
+        visible={viewerVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setViewerVisible(false)}
+      >
+        <View style={styles.viewerOverlay}>
+          {/* Кнопка закрыть */}
+          <TouchableOpacity
+            style={styles.viewerClose}
+            onPress={() => setViewerVisible(false)}
+          >
+            <Ionicons name="close" size={28} color={Colors.white} />
+          </TouchableOpacity>
+
+          {/* Медиа */}
+          {viewerMedia && (
+            viewerMedia.mediaType === 'photo' ? (
+              <Image
+                source={{ uri: viewerMedia.mediaUrl }}
+                style={styles.viewerImage}
+                resizeMode="contain"
+              />
+            ) : (
+              <View style={styles.viewerVideo}>
+                <Ionicons name="play-circle" size={80} color={Colors.white} />
+                <Text style={styles.viewerVideoTxt}>
+                  Видео — открой в плеере
+                </Text>
+              </View>
+            )
+          )}
+
+          {/* Навигация если несколько */}
+          {mediaList.length > 1 && (
+            <View style={styles.viewerNav}>
+              {mediaList.map((media, i) => (
+                <TouchableOpacity
+                  key={media.id}
+                  style={[
+                    styles.viewerNavDot,
+                    viewerMedia?.id === media.id && styles.viewerNavDotActive,
+                  ]}
+                  onPress={() => setViewerMedia(media)}
+                />
+              ))}
+            </View>
+          )}
+        </View>
+      </Modal>
+    </View>
+  );
 };
+
+const MEDIA_SIZE = 200;
 
 const styles = StyleSheet.create({
-    card: {
-        backgroundColor: Colors.surface,
-        borderRadius: 16,
-        overflow: 'hidden',
-        marginBottom: 12,
-        borderWidth: 1,
-        borderColor: Colors.border,
-    },
+  card: {
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
 
-    // ── Медиа ──
-    mediaWrapper: { position: 'relative' },
-    media: { width: '100%', height: 200 },
+  // ── Медиа ──
+  mediaSection: { position: 'relative' },
+  mediaScroll: {
+    gap: 2,
+  },
+  mediaItem: {
+    width: MEDIA_SIZE,
+    height: MEDIA_SIZE,
+    position: 'relative',
+    backgroundColor: Colors.card,
+  },
+  mediaImage: {
+    width: MEDIA_SIZE,
+    height: MEDIA_SIZE,
+  },
+  videoPlaceholder: {
+    width: MEDIA_SIZE,
+    height: MEDIA_SIZE,
+    backgroundColor: Colors.card,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+  },
+  videoText: { color: Colors.white, fontSize: 13, fontWeight: '600' },
 
-    // Загрузка фото
-    mediaLoading: {
-        width: '100%',
-        height: 200,
-        backgroundColor: Colors.card,
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 8,
-    },
-    mediaLoadingText: {
-        color: Colors.textSecondary,
-        fontSize: 13,
-    },
+  typeBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: 6,
+    padding: 4,
+  },
+  typeTxt: { fontSize: 13 },
 
-    // Ошибка загрузки фото
-    mediaError: {
-        width: '100%',
-        height: 200,
-        backgroundColor: Colors.card,
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 8,
-    },
-    mediaErrorText: {
-        color: Colors.textMuted,
-        fontSize: 13,
-    },
+  indexBadge: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  indexTxt: { color: Colors.white, fontSize: 11, fontWeight: '600' },
 
-    videoPlaceholder: {
-        width: '100%',
-        height: 200,
-        backgroundColor: Colors.card,
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 8,
-    },
-    videoText: { color: Colors.white, fontSize: 14 },
-    typeBadge: {
-        position: 'absolute',
-        top: 10,
-        right: 10,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        borderRadius: 8,
-        padding: 4,
-    },
-    typeTxt: { fontSize: 16 },
+  deleteMediaBtn: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: Colors.error,
+    borderRadius: 16,
+    width: 28,
+    height: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deletingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 
-    // ── Инфо ──
-    info: { padding: 14 },
+  dots: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 6,
+    backgroundColor: Colors.surface,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.textMuted,
+  },
 
-    userRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-        marginBottom: 10,
-    },
-    avatar: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: Colors.primary,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    avatarTxt: { color: Colors.white, fontWeight: '700', fontSize: 14 },
-    userInfo: { flex: 1 },
-    username: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary },
-    date: { fontSize: 11, color: Colors.textMuted },
-    scoreBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 3,
-        backgroundColor: Colors.rikon + '22',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 8,
-    },
-    scoreText: { color: Colors.rikon, fontWeight: '700', fontSize: 13 },
+  emptyMedia: {
+    height: 100,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.card,
+    gap: 6,
+  },
+  emptyMediaTxt: { color: Colors.textMuted, fontSize: 13 },
 
-    aiBlock: {
-        backgroundColor: Colors.card,
-        borderRadius: 10,
-        padding: 10,
-        marginBottom: 10,
-    },
-    aiHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 4,
-    },
-    aiLabel:   { fontSize: 12, color: Colors.textSecondary },
-    aiScore:   { fontSize: 13, fontWeight: '700', color: Colors.secondary },
-    aiComment: {
-        fontSize: 12,
-        color: Colors.textSecondary,
-        fontStyle: 'italic',
-        lineHeight: 17,
-    },
+  // ── Инфо ──
+  info: { padding: 14 },
 
-    aiBtn: {
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: Colors.secondary,
-        alignSelf: 'flex-start',
-        marginBottom: 10,
-    },
-    aiBtnTxt: { color: Colors.secondary, fontSize: 12, fontWeight: '600' },
+  userRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 8,
+  },
+  avatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarTxt: { color: Colors.white, fontWeight: '700', fontSize: 14 },
+  userInfo: { flex: 1 },
+  username: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary },
+  date: { fontSize: 11, color: Colors.textMuted },
+  scoreBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: Colors.rikon + '22',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  scoreText: { color: Colors.rikon, fontWeight: '700', fontSize: 13 },
 
-    voteToggle: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        paddingVertical: 8,
-    },
-    voteToggleTxt: { color: Colors.primary, fontSize: 13, fontWeight: '600' },
+  mediaCountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 8,
+  },
+  mediaCountTxt: { fontSize: 11, color: Colors.textMuted },
 
-    // Кто меня оценил
-    myVotesBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        paddingVertical: 8,
-        borderTopWidth: 1,
-        borderTopColor: Colors.border,
-        marginTop: 4,
-    },
-    myVotesBtnTxt: {
-        color: Colors.primary,
-        fontSize: 13,
-        fontWeight: '600',
-    },
-    receivedList: {
-        backgroundColor: Colors.card,
-        borderRadius: 10,
-        overflow: 'hidden',
-        marginTop: 4,
-    },
-    receivedRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 10,
-        gap: 8,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.border,
-    },
-    receivedAvatar: {
-        width: 30,
-        height: 30,
-        borderRadius: 15,
-        backgroundColor: Colors.primary,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    receivedAvatarAnon: { backgroundColor: Colors.textMuted },
-    receivedAvatarTxt:  { color: Colors.white, fontWeight: '700', fontSize: 12 },
-    receivedInfo:       { flex: 1 },
-    receivedName:       { flex: 1, fontSize: 13, color: Colors.textPrimary },
-    receivedComment: {
-        fontSize: 11,
-        color: Colors.textSecondary,
-        fontStyle: 'italic',
-        marginTop: 2,
-        lineHeight: 16,
-    },
-    receivedStars: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-    receivedScore: {
-        fontSize: 13,
-        fontWeight: '700',
-        color: Colors.rikon,
-        marginLeft: 3,
-    },
-    noVotesTxt: {
-        color: Colors.textMuted,
-        fontSize: 13,
-        textAlign: 'center',
-        padding: 12,
-    },
+  // AI
+  aiBlock: {
+    backgroundColor: Colors.card,
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 10,
+  },
+  aiHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  aiLabel:   { fontSize: 12, color: Colors.textSecondary },
+  aiScore:   { fontSize: 13, fontWeight: '700', color: Colors.secondary },
+  aiComment: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    fontStyle: 'italic',
+    lineHeight: 17,
+  },
+  aiBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.secondary,
+    alignSelf: 'flex-start',
+    marginBottom: 10,
+  },
+  aiBtnTxt: { color: Colors.secondary, fontSize: 12, fontWeight: '600' },
+
+  // Голосование
+  voteToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+  },
+  voteToggleTxt: { color: Colors.primary, fontSize: 13, fontWeight: '600' },
+
+  // Кто оценил
+  myVotesBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    marginTop: 4,
+  },
+  myVotesBtnTxt: { color: Colors.primary, fontSize: 13, fontWeight: '600' },
+  receivedList: {
+    backgroundColor: Colors.card,
+    borderRadius: 10,
+    overflow: 'hidden',
+    marginTop: 4,
+  },
+  receivedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    gap: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  receivedAvatar: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  receivedAvatarAnon: { backgroundColor: Colors.textMuted },
+  receivedAvatarTxt:  { color: Colors.white, fontWeight: '700', fontSize: 12 },
+  receivedInfo:       { flex: 1 },
+  receivedName:       { fontSize: 13, color: Colors.textPrimary },
+  receivedComment: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    fontStyle: 'italic',
+    marginTop: 2,
+    lineHeight: 16,
+  },
+  receivedStars: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  receivedScore: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.rikon,
+    marginLeft: 3,
+  },
+  noVotesTxt: {
+    color: Colors.textMuted,
+    fontSize: 13,
+    textAlign: 'center',
+    padding: 12,
+  },
+
+  // ── Просмотрщик ──
+  viewerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  viewerClose: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 20,
+    padding: 8,
+  },
+  viewerImage: {
+    width: SCREEN_W,
+    height: SCREEN_H * 0.75,
+  },
+  viewerVideo: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+  },
+  viewerVideoTxt: {
+    color: Colors.white,
+    fontSize: 15,
+    // color: Colors.textSecondary,
+  },
+  viewerNav: {
+    position: 'absolute',
+    bottom: 60,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  viewerNavDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.4)',
+  },
+  viewerNavDotActive: {
+    backgroundColor: Colors.white,
+    width: 20,
+    borderRadius: 4,
+  },
 });

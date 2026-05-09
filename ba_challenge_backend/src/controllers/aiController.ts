@@ -3,7 +3,7 @@ import { AuthRequest } from '../types';
 import { Challenge, Task, Submission } from '../models';
 import { aiService } from '../services/aiService';
 import { ENV } from '../config/env';
-
+import { SubmissionMedia } from '../models';
 export const aiController = {
 
     // Добавь в конец объекта aiController:
@@ -59,17 +59,17 @@ export const aiController = {
             await Task.destroy({ where: { challengeId, isAiGenerated: true } });
 
             // Сохраняем новые задачи с дедлайнами
-// ✅ Используем порядковый номер (i+1) вместо day
-const savedTasks = await Task.bulkCreate(
-  plan.tasks.map((t, i) => ({
-    challengeId,
-    title:        t.title,
-    description:  t.description,
-    day:          i + 1,               // ✅ 1, 2, 3... вместо 3, 6, 9...
-    deadline:     new Date(t.deadline),
-    isAiGenerated: true,
-  }))
-);
+            // ✅ Используем порядковый номер (i+1) вместо day
+            const savedTasks = await Task.bulkCreate(
+                plan.tasks.map((t, i) => ({
+                    challengeId,
+                    title: t.title,
+                    description: t.description,
+                    day: i + 1,               // ✅ 1, 2, 3... вместо 3, 6, 9...
+                    deadline: new Date(t.deadline),
+                    isAiGenerated: true,
+                }))
+            );
 
             console.log(`✅ Создано ${savedTasks.length} задач с дедлайнами`);
             res.json({ tasks: savedTasks, summary: plan.summary });
@@ -87,7 +87,15 @@ const savedTasks = await Task.bulkCreate(
             const { language } = req.body;
 
             const submission = await Submission.findByPk(submissionId, {
-                include: [{ model: Task, as: 'task' }],
+                include: [
+                    { model: Task, as: 'task' },
+                    {
+                        model: SubmissionMedia,
+                        as: 'media',
+                        order: [['order', 'ASC']],
+                        limit: 1,
+                    },
+                ],
             });
 
             if (!submission) {
@@ -96,14 +104,16 @@ const savedTasks = await Task.bulkCreate(
             }
 
             const task = (submission as any).task as Task;
+            const mediaList = (submission as any).media as any[];
+            const firstMedia = mediaList?.[0];
 
             console.log(`🤖 AI оценивает submission #${submissionId}`);
 
             const evaluation = await aiService.evaluateSubmission(
                 task.title,
                 task.description,
-                submission.mediaUrl,
-                submission.mediaType,
+                firstMedia?.mediaUrl || '',
+                firstMedia?.mediaType || 'photo',
                 language || 'ru'
             );
 

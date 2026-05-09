@@ -45,7 +45,7 @@ export default function TaskScreen() {
 
     useEffect(() => {
         fetchSubmissions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [taskId]);
 
     if (!task) return <LoadingSpinner />;
@@ -64,28 +64,28 @@ export default function TaskScreen() {
                     />
                 }
             >
-{/* Описание задачи */}
-<Card style={styles.taskCard}>
-  <View style={styles.taskHeader}>
-    <View style={styles.dayBadge}>
-      <Text style={styles.dayText}>Задача {task.day}</Text>
-    </View>
+                {/* Описание задачи */}
+                <Card style={styles.taskCard}>
+                    <View style={styles.taskHeader}>
+                        <View style={styles.dayBadge}>
+                            <Text style={styles.dayText}>Задача {task.day}</Text>
+                        </View>
 
-    {/* ✅ AI или человек */}
-    {task.isAiGenerated ? (
-      <View style={styles.aiBadge}>
-        <Text style={styles.aiText}>🤖 AI задача</Text>
-      </View>
-    ) : (
-      <View style={styles.humanBadge}>
-        <Text style={styles.humanText}>👤 Создана вручную</Text>
-      </View>
-    )}
-  </View>
+                        {/* ✅ AI или человек */}
+                        {task.isAiGenerated ? (
+                            <View style={styles.aiBadge}>
+                                <Text style={styles.aiText}>🤖 AI задача</Text>
+                            </View>
+                        ) : (
+                            <View style={styles.humanBadge}>
+                                <Text style={styles.humanText}>👤 Создана вручную</Text>
+                            </View>
+                        )}
+                    </View>
 
-  <Text style={styles.taskTitle}>{task.title}</Text>
-  <Text style={styles.taskDesc}>{task.description}</Text>
-</Card>
+                    <Text style={styles.taskTitle}>{task.title}</Text>
+                    <Text style={styles.taskDesc}>{task.description}</Text>
+                </Card>
 
                 {/* Загрузка доказательства */}
                 <Text style={styles.sectionTitle}>Загрузи доказательство</Text>
@@ -109,7 +109,11 @@ export default function TaskScreen() {
                 ) : (
                     <View style={styles.submissionsList}>
                         {submissions.map((s) => (
-                            <SubmissionCard key={s.id} submission={s} />
+                            <SubmissionCard
+                                key={s.id}
+                                submission={s}
+                                onUpdated={fetchSubmissions}
+                            />
                         ))}
                     </View>
                 )}
@@ -120,17 +124,17 @@ export default function TaskScreen() {
 
 const styles = StyleSheet.create({
     // В StyleSheet.create добавь:
-humanBadge: {
-  backgroundColor: Colors.accent + '22',
-  paddingHorizontal: 8,
-  paddingVertical: 3,
-  borderRadius: 6,
-},
-humanText: {
-  color: Colors.accent,
-  fontSize: 11,
-  fontWeight: '600',
-},
+    humanBadge: {
+        backgroundColor: Colors.accent + '22',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 6,
+    },
+    humanText: {
+        color: Colors.accent,
+        fontSize: 11,
+        fontWeight: '600',
+    },
     container: { flex: 1, backgroundColor: Colors.background },
 
     taskCard: { margin: 20, marginBottom: 8 },

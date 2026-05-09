@@ -115,4 +115,11 @@ export const challengeService = {
         const response = await api.get(`/challenges/${id}/prize-pool`);
         return response.data;
     },
+    kickParticipant: async (
+        challengeId: number,
+        userId: number
+    ): Promise<{ message: string; refundedCoins: number }> => {
+        const response = await api.delete(`/challenges/${challengeId}/kick/${userId}`);
+        return response.data;
+    },
 };

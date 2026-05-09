@@ -7,16 +7,13 @@ const router = Router();
 
 router.use(authMiddleware);
 
-// Загрузка доказательства (с шифрованием)
+// ✅ Загрузка одного файла — добавляет к существующему submission или создаёт новый
 router.post('/', upload.single('media'), submissionController.create);
 
-// Список сабмишенов по задаче
+// ✅ Удалить конкретный медиафайл
+router.delete('/media/:mediaId', submissionController.deleteMedia);
+
 router.get('/task/:taskId', submissionController.getByTask);
-
-// Мои сабмишены по челленджу
 router.get('/my/:challengeId', submissionController.getMySubmissions);
-
-// ✅ Защищённый endpoint — расшифровывает и отдаёт файл только участникам
-router.get('/:submissionId/media', submissionController.serveMedia);
 
 export default router;

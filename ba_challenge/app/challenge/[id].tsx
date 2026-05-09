@@ -39,6 +39,8 @@ export default function ChallengeDetailScreen() {
     fetchTasks,
     joinChallenge,
     setCurrentTasks,
+    kickParticipant,
+
   } = useChallenge();
 
   const [inviteModalVisible, setInviteModalVisible] = useState(false);
@@ -555,6 +557,18 @@ export default function ChallengeDetailScreen() {
             creatorId={c.creatorId}
             betAmount={c.betAmount}
             prizePool={prizePool}
+            currentUserId={user?.id}
+            onKick={async (participant) => {
+              const result = await kickParticipant(Number(id), participant.userId);
+              if (result) {
+                Alert.alert(
+                  '✅ Готово',
+                  result.message
+                );
+              } else {
+                Alert.alert('Ошибка', 'Не удалось удалить участника');
+              }
+            }}
           />
         </Card>
 

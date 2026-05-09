@@ -3,19 +3,28 @@ import { User } from "./user";
 export type ChallengeStatus = 'active' | 'pending' | 'completed' | 'cancelled';
 export type VisibilityLevel = 'secret' | 'protected' | 'public';
 
+
+export interface SubmissionMediaItem {
+  id: number;
+  submissionId: number;
+  mediaUrl: string;
+  mediaType: 'photo' | 'video';
+  order: number;
+}
+
 // ✅ Описание одного призового места
 export interface PrizeTier {
-  place:   number;   // 1, 2, 3
+  place: number;   // 1, 2, 3
   percent: number;   // 50, 30, 20
-  amount:  number;   // реальная сумма монет
-  label:   string;   // '🥇 1 место'
-  user?:   { id: number; username: string } | null;  // кто занял (если завершён)
+  amount: number;   // реальная сумма монет
+  label: string;   // '🥇 1 место'
+  user?: { id: number; username: string } | null;  // кто занял (если завершён)
 }
 
 // ✅ Полная информация о призовом пуле
 export interface PrizeInfo {
   totalPool: number;
-  prizes:    PrizeTier[];
+  prizes: PrizeTier[];
 }
 
 export interface Challenge {
@@ -76,8 +85,11 @@ export interface Submission {
   id: number;
   taskId: number;
   userId: number;
-  mediaUrl: string;
-  mediaType: 'photo' | 'video';
+  // ✅ Теперь массив медиафайлов вместо одного
+  media: SubmissionMediaItem[];
+  // ✅ Оставляем для обратной совместимости (берём из первого media)
+  mediaUrl?: string;
+  mediaType?: 'photo' | 'video';
   score: number;
   aiScore?: number;
   aiComment?: string;
