@@ -16,7 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '@constants/colors';
+import { Colors } from '@/constants/colors';
 import { Config } from '@constants/config';
 import { Header } from '@components/shared/Header';
 import { chatService, ChatMessage, ChatRoomType } from '@services/chatService';

@@ -4,7 +4,7 @@ import { LoadingSpinner } from '@components/shared/LoadingSpinner';
 import { MediaUploader } from '@components/shared/MediaUploader';
 import { SubmissionCard } from '@components/shared/SubmissionCard';
 import { Card } from '@components/ui/Card';
-import { Colors } from '@constants/colors';
+import { Colors } from '@/constants/colors';
 import { useChallenge } from '@hooks/useChallenge';
 import { submissionService } from '@services/submissionService';
 import { useLocalSearchParams } from 'expo-router';

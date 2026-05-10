@@ -8,7 +8,7 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Colors } from '@constants/colors';
+import { Colors } from '@/constants/colors';
 import { familyService } from '@services/familyService';
 import { RELATION_LABELS } from '@/types/index';
 

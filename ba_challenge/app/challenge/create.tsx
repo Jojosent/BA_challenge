@@ -19,23 +19,26 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { z } from 'zod';
+import { useTheme } from '@/theme/ThemeContext';
 
-const D = {
-  bg: '#F8FAFF',
-  surface: '#FFFFFF',
-  surfaceAlt: '#EEF0FF',
-  border: '#E4DFFF',
-  violet: '#7C5CFC',
+// Тема өзгермейтін статикалық accent токендер
+const A = {
+  violet: '#5E4BDB',
+  violetMid: '#7B6AEA',
   violetLight: '#EDE9FF',
-  emerald: '#10B981',
-  emeraldLight: '#D1FAE5',
-  amber: '#F59E0B',
-  amberLight: '#FEF3C7',
-  rose: '#F43F5E',
-  roseLight: '#FFE4E6',
-  textPrimary: '#1A1040',
-  textSecondary: '#6B7280',
-  textMuted: '#A0A8BF',
+  violetSoft: '#F5F3FF',
+
+  emerald: '#059669',
+  emeraldLight: '#ECFDF5',
+
+  amber: '#D97706',
+  amberLight: '#FFFBEB',
+
+  rose: '#E11D48',
+  roseLight: '#FFF1F4',
+
+  shadowViolet: '#5E4BDB',
+  shadowNeutral: '#1A1040',
 };
 
 type FormData = {
@@ -48,18 +51,33 @@ type FormData = {
 type VisibilityKey = 'public' | 'secret' | 'protected';
 
 function SectionLabel({ label }: { label: string }) {
+  const { theme } = useTheme();
   return (
     <View style={sec.row}>
-      <Text style={sec.text}>{label}</Text>
-      <View style={sec.line} />
+      <Text style={[sec.text, { color: A.violetMid }]}>{label}</Text>
+      <View style={[sec.line, { backgroundColor: theme.border }]} />
     </View>
   );
 }
 
 const sec = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 24, marginBottom: 12 },
-  text: { fontSize: 10, fontWeight: '800', letterSpacing: 1.8, color: D.violet, textTransform: 'uppercase' },
-  line: { flex: 1, height: 1.5, backgroundColor: D.border },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 28,
+    marginBottom: 14,
+  },
+  text: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
+  line: {
+    flex: 1,
+    height: 1,
+  },
 });
 
 function VisCard({
@@ -78,24 +96,50 @@ function VisCard({
   selected: boolean;
   onPress: () => void;
 }) {
+  const { theme } = useTheme();
   return (
     <TouchableOpacity
       style={[
         vis.card,
-        selected && { borderColor: opt.color, backgroundColor: opt.bg },
+        { backgroundColor: theme.surface, borderColor: theme.border },
+        selected && {
+          borderColor: opt.color,
+          backgroundColor: opt.bg,
+          shadowColor: opt.color,
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.18,
+          shadowRadius: 14,
+          elevation: 6,
+        },
       ]}
       onPress={onPress}
-      activeOpacity={0.8}
+      activeOpacity={0.75}
     >
-      <View style={[vis.iconBox, { backgroundColor: selected ? opt.color : D.surfaceAlt }]}>
-        <Ionicons name={opt.icon} size={18} color={selected ? '#fff' : D.textMuted} />
+      <View
+        style={[
+          vis.iconBox,
+          {
+            backgroundColor: selected ? opt.color : (theme.surfaceAlt ?? A.violetSoft),
+            shadowColor: selected ? opt.color : 'transparent',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: selected ? 0.35 : 0,
+            shadowRadius: 8,
+            elevation: selected ? 4 : 0,
+          },
+        ]}
+      >
+        <Ionicons
+          name={opt.icon}
+          size={18}
+          color={selected ? '#fff' : theme.textSecondary}
+        />
       </View>
 
-      <Text style={[vis.label, selected && { color: opt.color }]}>
+      <Text style={[vis.label, { color: selected ? opt.color : theme.textSecondary }]}>
         {opt.label}
       </Text>
 
-      <Text style={vis.sub}>
+      <Text style={[vis.sub, { color: theme.textSecondary, opacity: 0.7 }]}>
         {opt.sublabel}
       </Text>
 
@@ -111,25 +155,36 @@ function VisCard({
 const vis = StyleSheet.create({
   card: {
     flex: 1,
-    backgroundColor: D.surface,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 14,
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: D.border,
     gap: 6,
     position: 'relative',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   iconBox: {
-    width: 42,
-    height: 42,
-    borderRadius: 13,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 2,
+    marginBottom: 4,
   },
-  label: { fontSize: 11, fontWeight: '800', color: D.textSecondary, textAlign: 'center' },
-  sub: { fontSize: 9, color: D.textMuted, textAlign: 'center', lineHeight: 13 },
+  label: {
+    fontSize: 11,
+    fontWeight: '800',
+    textAlign: 'center',
+    letterSpacing: 0.2,
+  },
+  sub: {
+    fontSize: 9,
+    textAlign: 'center',
+    lineHeight: 13,
+  },
   check: {
     position: 'absolute',
     top: 8,
@@ -153,13 +208,27 @@ function InfoBanner({
   color: string;
   bg: string;
 }) {
+  const { theme } = useTheme();
   return (
-    <View style={[ib.wrap, { backgroundColor: bg, borderColor: color + '40' }]}>
-      <View style={[ib.iconBox, { backgroundColor: color + '25' }]}>
+    <View
+      style={[
+        ib.wrap,
+        {
+          backgroundColor: bg,
+          borderColor: color + '30',
+          shadowColor: color,
+          shadowOffset: { width: 0, height: 3 },
+          shadowOpacity: 0.1,
+          shadowRadius: 10,
+          elevation: 2,
+        },
+      ]}
+    >
+      <View style={[ib.iconBox, { backgroundColor: color + '20' }]}>
         <Ionicons name={icon} size={16} color={color} />
       </View>
 
-      <Text style={ib.text}>{text}</Text>
+      <Text style={[ib.text, { color: theme.textSecondary }]}>{text}</Text>
     </View>
   );
 }
@@ -169,18 +238,29 @@ const ib = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 14,
     marginBottom: 12,
     borderWidth: 1,
   },
-  iconBox: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  text: { flex: 1, fontSize: 13, color: D.textSecondary, lineHeight: 19 },
+  iconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  text: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 19,
+  },
 });
 
 export default function CreateChallengeScreen() {
   const router = useRouter();
   const { t } = useTranslation();
+  const { theme } = useTheme();
   const { createChallenge, isLoading } = useChallenge();
 
   const schema = z.object({
@@ -203,24 +283,24 @@ export default function CreateChallengeScreen() {
       label: t('createChallenge.visibilityPublic'),
       sublabel: t('createChallenge.visibilityPublicSub'),
       icon: 'globe-outline',
-      color: D.emerald,
-      bg: D.emeraldLight,
+      color: A.emerald,
+      bg: A.emeraldLight,
     },
     {
       key: 'protected',
       label: t('createChallenge.visibilityProtected'),
       sublabel: t('createChallenge.visibilityProtectedSub'),
       icon: 'shield-checkmark-outline',
-      color: D.amber,
-      bg: D.amberLight,
+      color: A.amber,
+      bg: A.amberLight,
     },
     {
       key: 'secret',
       label: t('createChallenge.visibilitySecret'),
       sublabel: t('createChallenge.visibilitySecretSub'),
       icon: 'lock-closed-outline',
-      color: D.rose,
-      bg: D.roseLight,
+      color: A.rose,
+      bg: A.roseLight,
     },
   ];
 
@@ -229,14 +309,17 @@ export default function CreateChallengeScreen() {
   const [endDate, setEndDate] = useState('');
   const [dateError, setDateError] = useState('');
 
-  const { control, handleSubmit, formState: { errors } } = useForm<FormData>({
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { betAmount: '0', password: '' },
   });
 
   const getDayCount = () => {
     if (!startDate || !endDate) return 0;
-
     return Math.ceil(
       (new Date(endDate).getTime() - new Date(startDate).getTime()) / 86400000
     );
@@ -247,17 +330,14 @@ export default function CreateChallengeScreen() {
       setDateError(t('createChallenge.startDateRequired'));
       return false;
     }
-
     if (!endDate) {
       setDateError(t('createChallenge.endDateRequired'));
       return false;
     }
-
     if (getDayCount() < 1) {
       setDateError(t('createChallenge.endDateAfterStart'));
       return false;
     }
-
     setDateError('');
     return true;
   };
@@ -266,10 +346,7 @@ export default function CreateChallengeScreen() {
     if (!validateDates()) return;
 
     if (visibility === 'protected' && !data.password?.trim()) {
-      Alert.alert(
-        t('common.error'),
-        t('createChallenge.passwordRequired')
-      );
+      Alert.alert(t('common.error'), t('createChallenge.passwordRequired'));
       return;
     }
 
@@ -300,7 +377,7 @@ export default function CreateChallengeScreen() {
   const dayCount = getDayCount();
 
   return (
-    <SafeAreaView style={s.container} edges={['top']}>
+    <SafeAreaView style={[s.container, { backgroundColor: theme.bg }]} edges={['top']}>
       <Header title={t('createChallenge.title')} showBack />
 
       <ScrollView
@@ -364,23 +441,39 @@ export default function CreateChallengeScreen() {
         />
 
         {dayCount > 0 && (
-          <View style={s.daysCard}>
-            <View>
-              <Text style={s.daysNum}>{dayCount}</Text>
-              <Text style={s.daysSub}>{t('createChallenge.days')}</Text>
+          <View
+            style={[
+              s.daysCard,
+              {
+                backgroundColor: theme.surface,
+                borderColor: theme.border,
+                shadowColor: theme.primary ?? A.shadowViolet,
+              },
+            ]}
+          >
+            <View style={[s.daysLeft, { backgroundColor: theme.surfaceAlt ?? A.violetSoft }]}>
+              <Text style={[s.daysNum, { color: theme.primary ?? A.violet }]}>
+                {dayCount}
+              </Text>
+              <Text style={[s.daysSub, { color: A.violetMid }]}>
+                {t('createChallenge.days')}
+              </Text>
             </View>
 
             <View style={s.daysRight}>
-              <View style={s.daysTrack}>
+              <View style={[s.daysTrack, { backgroundColor: theme.border }]}>
                 <View
                   style={[
                     s.daysFill,
-                    { width: `${Math.min((dayCount / 90) * 100, 100)}%` },
+                    {
+                      width: `${Math.min((dayCount / 90) * 100, 100)}%`,
+                      backgroundColor: theme.primary ?? A.violet,
+                    },
                   ]}
                 />
               </View>
 
-              <Text style={s.daysHint}>
+              <Text style={[s.daysHint, { color: theme.textSecondary }]}>
                 {t('createChallenge.duration')}
               </Text>
             </View>
@@ -405,8 +498,8 @@ export default function CreateChallengeScreen() {
             <InfoBanner
               icon="shield-checkmark-outline"
               text={t('createChallenge.protectedInfo')}
-              color={D.amber}
-              bg={D.amberLight}
+              color={A.amber}
+              bg={A.amberLight}
             />
 
             <Controller
@@ -432,8 +525,8 @@ export default function CreateChallengeScreen() {
         <InfoBanner
           icon="diamond-outline"
           text={t('createChallenge.betInfo')}
-          color={D.violet}
-          bg={D.violetLight}
+          color={theme.primary ?? A.violet}
+          bg={A.violetSoft}
         />
 
         <Controller
@@ -455,7 +548,13 @@ export default function CreateChallengeScreen() {
             title={t('createChallenge.submit')}
             onPress={handleSubmit(onSubmit)}
             isLoading={isLoading}
-            style={s.submitBtn}
+            style={[
+              s.submitBtn,
+              {
+                backgroundColor: theme.primary ?? A.violet,
+                shadowColor: theme.primary ?? A.shadowViolet,
+              },
+            ]}
           />
         </View>
       </ScrollView>
@@ -464,56 +563,83 @@ export default function CreateChallengeScreen() {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: D.bg },
-  scroll: { padding: 20, paddingBottom: 52 },
+  container: {
+    flex: 1,
+  },
+  scroll: {
+    padding: 20,
+    paddingBottom: 60,
+  },
+
+  // Days card
   daysCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
-    backgroundColor: D.violetLight,
-    borderRadius: 14,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: D.border,
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1.5,
     marginBottom: 4,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 5,
+  },
+  daysLeft: {
+    alignItems: 'center',
+    minWidth: 52,
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
   },
   daysNum: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: '900',
-    color: D.violet,
-    letterSpacing: -1,
+    letterSpacing: -1.5,
+    lineHeight: 34,
   },
   daysSub: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: D.violet,
-    opacity: 0.7,
+    fontSize: 10,
+    fontWeight: '700',
+    opacity: 0.8,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
-  daysRight: { flex: 1, gap: 6 },
+  daysRight: {
+    flex: 1,
+    gap: 8,
+  },
   daysTrack: {
-    height: 6,
-    backgroundColor: D.surface,
+    height: 7,
     borderRadius: 99,
     overflow: 'hidden',
   },
   daysFill: {
-    height: 6,
-    backgroundColor: D.violet,
+    height: 7,
     borderRadius: 99,
+    opacity: 0.9,
   },
   daysHint: {
     fontSize: 11,
-    color: D.textMuted,
     fontWeight: '600',
+    letterSpacing: 0.2,
   },
-  visRow: { flexDirection: 'row', gap: 8 },
-  submitWrap: { marginTop: 32 },
+
+  // Visibility row
+  visRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+
+  // Submit
+  submitWrap: {
+    marginTop: 36,
+  },
   submitBtn: {
-    backgroundColor: D.violet,
-    shadowColor: D.violet,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 18,
-    elevation: 10,
+    borderRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.38,
+    shadowRadius: 22,
+    elevation: 12,
   },
 });

@@ -14,7 +14,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '@constants/colors';
+import { Colors } from '@/constants/colors';
 import { familyService } from '@services/familyService';
 import { FamilyMember, RELATION_LABELS, Relation } from '@/types/index';
 

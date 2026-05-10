@@ -10,7 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { Colors } from '@constants/colors';
+import { Colors } from '@/constants/colors';
 import { Task } from '@/types/index';
 
 interface TaskFormModalProps {

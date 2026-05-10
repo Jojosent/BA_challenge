@@ -2,7 +2,6 @@ import { RoleBadge } from '@/components/shared/RoleBadge';
 import { LoadingSpinner } from '@components/shared/LoadingSpinner';
 import { StatCard } from '@components/shared/StatCard';
 import { Card } from '@components/ui/Card';
-import { Colors } from '@constants/colors';
 import { useNotificationStore } from '@hooks/useNotifications';
 import { useProfile } from '@hooks/useProfile';
 import { DeadlineCalendar } from '@components/shared/DeadlineCalendar';
@@ -13,7 +12,7 @@ import { userService } from '@services/userService';
 import { ImageBackground } from 'react-native';
 import { TrendingUp, Zap, Star } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
-
+import { useTheme } from '@/theme/ThemeContext';
 import {
   RefreshControl,
   ScrollView,
@@ -22,7 +21,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
@@ -30,6 +28,7 @@ export default function HomeScreen() {
   const { t } = useTranslation();
 
   const { displayUser, isLoading, fetchProfile } = useProfile();
+  const { theme } = useTheme();
 
   const [notifCount, setNotifCount] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -45,11 +44,9 @@ export default function HomeScreen() {
   });
 
   useEffect(() => {
-    userService.getStats()
-      .then((data) => {
-        console.log('Stats загружены:', data);
-        setStats(data);
-      })
+    userService
+      .getStats()
+      .then(setStats)
       .catch((e) => console.log('Stats ошибка:', e.message));
   }, [displayUser?.id, refreshKey]);
 
@@ -60,12 +57,14 @@ export default function HomeScreen() {
 
     if (hour < 12) return t('home.morningGreeting');
     if (hour < 18) return t('home.afternoonGreeting');
-
     return t('home.eveningGreeting');
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: theme.bg }]}
+      edges={['top']}
+    >
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -75,50 +74,37 @@ export default function HomeScreen() {
               fetchProfile();
               setRefreshKey((k) => k + 1);
             }}
-            tintColor={Colors.primary}
+            tintColor={theme.primary}
           />
         }
       >
-        {/* Шапка */}
+        {/* HEADER */}
         <View style={styles.headerRow}>
-          <View>
-            <View style={styles.headerTextBlock}>
-              <Text style={styles.greetingTitle}>
-                {greeting()}, {displayUser?.username || 'User'}
-              </Text>
+          <View style={styles.headerTextBlock}>
+            <Text style={[styles.greetingTitle, { color: theme.textPrimary }]}>
+              {greeting()}, {displayUser?.username || 'User'}
+            </Text>
 
-              <Text style={styles.greetingSubtitle}>
-                {t('home.readyText')}
-              </Text>
-
-              {/*
-              <View style={[
-                styles.streakBadge,
-                stats.streakCount === 0 && styles.streakBadgeZero
-              ]}>
-                <Text style={[
-                  styles.streakTxt,
-                  stats.streakCount === 0 && styles.streakTxtZero
-                ]}>
-                  🔥 {stats.streakCount}
-                </Text>
-              </View>
-              */}
-            </View>
+            <Text style={[styles.greetingSubtitle, { color: theme.textSecondary }]}>
+              {t('home.readyText')}
+            </Text>
           </View>
 
           <TouchableOpacity
-            style={styles.notifBtn}
+            style={[
+              styles.notifBtn,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+            ]}
             onPress={() => router.push('/notifications')}
           >
             <Ionicons
               name="notifications-outline"
               size={24}
-              color={Colors.textPrimary}
+              color={theme.textPrimary}
             />
 
             {notifCount > 0 && (
-              <View style={styles.notifBadge}>
+              <View style={[styles.notifBadge, { backgroundColor: theme.rose }]}>
                 <Text style={styles.notifBadgeTxt}>
                   {notifCount > 9 ? '9+' : notifCount}
                 </Text>
@@ -127,7 +113,7 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Карточка баланса */}
+        {/* BALANCE */}
         <ImageBackground
           source={require('../../assets/images/balance-bg.png')}
           style={styles.balanceCard}
@@ -136,89 +122,89 @@ export default function HomeScreen() {
         >
           <View style={styles.balanceContent}>
             <View style={styles.balanceMain}>
-              <Text style={styles.balanceLabel}>
+              <Text style={[styles.balanceLabel, { color: theme.textSecondary }]}>
                 {t('home.coinBalance')}
               </Text>
 
               <View style={styles.coinRow}>
-                <Text style={styles.balanceAmount}>
+                <Text style={[styles.balanceAmount, { color: theme.textPrimary }]}>
                   {displayUser?.rikonCoins || 98}
                 </Text>
 
-                <Text style={styles.coinText}>
+                <Text style={[styles.coinText, { color: theme.textPrimary }]}>
                   {t('home.rikonCoins')}
                 </Text>
               </View>
 
               <View style={styles.ratingRow}>
                 <Text style={styles.star}>★</Text>
-
-                <Text style={styles.ratingText}>5.00</Text>
-
-                <Text style={styles.ratingCount}>(16)</Text>
+                <Text style={[styles.ratingText, { color: theme.textPrimary }]}>
+                  5.00
+                </Text>
+                <Text style={[styles.ratingCount, { color: theme.textSecondary }]}>
+                  (16)
+                </Text>
               </View>
             </View>
 
-            <View style={styles.streakCircle}>
-              <Text style={styles.streakNumber}>
+            <View style={[styles.streakCircle, { borderColor: theme.border }]}>
+              <Text style={[styles.streakNumber, { color: theme.textPrimary }]}>
                 {stats.streakCount || 0}
               </Text>
 
-              <Text style={styles.streakText}>
+              <Text style={[styles.streakText, { color: theme.textPrimary }]}>
                 {t('home.daysInRow')}
               </Text>
             </View>
           </View>
         </ImageBackground>
 
-        {/* Статистика */}
-        <Text style={styles.sectionTitle}>
+        {/* STATS */}
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>
           {t('home.yourStats')}
         </Text>
 
         <View style={styles.statsRow}>
           <StatCard
-            icon={<TrendingUp size={24} color={Colors.rikon} />}
+            icon={<TrendingUp size={24} color={theme.primary} />}
             label={t('profile.wins')}
             value={stats.wonCount}
-            color={Colors.rikon}
+            color={theme.primary}
           />
 
           <StatCard
-            icon={<Zap size={24} color={Colors.primary} />}
+            icon={<Zap size={24} color={theme.primary} />}
             label={t('home.challenges')}
             value={stats.challengeCount}
-            color={Colors.primary}
+            color={theme.primary}
           />
 
           <StatCard
-            icon={<Star size={24} color={Colors.warning} />}
+            icon={<Star size={24} color={theme.warning} />}
             label={t('home.experience')}
             value={stats.avgRating > 0 ? stats.avgRating.toFixed(2) : '—'}
-            color={Colors.warning}
+            color={theme.warning}
           />
         </View>
 
-        {/* Быстрые действия */}
-        <Text style={styles.sectionTitle}>
+        {/* QUICK ACTIONS */}
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>
           {t('home.quickActions')}
         </Text>
 
         <View style={styles.quickSection}>
           <View style={styles.quickGrid}>
             <TouchableOpacity
-              style={styles.quickItem}
-              activeOpacity={0.85}
+              style={[styles.quickItem, { backgroundColor: theme.surface, borderColor: theme.border }]}
               onPress={() => router.push('/(tabs)/challenges')}
             >
               <ImageBackground
                 source={require('../../assets/images/challenge.png')}
                 style={styles.quickBg}
                 imageStyle={styles.quickBgImage}
-                resizeMode="cover"
               >
                 <View style={styles.quickOverlay}>
-                  <Text style={styles.quickTitle}>
+                  <Text style={[styles.quickTitle, { color: theme.textPrimary }]}>
                     {t('home.challenges')}
                   </Text>
                 </View>
@@ -226,18 +212,16 @@ export default function HomeScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.quickItem}
-              activeOpacity={0.85}
+              style={[styles.quickItem, { backgroundColor: theme.surface, borderColor: theme.border }]}
               onPress={() => router.push('/(tabs)/ai-assistant')}
             >
               <ImageBackground
                 source={require('../../assets/images/ai.png')}
                 style={styles.quickBg}
                 imageStyle={styles.quickBgImage}
-                resizeMode="cover"
               >
                 <View style={styles.quickOverlay}>
-                  <Text style={styles.quickTitle}>
+                  <Text style={[styles.quickTitle, { color: theme.textPrimary }]}>
                     {t('home.aiAssistant')}
                   </Text>
                 </View>
@@ -245,18 +229,16 @@ export default function HomeScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.quickItem}
-              activeOpacity={0.85}
+              style={[styles.quickItem, { backgroundColor: theme.surface, borderColor: theme.border }]}
               onPress={() => router.push('/family')}
             >
               <ImageBackground
                 source={require('../../assets/images/family.png')}
                 style={styles.quickBg}
                 imageStyle={styles.quickBgImage}
-                resizeMode="cover"
               >
                 <View style={styles.quickOverlay}>
-                  <Text style={styles.quickTitle}>
+                  <Text style={[styles.quickTitle, { color: theme.textPrimary }]}>
                     {t('home.familyTree')}
                   </Text>
                 </View>
@@ -264,18 +246,16 @@ export default function HomeScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.quickItem}
-              activeOpacity={0.85}
+              style={[styles.quickItem, { backgroundColor: theme.surface, borderColor: theme.border }]}
               onPress={() => router.push('/notifications')}
             >
               <ImageBackground
                 source={require('../../assets/images/notification.png')}
                 style={styles.quickBg}
                 imageStyle={styles.quickBgImage}
-                resizeMode="cover"
               >
                 <View style={styles.quickOverlay}>
-                  <Text style={styles.quickTitle}>
+                  <Text style={[styles.quickTitle, { color: theme.textPrimary }]}>
                     {t('home.notifications')}
                   </Text>
                 </View>
@@ -284,8 +264,8 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Календарь */}
-        <Text style={styles.sectionTitle}>
+        {/* CALENDAR */}
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>
           {t('home.taskCalendar')}
         </Text>
 
@@ -298,248 +278,24 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  quickSection: {
-    paddingHorizontal: 20,
-  },
-
-  mainSectionTitle: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: Colors.textPrimary,
-    marginTop: 28,
-    marginBottom: 16,
-    paddingHorizontal: 20,
-  },
-
-  quickGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    rowGap: 12,
-  },
-
-  quickItem: {
-    width: '48.5%',
-    height: 118,
-    borderRadius: 25,
-    overflow: 'hidden',
-    backgroundColor: Colors.white,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-
-  quickBg: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-
-  quickBgImage: {
-    borderRadius: 20,
-  },
-
-  quickTitle: {
-    fontSize: 15,
-    fontWeight: '900',
-    color: '#0F172A',
-    lineHeight: 18,
-    textShadowColor: '#FFFFFF',
-    textShadowOffset: { width: 0.5, height: 0.5 },
-    textShadowRadius: 5,
-  },
-
-  quickOverlay: {
-    height: '100%',
-    width: '60%',
-    justifyContent: 'center',
-    paddingLeft: 18,
-  },
-
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-
-  calendarWrapper: {
-    paddingHorizontal: 20,
-    marginBottom: 24,
-  },
+  container: { flex: 1 },
 
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 8,
+    padding: 20,
   },
 
-  greeting: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-  },
+  headerTextBlock: { flex: 1 },
 
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
+  greetingTitle: { fontSize: 28, fontWeight: '900' },
 
-  username: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: Colors.textPrimary,
-  },
-
-  headerTextBlock: {
-    flex: 1,
-  },
-
-  greetingTitle: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: Colors.textPrimary,
-    letterSpacing: -0.5,
-  },
-
-  greetingSubtitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-    marginTop: 4,
-  },
-
-  balanceCard: {
-    height: 160,
-    marginHorizontal: 20,
-    marginTop: 26,
-    borderRadius: 30,
-    overflow: 'hidden',
-  },
-
-  balanceBgImage: {
-    borderRadius: 30,
-  },
-
-  balanceContent: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingLeft: 100,
-    paddingRight: 60,
-  },
-
-  balanceMain: {
-    flex: 1,
-  },
-
-  balanceLabel: {
-    color: 'rgba(255,255,255,0.72)',
-    fontSize: 17,
-    fontWeight: '600',
-    marginBottom: 6,
-  },
-
-  coinRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 8,
-  },
-
-  balanceAmount: {
-    color: Colors.white,
-    fontSize: 54,
-    fontWeight: '900',
-    lineHeight: 58,
-  },
-
-  coinText: {
-    color: Colors.white,
-    fontSize: 12,
-    fontWeight: '700',
-    marginBottom: 8,
-  },
-
-  ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 12,
-  },
-
-  star: {
-    color: '#FFD84D',
-    fontSize: 16,
-    marginRight: 8,
-  },
-
-  ratingText: {
-    color: Colors.white,
-    fontSize: 16,
-    fontWeight: '900',
-    marginRight: 8,
-  },
-
-  ratingCount: {
-    color: 'rgba(255,255,255,0.45)',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-
-  streakCircle: {
-    width: 86,
-    height: 86,
-    borderRadius: 43,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.85)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  streakNumber: {
-    color: Colors.white,
-    fontSize: 32,
-    fontWeight: '900',
-    lineHeight: 34,
-  },
-
-  streakText: {
-    color: Colors.white,
-    fontSize: 12,
-    fontWeight: '700',
-    textAlign: 'center',
-    lineHeight: 15,
-  },
-
-  streakBadge: {
-    backgroundColor: Colors.error + '15',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.error + '40',
-  },
-
-  streakTxt: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: Colors.error,
-  },
-
-  streakBadgeZero: {
-    backgroundColor: Colors.surface,
-    borderColor: Colors.border,
-  },
-
-  streakTxtZero: {
-    color: Colors.textMuted,
-  },
+  greetingSubtitle: { fontSize: 15, marginTop: 4 },
 
   notifBtn: {
-    backgroundColor: Colors.surface,
     padding: 10,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
     position: 'relative',
   },
 
@@ -547,35 +303,89 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -4,
     right: -4,
-    backgroundColor: Colors.error,
     borderRadius: 10,
-    minWidth: 18,
-    height: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
     paddingHorizontal: 4,
-    borderWidth: 2,
-    borderColor: Colors.background,
   },
 
-  notifBadgeTxt: {
-    color: Colors.white,
-    fontSize: 10,
-    fontWeight: '700',
+  notifBadgeTxt: { color: '#fff', fontSize: 10 },
+
+  balanceCard: {
+    height: 160,
+    margin: 20,
+    borderRadius: 30,
+    overflow: 'hidden',
   },
+
+  balanceBgImage: { borderRadius: 30 },
+
+  balanceContent: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 20,
+  },
+
+  balanceMain: { flex: 1 },
+
+  balanceLabel: { fontSize: 16 },
+
+  balanceAmount: { fontSize: 50, fontWeight: '900' },
+
+  coinRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
+
+  coinText: {},
+
+  ratingRow: { flexDirection: 'row', marginTop: 10 },
+
+  star: { color: '#FFD84D' },
+
+  ratingText: { marginHorizontal: 6 },
+
+  ratingCount: {},
+
+  streakCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  streakNumber: { fontSize: 24, fontWeight: '900' },
+
+  streakText: { fontSize: 12 },
 
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: Colors.textPrimary,
     paddingHorizontal: 20,
-    marginBottom: 12,
-    marginTop: 8,
+    marginTop: 10,
   },
 
-  statsRow: {
+  statsRow: { flexDirection: 'row', paddingHorizontal: 16 },
+
+  quickSection: { paddingHorizontal: 20 },
+
+  quickGrid: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    marginBottom: 20,
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
   },
+
+  quickItem: {
+    width: '48%',
+    height: 120,
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+  },
+
+  quickBg: { flex: 1, justifyContent: 'center' },
+
+  quickOverlay: { paddingLeft: 16 },
+
+  quickTitle: { fontWeight: '900', fontSize: 14 },
+
+  calendarWrapper: { padding: 20 },
 });

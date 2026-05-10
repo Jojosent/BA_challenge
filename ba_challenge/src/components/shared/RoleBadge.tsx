@@ -1,4 +1,4 @@
-import { Colors } from '@constants/colors';
+import { Colors } from '@/constants/colors';
 import { UserRole } from '@/types/index';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';

@@ -27,9 +27,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 // ─── Theme — relative import (файлдар app/(tabs)/theme/ ішінде) ───────────────
-import { ThemePicker } from './theme/ThemePicker';
-import { useTheme } from './theme/ThemeContext';
-import { ThemeTokens } from './theme/themes';
+import { ThemePicker } from '../../src/theme/ThemePicker';
+import { useTheme } from '../../src/theme/ThemeContext';
+import { ThemeTokens } from '../../src/theme/themes';
 
 // ─── StatCol ──────────────────────────────────────────────────────────────────
 function StatCol({ value, label, D }: { value: number | string; label: string; D: ThemeTokens }) {
