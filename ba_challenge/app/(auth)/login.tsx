@@ -6,27 +6,28 @@ import { useAuth } from '@hooks/useAuth';
 import { Link } from 'expo-router';
 import React from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import {
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { z } from 'zod';
 
-// Схема валидации
-const loginSchema = z.object({
-  email: z.string().email('Неверный email'),
-  password: z.string().min(6, 'Минимум 6 символов'),
-});
-
-type LoginForm = z.infer<typeof loginSchema>;
-
 export default function LoginScreen() {
+  const { t } = useTranslation();
   const { login, isLoading, error } = useAuth();
+
+  const loginSchema = z.object({
+    email: z.string().email(t('auth.invalidEmail')),
+    password: z.string().min(6, t('auth.minPassword')),
+  });
+
+  type LoginForm = z.infer<typeof loginSchema>;
 
   const { control, handleSubmit, formState: { errors } } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -45,14 +46,12 @@ export default function LoginScreen() {
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Логотип / заголовок */}
         <View style={styles.header}>
           <Text style={styles.logo}>BA Challenge</Text>
-          <Text style={styles.title}>С возвращением!</Text>
-          <Text style={styles.subtitle}>Войди в свой аккаунт</Text>
+          <Text style={styles.title}>{t('auth.welcomeBack')}</Text>
+          <Text style={styles.subtitle}>{t('auth.loginSubtitle')}</Text>
         </View>
 
-        {/* Форма */}
         <View style={styles.form}>
           {error && (
             <View style={styles.errorBox}>
@@ -65,7 +64,7 @@ export default function LoginScreen() {
             name="email"
             render={({ field: { onChange, value } }) => (
               <Input
-                label="Email"
+                label={t('auth.email')}
                 placeholder="example@mail.com"
                 onChangeText={onChange}
                 value={value}
@@ -80,7 +79,7 @@ export default function LoginScreen() {
             name="password"
             render={({ field: { onChange, value } }) => (
               <Input
-                label="Пароль"
+                label={t('auth.password')}
                 placeholder="••••••••"
                 onChangeText={onChange}
                 value={value}
@@ -91,17 +90,17 @@ export default function LoginScreen() {
           />
 
           <Button
-            title="Войти"
+            title={t('auth.login')}
             onPress={handleSubmit(onSubmit)}
             isLoading={isLoading}
             style={styles.button}
           />
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Нет аккаунта? </Text>
+            <Text style={styles.footerText}>{t('auth.noAccount')}</Text>
             <Link href="/(auth)/register" asChild>
               <TouchableOpacity>
-                <Text style={styles.link}>Зарегистрироваться</Text>
+                <Text style={styles.link}>{t('auth.register')}</Text>
               </TouchableOpacity>
             </Link>
           </View>

@@ -8,6 +8,7 @@ import {
   Dimensions,
   Image,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import Svg, { Line } from 'react-native-svg';
 import { Colors } from '@constants/colors';
 import { FamilyMember, RELATION_LABELS, RELATION_COLORS } from '@/types/index';
@@ -30,9 +31,17 @@ interface FamilyTreeProps {
 }
 
 export const FamilyTree: React.FC<FamilyTreeProps> = ({ members, onSelect }) => {
+  const { t } = useTranslation();
 
   const { positions, svgWidth, svgHeight, lines } = useMemo(() => {
-    if (members.length === 0) return { positions: [], svgWidth: 300, svgHeight: 200, lines: [] };
+    if (members.length === 0) {
+      return {
+        positions: [],
+        svgWidth: 300,
+        svgHeight: 200,
+        lines: [],
+      };
+    }
 
     const roots = members.filter((m) => !m.parentId);
     const byParent: Record<number, FamilyMember[]> = {};
@@ -51,15 +60,22 @@ export const FamilyTree: React.FC<FamilyTreeProps> = ({ members, onSelect }) => 
 
     const countLevels = (nodes: FamilyMember[], level: number) => {
       if (!levelCounts[level]) levelCounts[level] = 0;
+
       levelCounts[level] += nodes.length;
+
       nodes.forEach((n) => {
         const children = byParent[n.id] || [];
-        if (children.length > 0) countLevels(children, level + 1);
+
+        if (children.length > 0) {
+          countLevels(children, level + 1);
+        }
       });
     };
+
     countLevels(roots, 0);
 
     const maxNodesInRow = Math.max(...Object.values(levelCounts));
+
     const totalWidth = Math.max(
       maxNodesInRow * (CARD_W + H_GAP) + H_GAP,
       SCREEN_W - 40
@@ -73,14 +89,18 @@ export const FamilyTree: React.FC<FamilyTreeProps> = ({ members, onSelect }) => 
     ) => {
       const rowWidth = countInLevel * (CARD_W + H_GAP) - H_GAP;
       const startX = (totalWidth - rowWidth) / 2;
+
       const x = startX + indexInLevel * (CARD_W + H_GAP);
+
       const y = level * (CARD_H + V_GAP) + V_GAP / 2;
 
       positions.push({ member, x, y });
 
       const children = byParent[member.id] || [];
+
       children.forEach((child, i) => {
         placeNode(child, level + 1, i, children.length);
+
         lines.push({
           x1: x + CARD_W / 2,
           y1: y + CARD_H,
@@ -92,18 +112,35 @@ export const FamilyTree: React.FC<FamilyTreeProps> = ({ members, onSelect }) => 
 
     roots.forEach((r, i) => placeNode(r, 0, i, roots.length));
 
-    const maxLevel = Math.max(...positions.map((p) => Math.floor(p.y / (CARD_H + V_GAP))));
-    const svgHeight = (maxLevel + 1) * (CARD_H + V_GAP) + V_GAP;
+    const maxLevel = Math.max(
+      ...positions.map((p) =>
+        Math.floor(p.y / (CARD_H + V_GAP))
+      )
+    );
 
-    return { positions, svgWidth: totalWidth, svgHeight, lines };
+    const svgHeight =
+      (maxLevel + 1) * (CARD_H + V_GAP) + V_GAP;
+
+    return {
+      positions,
+      svgWidth: totalWidth,
+      svgHeight,
+      lines,
+    };
   }, [members]);
 
   if (members.length === 0) {
     return (
       <View style={styles.empty}>
         <Text style={styles.emptyIcon}>🌳</Text>
-        <Text style={styles.emptyTitle}>Дерево пустое</Text>
-        <Text style={styles.emptyText}>Добавь первого члена семьи</Text>
+
+        <Text style={styles.emptyTitle}>
+          {t('familyTree.emptyTitle')}
+        </Text>
+
+        <Text style={styles.emptyText}>
+          {t('familyTree.emptyText')}
+        </Text>
       </View>
     );
   }
@@ -135,18 +172,33 @@ export const FamilyTree: React.FC<FamilyTreeProps> = ({ members, onSelect }) => 
 
           {/* Карточки */}
           {positions.map(({ member, x, y }) => {
-            const color = RELATION_COLORS[member.relation] || Colors.primary;
-            const label = RELATION_LABELS[member.relation] || member.relation;
+            const color =
+              RELATION_COLORS[member.relation] || Colors.primary;
+
+            const label =
+              RELATION_LABELS[member.relation] || member.relation;
 
             return (
               <TouchableOpacity
                 key={member.id}
-                style={[styles.node, { left: x, top: y, borderColor: color }]}
+                style={[
+                  styles.node,
+                  {
+                    left: x,
+                    top: y,
+                    borderColor: color,
+                  },
+                ]}
                 onPress={() => onSelect(member)}
                 activeOpacity={0.8}
               >
                 {/* Аватар */}
-                <View style={[styles.nodeAvatar, { backgroundColor: color }]}>
+                <View
+                  style={[
+                    styles.nodeAvatar,
+                    { backgroundColor: color },
+                  ]}
+                >
                   {member.avatarUrl ? (
                     <Image
                       source={{ uri: member.avatarUrl }}
@@ -161,18 +213,29 @@ export const FamilyTree: React.FC<FamilyTreeProps> = ({ members, onSelect }) => 
                 </View>
 
                 {/* Имя */}
-                <Text style={styles.nodeName} numberOfLines={1}>
+                <Text
+                  style={styles.nodeName}
+                  numberOfLines={1}
+                >
                   {member.name}
                 </Text>
 
                 {/* Роль */}
-                <Text style={[styles.nodeRelation, { color }]} numberOfLines={1}>
+                <Text
+                  style={[
+                    styles.nodeRelation,
+                    { color },
+                  ]}
+                  numberOfLines={1}
+                >
                   {label}
                 </Text>
 
                 {/* Год рождения */}
                 {member.birthYear && (
-                  <Text style={styles.nodeBirth}>{member.birthYear}</Text>
+                  <Text style={styles.nodeBirth}>
+                    {member.birthYear}
+                  </Text>
                 )}
               </TouchableOpacity>
             );
@@ -184,10 +247,27 @@ export const FamilyTree: React.FC<FamilyTreeProps> = ({ members, onSelect }) => 
 };
 
 const styles = StyleSheet.create({
-  empty: { alignItems: 'center', paddingVertical: 40 },
-  emptyIcon: { fontSize: 48, marginBottom: 12 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary, marginBottom: 6 },
-  emptyText: { fontSize: 14, color: Colors.textSecondary },
+  empty: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+
+  emptyIcon: {
+    fontSize: 48,
+    marginBottom: 12,
+  },
+
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    marginBottom: 6,
+  },
+
+  emptyText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+  },
 
   node: {
     position: 'absolute',
@@ -201,6 +281,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     gap: 2,
   },
+
   nodeAvatar: {
     width: 28,
     height: 28,
@@ -209,13 +290,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     overflow: 'hidden',
   },
+
   nodeAvatarImage: {
     width: 28,
     height: 28,
     borderRadius: 14,
   },
-  nodeAvatarTxt: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  nodeName: { fontSize: 10, fontWeight: '600', color: Colors.textPrimary, textAlign: 'center' },
-  nodeRelation: { fontSize: 9, textAlign: 'center' },
-  nodeBirth: { fontSize: 8, color: Colors.textMuted },
+
+  nodeAvatarTxt: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+
+  nodeName: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+    textAlign: 'center',
+  },
+
+  nodeRelation: {
+    fontSize: 9,
+    textAlign: 'center',
+  },
+
+  nodeBirth: {
+    fontSize: 8,
+    color: Colors.textMuted,
+  },
 });

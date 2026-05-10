@@ -11,6 +11,7 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Colors } from '@constants/colors';
 import {
   FamilyMember,
@@ -36,13 +37,20 @@ interface FamilyMemberModalProps {
 const RELATIONS = Object.keys(RELATION_LABELS) as Relation[];
 
 export const FamilyMemberModal: React.FC<FamilyMemberModalProps> = ({
-  visible, onClose, onSave, editMember, members, isLoading,
+  visible,
+  onClose,
+  onSave,
+  editMember,
+  members,
+  isLoading,
 }) => {
-  const [name, setName]           = useState('');
-  const [relation, setRelation]   = useState<Relation>('other');
+  const { t } = useTranslation();
+
+  const [name, setName] = useState('');
+  const [relation, setRelation] = useState<Relation>('other');
   const [birthYear, setBirthYear] = useState('');
-  const [bio, setBio]             = useState('');
-  const [parentId, setParentId]   = useState<number | undefined>(undefined);
+  const [bio, setBio] = useState('');
+  const [parentId, setParentId] = useState<number | undefined>(undefined);
 
   useEffect(() => {
     if (editMember) {
@@ -52,47 +60,64 @@ export const FamilyMemberModal: React.FC<FamilyMemberModalProps> = ({
       setBio(editMember.bio || '');
       setParentId(editMember.parentId);
     } else {
-      setName(''); setRelation('other');
-      setBirthYear(''); setBio(''); setParentId(undefined);
+      setName('');
+      setRelation('other');
+      setBirthYear('');
+      setBio('');
+      setParentId(undefined);
     }
   }, [editMember, visible]);
 
   const handleSave = async () => {
     if (!name.trim()) return;
+
     await onSave({
-      name:      name.trim(),
+      name: name.trim(),
       relation,
       birthYear: birthYear ? parseInt(birthYear) : undefined,
-      bio:       bio.trim() || undefined,
+      bio: bio.trim() || undefined,
       parentId,
     });
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
       <KeyboardAvoidingView
         style={styles.overlay}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <View style={styles.sheet}>
           <Text style={styles.title}>
-            {editMember ? '✏️ Изменить' : '👤 Добавить родственника'}
+            {editMember
+              ? t('familyMemberModal.editTitle')
+              : t('familyMemberModal.addTitle')}
           </Text>
 
           <ScrollView showsVerticalScrollIndicator={false}>
             {/* Имя */}
-            <Text style={styles.label}>Имя *</Text>
+            <Text style={styles.label}>
+              {t('familyMemberModal.nameLabel')}
+            </Text>
+
             <TextInput
               style={styles.input}
               value={name}
               onChangeText={setName}
-              placeholder="Имя родственника"
+              placeholder={t('familyMemberModal.namePlaceholder')}
               placeholderTextColor={Colors.textMuted}
               autoFocus
             />
 
             {/* Родство */}
-            <Text style={styles.label}>Родство *</Text>
+            <Text style={styles.label}>
+              {t('familyMemberModal.relationLabel')}
+            </Text>
+
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -107,10 +132,13 @@ export const FamilyMemberModal: React.FC<FamilyMemberModalProps> = ({
                   ]}
                   onPress={() => setRelation(r)}
                 >
-                  <Text style={[
-                    styles.relationChipTxt,
-                    relation === r && styles.relationChipTxtActive,
-                  ]}>
+                  <Text
+                    style={[
+                      styles.relationChipTxt,
+                      relation === r &&
+                        styles.relationChipTxtActive,
+                    ]}
+                  >
                     {RELATION_LABELS[r]}
                   </Text>
                 </TouchableOpacity>
@@ -118,12 +146,15 @@ export const FamilyMemberModal: React.FC<FamilyMemberModalProps> = ({
             </ScrollView>
 
             {/* Год рождения */}
-            <Text style={styles.label}>Год рождения</Text>
+            <Text style={styles.label}>
+              {t('familyMemberModal.birthYearLabel')}
+            </Text>
+
             <TextInput
               style={styles.input}
               value={birthYear}
               onChangeText={setBirthYear}
-              placeholder="Например: 1965"
+              placeholder={t('familyMemberModal.birthYearPlaceholder')}
               placeholderTextColor={Colors.textMuted}
               keyboardType="numeric"
               maxLength={4}
@@ -132,30 +163,50 @@ export const FamilyMemberModal: React.FC<FamilyMemberModalProps> = ({
             {/* Родитель в дереве */}
             {members.length > 0 && !editMember && (
               <>
-                <Text style={styles.label}>Связан с (родитель в дереве)</Text>
+                <Text style={styles.label}>
+                  {t('familyMemberModal.parentLabel')}
+                </Text>
+
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
                   style={styles.relationsRow}
                 >
                   <TouchableOpacity
-                    style={[styles.relationChip, !parentId && styles.relationChipActive]}
+                    style={[
+                      styles.relationChip,
+                      !parentId && styles.relationChipActive,
+                    ]}
                     onPress={() => setParentId(undefined)}
                   >
-                    <Text style={[styles.relationChipTxt, !parentId && styles.relationChipTxtActive]}>
-                      Нет
+                    <Text
+                      style={[
+                        styles.relationChipTxt,
+                        !parentId &&
+                          styles.relationChipTxtActive,
+                      ]}
+                    >
+                      {t('familyMemberModal.none')}
                     </Text>
                   </TouchableOpacity>
+
                   {members.map((m) => (
                     <TouchableOpacity
                       key={m.id}
-                      style={[styles.relationChip, parentId === m.id && styles.relationChipActive]}
+                      style={[
+                        styles.relationChip,
+                        parentId === m.id &&
+                          styles.relationChipActive,
+                      ]}
                       onPress={() => setParentId(m.id)}
                     >
-                      <Text style={[
-                        styles.relationChipTxt,
-                        parentId === m.id && styles.relationChipTxtActive,
-                      ]}>
+                      <Text
+                        style={[
+                          styles.relationChipTxt,
+                          parentId === m.id &&
+                            styles.relationChipTxtActive,
+                        ]}
+                      >
                         {m.name}
                       </Text>
                     </TouchableOpacity>
@@ -165,12 +216,15 @@ export const FamilyMemberModal: React.FC<FamilyMemberModalProps> = ({
             )}
 
             {/* Описание */}
-            <Text style={styles.label}>О человеке</Text>
+            <Text style={styles.label}>
+              {t('familyMemberModal.bioLabel')}
+            </Text>
+
             <TextInput
               style={[styles.input, styles.inputMulti]}
               value={bio}
               onChangeText={setBio}
-              placeholder="Краткая биография..."
+              placeholder={t('familyMemberModal.bioPlaceholder')}
               placeholderTextColor={Colors.textMuted}
               multiline
               numberOfLines={3}
@@ -179,18 +233,36 @@ export const FamilyMemberModal: React.FC<FamilyMemberModalProps> = ({
           </ScrollView>
 
           <View style={styles.btns}>
-            <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
-              <Text style={styles.cancelTxt}>Отмена</Text>
-            </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.saveBtn, (!name.trim() || isLoading) && styles.saveBtnDisabled]}
+              style={styles.cancelBtn}
+              onPress={onClose}
+            >
+              <Text style={styles.cancelTxt}>
+                {t('common.cancel')}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.saveBtn,
+                (!name.trim() || isLoading) &&
+                  styles.saveBtnDisabled,
+              ]}
               onPress={handleSave}
               disabled={!name.trim() || isLoading}
             >
-              {isLoading
-                ? <ActivityIndicator size="small" color={Colors.white} />
-                : <Text style={styles.saveTxt}>{editMember ? 'Сохранить' : 'Добавить'}</Text>
-              }
+              {isLoading ? (
+                <ActivityIndicator
+                  size="small"
+                  color={Colors.white}
+                />
+              ) : (
+                <Text style={styles.saveTxt}>
+                  {editMember
+                    ? t('common.save')
+                    : t('familyMemberModal.addButton')}
+                </Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -200,7 +272,12 @@ export const FamilyMemberModal: React.FC<FamilyMemberModalProps> = ({
 };
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'flex-end',
+  },
+
   sheet: {
     backgroundColor: Colors.surface,
     borderTopLeftRadius: 24,
@@ -209,8 +286,21 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     maxHeight: '90%',
   },
-  title:  { fontSize: 20, fontWeight: '700', color: Colors.textPrimary, marginBottom: 20 },
-  label:  { fontSize: 13, color: Colors.textSecondary, fontWeight: '500', marginBottom: 8 },
+
+  title: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    marginBottom: 20,
+  },
+
+  label: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+
   input: {
     backgroundColor: Colors.card,
     borderRadius: 12,
@@ -221,9 +311,16 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     marginBottom: 16,
   },
-  inputMulti: { minHeight: 80, textAlignVertical: 'top' },
 
-  relationsRow:         { marginBottom: 16 },
+  inputMulti: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+
+  relationsRow: {
+    marginBottom: 16,
+  },
+
   relationChip: {
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -233,17 +330,57 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     marginRight: 8,
   },
-  relationChipActive:    { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  relationChipTxt:       { fontSize: 12, color: Colors.textSecondary },
-  relationChipTxtActive: { color: Colors.white, fontWeight: '600' },
 
-  btns:      { flexDirection: 'row', gap: 12, marginTop: 16 },
-  cancelBtn: {
-    flex: 1, padding: 14, borderRadius: 12,
-    borderWidth: 1, borderColor: Colors.border, alignItems: 'center',
+  relationChipActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
   },
-  cancelTxt:       { color: Colors.textSecondary, fontWeight: '600' },
-  saveBtn:         { flex: 1, padding: 14, borderRadius: 12, backgroundColor: Colors.primary, alignItems: 'center' },
-  saveBtnDisabled: { opacity: 0.45 },
-  saveTxt:         { color: Colors.white, fontWeight: '700', fontSize: 15 },
+
+  relationChipTxt: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+  },
+
+  relationChipTxtActive: {
+    color: Colors.white,
+    fontWeight: '600',
+  },
+
+  btns: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+  },
+
+  cancelBtn: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: 'center',
+  },
+
+  cancelTxt: {
+    color: Colors.textSecondary,
+    fontWeight: '600',
+  },
+
+  saveBtn: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+  },
+
+  saveBtnDisabled: {
+    opacity: 0.45,
+  },
+
+  saveTxt: {
+    color: Colors.white,
+    fontWeight: '700',
+    fontSize: 15,
+  },
 });

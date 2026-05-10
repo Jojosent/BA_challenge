@@ -6,31 +6,33 @@ import { useAuth } from '@hooks/useAuth';
 import { Link } from 'expo-router';
 import React from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
 import {
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { z } from 'zod';
 
-const registerSchema = z.object({
-  username: z.string().min(3, 'Минимум 3 символа'),
-  email: z.string().email('Неверный email'),
-  password: z.string().min(6, 'Минимум 6 символов'),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: 'Пароли не совпадают',
-  path: ['confirmPassword'],
-});
-
-type RegisterForm = z.infer<typeof registerSchema>;
-
 export default function RegisterScreen() {
+  const { t } = useTranslation();
   const { register, isLoading, error } = useAuth();
+
+  const registerSchema = z.object({
+    username: z.string().min(3, t('auth.minUsername')),
+    email: z.string().email(t('auth.invalidEmail')),
+    password: z.string().min(6, t('auth.minPassword')),
+    confirmPassword: z.string(),
+  }).refine((data) => data.password === data.confirmPassword, {
+    message: t('auth.passwordsMismatch'),
+    path: ['confirmPassword'],
+  });
+
+  type RegisterForm = z.infer<typeof registerSchema>;
 
   const { control, handleSubmit, formState: { errors } } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
@@ -51,8 +53,8 @@ export default function RegisterScreen() {
       >
         <View style={styles.header}>
           <Text style={styles.logo}>BA Challenge</Text>
-          <Text style={styles.title}>Создай аккаунт</Text>
-          <Text style={styles.subtitle}>Начни свой первый челлендж!</Text>
+          <Text style={styles.title}>{t('auth.createAccount')}</Text>
+          <Text style={styles.subtitle}>{t('auth.registerSubtitle')}</Text>
         </View>
 
         <View style={styles.form}>
@@ -67,7 +69,7 @@ export default function RegisterScreen() {
             name="username"
             render={({ field: { onChange, value } }) => (
               <Input
-                label="Имя пользователя"
+                label={t('auth.username')}
                 placeholder="cooluser123"
                 onChangeText={onChange}
                 value={value}
@@ -81,7 +83,7 @@ export default function RegisterScreen() {
             name="email"
             render={({ field: { onChange, value } }) => (
               <Input
-                label="Email"
+                label={t('auth.email')}
                 placeholder="example@mail.com"
                 onChangeText={onChange}
                 value={value}
@@ -96,7 +98,7 @@ export default function RegisterScreen() {
             name="password"
             render={({ field: { onChange, value } }) => (
               <Input
-                label="Пароль"
+                label={t('auth.password')}
                 placeholder="••••••••"
                 onChangeText={onChange}
                 value={value}
@@ -111,7 +113,7 @@ export default function RegisterScreen() {
             name="confirmPassword"
             render={({ field: { onChange, value } }) => (
               <Input
-                label="Повтори пароль"
+                label={t('auth.confirmPassword')}
                 placeholder="••••••••"
                 onChangeText={onChange}
                 value={value}
@@ -122,17 +124,17 @@ export default function RegisterScreen() {
           />
 
           <Button
-            title="Зарегистрироваться"
+            title={t('auth.register')}
             onPress={handleSubmit(onSubmit)}
             isLoading={isLoading}
             style={styles.button}
           />
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Уже есть аккаунт? </Text>
+            <Text style={styles.footerText}>{t('auth.haveAccount')}</Text>
             <Link href="/(auth)/login" asChild>
               <TouchableOpacity>
-                <Text style={styles.link}>Войти</Text>
+                <Text style={styles.link}>{t('auth.login')}</Text>
               </TouchableOpacity>
             </Link>
           </View>

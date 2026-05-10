@@ -1,8 +1,9 @@
 import { Colors } from '@constants/colors';
 import { Ionicons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
 import { useNotificationStore } from '@hooks/useNotifications';
+import { Tabs } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import { StyleSheet, Text, View } from 'react-native';
 
 const TabIcon = ({
   name,
@@ -41,6 +42,8 @@ const HomeTabIcon = ({
 };
 
 export default function TabsLayout() {
+  const { t } = useTranslation();
+
   return (
     <Tabs
       screenOptions={{
@@ -70,7 +73,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Главная',
+          title: t('tabs.home'),
           tabBarIcon: ({ color, focused }) => (
             <HomeTabIcon color={color} focused={focused} />
           ),
@@ -80,7 +83,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="challenges"
         options={{
-          title: 'Челленджи',
+          title: t('tabs.challenges'),
           tabBarIcon: ({ color, focused }) => (
             <TabIcon
               name={focused ? 'trophy' : 'trophy-outline'}
@@ -94,7 +97,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="ai-assistant"
         options={{
-          title: 'AI',
+          title: t('tabs.ai'),
           tabBarIcon: ({ color, focused }) => (
             <TabIcon
               name={focused ? 'sparkles' : 'sparkles-outline'}
@@ -108,7 +111,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Профиль',
+          title: t('tabs.profile'),
           tabBarIcon: ({ color, focused }) => (
             <TabIcon
               name={focused ? 'person' : 'person-outline'}

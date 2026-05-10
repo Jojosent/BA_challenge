@@ -8,6 +8,8 @@ import { useProfile } from '@hooks/useProfile';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useLanguageStore } from '@store/languageStore';
 import {
   ActivityIndicator,
   Alert,
@@ -83,6 +85,9 @@ function Divider({ D }: { D: ThemeTokens }) {
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function ProfileScreen() {
+    const { t } = useTranslation();
+    const { language, setLanguage } = useLanguageStore();
+    const [languageModal, setLanguageModal] = useState(false);
   const { theme: D } = useTheme();
   const { displayUser, isLoading, editProfile, fetchProfile } = useProfile();
   const { logout } = useAuth();
@@ -104,7 +109,7 @@ export default function ProfileScreen() {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Қате', 'Галереяға рұқсат керек');
+        Alert.alert(t('common.error'), t('profile.galleryError'));
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -114,7 +119,7 @@ export default function ProfileScreen() {
         await uploadAvatar(result.assets[0].uri);
       }
     } catch {
-      Alert.alert('Қате', 'Суретті таңдай алмады');
+      Alert.alert(t('common.error'), t('profile.imageError'));
     }
   };
 
@@ -128,9 +133,9 @@ export default function ProfileScreen() {
       formData.append('avatar', { uri: Platform.OS === 'android' ? uri : uri.replace('file://', ''), name: filename, type } as any);
       await userService.uploadAvatar(formData);
       await fetchProfile();
-      Alert.alert('Сәтті', 'Аватар жаңартылды');
+      Alert.alert(t('common.success'), t('profile.avatarSuccess'));
     } catch {
-      Alert.alert('Қате', 'Фотоны жүктеу мүмкін болмады');
+      Alert.alert(t('common.error'), t('profile.avatarError'));
     } finally {
       setIsUploading(false);
     }
@@ -143,10 +148,18 @@ export default function ProfileScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert('Шығу', 'Аккаунттан шығуды қалайсың ба?', [
-      { text: 'Болдырмау', style: 'cancel' },
-      { text: 'Шығу', style: 'destructive', onPress: logout },
-    ]);
+    Alert.alert(
+      t('profile.logoutConfirm'),
+      t('profile.logoutMessage'),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('profile.logout'),
+          style: 'destructive',
+          onPress: logout,
+        },
+      ]
+    );
   };
 
   const getFullAvatarUrl = () => {
@@ -197,9 +210,9 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </View>
           <View style={s.statsRow}>
-            <StatCol D={D} value={stats.challengeCount} label="Челлендж" />
-            <StatCol D={D} value={stats.wonCount}       label="Жеңіс" />
-            <StatCol D={D} value={stats.streakCount}    label="Серия" />
+            <StatCol D={D} value={stats.challengeCount} label={t('home.challenges')} />
+            <StatCol D={D} value={stats.wonCount} label={t('profile.wins')} />
+            <StatCol D={D} value={stats.streakCount} label={t('profile.streak')} />
           </View>
         </View>
 
@@ -218,35 +231,47 @@ export default function ProfileScreen() {
             style={[s.actionBtn, { backgroundColor: D.surface, borderColor: D.border }]}
             onPress={() => { setNewUsername(displayUser?.username ?? ''); setEditModal(true); }}
           >
-            <Text style={[s.actionBtnText, { color: D.textPrimary }]}>Өңдеу</Text>
+            <Text style={[s.actionBtnText, { color: D.textPrimary }]}>
+              {t('profile.editProfile')}
+            </Text>
           </TouchableOpacity>
         </View>
 
         {/* Admin */}
         {isAdminOrModerator && (
           <>
-            <Text style={[s.sectionLabel, { color: D.textMuted }]}>Басқару</Text>
+            <Text style={[s.sectionLabel, { color: D.textMuted }]}>
+              {t('profile.management')}
+            </Text>
             <SectionCard D={D}>
-              <SettingsRow D={D} icon="shield-half-outline" label="Администратор панелі" onPress={() => router.push('/admin')} color={D.rose} />
+              <SettingsRow D={D} icon="shield-half-outline" label={t('profile.adminPanel')} onPress={() => router.push('/admin')} color={D.rose} />
             </SectionCard>
           </>
         )}
 
         {/* Settings */}
-        <Text style={[s.sectionLabel, { color: D.textMuted }]}>Параметрлер</Text>
+        <Text style={[s.sectionLabel, { color: D.textMuted }]}>
+          {t('profile.settings')}
+        </Text>
         <SectionCard D={D}>
-          <SettingsRow D={D} icon="notifications-outline" label="Хабарландырулар" onPress={() => router.push('/notifications')} color={D.amber} />
+          <SettingsRow D={D} icon="notifications-outline" label={t('profile.notifications')} onPress={() => router.push('/notifications')} color={D.amber} />
           <Divider D={D} />
-          <SettingsRow D={D} icon="lock-closed-outline" label="Құпиялылық" onPress={() => router.push('/settings/privacy-settings')} color={D.primary} />
+          <SettingsRow D={D} icon="lock-closed-outline" label={t('profile.privacy')} onPress={() => router.push('/settings/privacy-settings')} color={D.primary} />
           <Divider D={D} />
-          <SettingsRow D={D} icon="language-outline" label="Тіл" onPress={() => {}} color={D.emerald} />
+          <SettingsRow
+            D={D}
+            icon="language-outline"
+            label={t('profile.language')}
+            onPress={() => setLanguageModal(true)}
+            color={D.emerald}
+          />
           <Divider D={D} />
-          <SettingsRow D={D} icon="color-palette-outline" label="Тақырып" onPress={() => setThemeModal(true)} color={D.primary} />
+          <SettingsRow D={D} icon="color-palette-outline" label={t('profile.theme')} onPress={() => setThemeModal(true)} color={D.primary} />
         </SectionCard>
 
         {/* Logout */}
         <SectionCard D={D}>
-          <SettingsRow D={D} icon="log-out-outline" label="Аккаунттан шығу" onPress={handleLogout} danger />
+          <SettingsRow D={D} icon="log-out-outline" label={t('profile.logout')} onPress={handleLogout} danger />
         </SectionCard>
 
         <Text style={[s.version, { color: D.textMuted }]}>B&A Challenge v1.0.0</Text>
@@ -255,29 +280,73 @@ export default function ProfileScreen() {
       {/* Theme picker */}
       <ThemePicker visible={themeModal} onClose={() => setThemeModal(false)} />
 
+      <Modal visible={languageModal} transparent animationType="slide" onRequestClose={() => setLanguageModal(false)}>
+        <Pressable style={m.overlay} onPress={() => setLanguageModal(false)}>
+          <Pressable style={[m.sheet, { backgroundColor: D.surface }]} onPress={() => {}}>
+            <View style={[m.handle, { backgroundColor: D.border }]} />
+
+            <Text style={[m.title, { color: D.textPrimary }]}>
+              {t('language.select')}
+            </Text>
+
+            {[
+              { code: 'ru', label: t('language.ru') },
+              { code: 'kz', label: t('language.kz') },
+              { code: 'en', label: t('language.en') },
+            ].map((item) => (
+              <TouchableOpacity
+                key={item.code}
+                style={{
+                  paddingVertical: 16,
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+                onPress={async () => {
+                  await setLanguage(item.code as 'ru' | 'kz' | 'en');
+                  setLanguageModal(false);
+                }}
+              >
+                <Text style={{ color: D.textPrimary, fontSize: 16, fontWeight: '700' }}>
+                  {item.label}
+                </Text>
+
+                {language === item.code && (
+                  <Ionicons name="checkmark-circle" size={22} color={D.primary} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       {/* Edit modal */}
       <Modal visible={editModal} transparent animationType="slide" onRequestClose={() => setEditModal(false)}>
         <Pressable style={m.overlay} onPress={() => setEditModal(false)}>
           <Pressable style={[m.sheet, { backgroundColor: D.surface }]} onPress={() => {}}>
             <View style={[m.handle, { backgroundColor: D.border }]} />
-            <Text style={[m.title, { color: D.textPrimary }]}>Атты өзгерту</Text>
+            <Text style={[m.title, { color: D.textPrimary }]}>
+              {t('profile.editName')}
+            </Text>
             <TextInput
               style={[m.input, { backgroundColor: D.bg, borderColor: D.border, color: D.textPrimary }]}
               value={newUsername}
               onChangeText={setNewUsername}
-              placeholder="Жаңа пайдаланушы аты"
+              placeholder={t('profile.newUsername')}
               placeholderTextColor={D.textMuted}
               autoCapitalize="none"
               autoFocus
             />
             <View style={m.btnRow}>
               <TouchableOpacity style={[m.cancelBtn, { backgroundColor: D.bg, borderColor: D.border }]} onPress={() => setEditModal(false)}>
-                <Text style={[m.cancelText, { color: D.textSecondary }]}>Болдырмау</Text>
+                <Text style={[m.cancelText, { color: D.textSecondary }]}>
+                  {t('common.cancel')}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity style={[m.saveBtn, { backgroundColor: D.primary, shadowColor: D.primary }]} onPress={handleEdit}>
                 {isLoading
                   ? <ActivityIndicator color={D.white} size="small" />
-                  : <Text style={[m.saveText, { color: D.white }]}>Сақтау</Text>
+                  : <Text style={[m.saveText, { color: D.white }]}>{t('common.save')}</Text>
                 }
               </TouchableOpacity>
             </View>
@@ -316,7 +385,7 @@ const s = StyleSheet.create({
 });
 
 const m = StyleSheet.create({
-  overlay:    { flex: 1, backgroundColor: 'rgba(26,16,64,0.5)', justifyContent: 'flex-end' },
+  overlay:    { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
   sheet:      { borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 44 },
   handle:     { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
   title:      { fontSize: 20, fontWeight: '800', letterSpacing: -0.4, marginBottom: 18 },

@@ -17,8 +17,11 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 export default function TaskScreen() {
+    const { t } = useTranslation();
+
     const { taskId, challengeId } = useLocalSearchParams<{
         taskId: string;
         challengeId: string;
@@ -52,7 +55,7 @@ export default function TaskScreen() {
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
-            <Header title={`Задача ${task.day}`} showBack />
+            <Header title={t('taskScreen.headerTitle', { day: task.day })} showBack />
 
             <ScrollView
                 showsVerticalScrollIndicator={false}
@@ -68,17 +71,23 @@ export default function TaskScreen() {
                 <Card style={styles.taskCard}>
                     <View style={styles.taskHeader}>
                         <View style={styles.dayBadge}>
-                            <Text style={styles.dayText}>Задача {task.day}</Text>
+                            <Text style={styles.dayText}>
+                                {t('taskScreen.taskDay', { day: task.day })}
+                            </Text>
                         </View>
 
                         {/* ✅ AI или человек */}
                         {task.isAiGenerated ? (
                             <View style={styles.aiBadge}>
-                                <Text style={styles.aiText}>🤖 AI задача</Text>
+                                <Text style={styles.aiText}>
+                                    🤖 {t('taskScreen.aiTask')}
+                                </Text>
                             </View>
                         ) : (
                             <View style={styles.humanBadge}>
-                                <Text style={styles.humanText}>👤 Создана вручную</Text>
+                                <Text style={styles.humanText}>
+                                    👤 {t('taskScreen.manualTask')}
+                                </Text>
                             </View>
                         )}
                     </View>
@@ -88,14 +97,16 @@ export default function TaskScreen() {
                 </Card>
 
                 {/* Загрузка доказательства */}
-                <Text style={styles.sectionTitle}>Загрузи доказательство</Text>
+                <Text style={styles.sectionTitle}>
+                    {t('taskScreen.uploadProof')}
+                </Text>
                 <View style={styles.uploaderWrapper}>
                     <MediaUploader taskId={Number(taskId)} onSuccess={fetchSubmissions} />
                 </View>
 
                 {/* Список сабмишенов */}
                 <Text style={styles.sectionTitle}>
-                    Доказательства ({submissions.length})
+                    {t('taskScreen.proofsCount', { count: submissions.length })}
                 </Text>
 
                 {isLoading && submissions.length === 0 ? (
@@ -103,7 +114,7 @@ export default function TaskScreen() {
                 ) : submissions.length === 0 ? (
                     <Card style={styles.emptyCard}>
                         <Text style={styles.emptyText}>
-                            Пока никто не загрузил доказательства
+                            {t('taskScreen.noProofs')}
                         </Text>
                     </Card>
                 ) : (

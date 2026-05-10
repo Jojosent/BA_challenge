@@ -7,11 +7,14 @@ import {
     Alert,
     ActivityIndicator,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Colors } from '@constants/colors';
 import { familyService } from '@services/familyService';
 import { RELATION_LABELS } from '@/types/index';
 
 export const FamilyInvitesBanner: React.FC<{ onAccepted: () => void }> = ({ onAccepted }) => {
+    const { t } = useTranslation();
+
     const [invites, setInvites] = useState<any[]>([]);
     const [loading, setLoading] = useState<number | null>(null);
 
@@ -22,12 +25,21 @@ export const FamilyInvitesBanner: React.FC<{ onAccepted: () => void }> = ({ onAc
     const handleRespond = async (inviteId: number, accept: boolean) => {
         try {
             setLoading(inviteId);
+
             const result = await familyService.respondInvite(inviteId, accept);
-            Alert.alert(accept ? '✅ Принято!' : '❌ Отклонено', result.message);
+
+            Alert.alert(
+                accept
+                    ? t('familyInvitesBanner.acceptedTitle')
+                    : t('familyInvitesBanner.declinedTitle'),
+                result.message
+            );
+
             setInvites((prev) => prev.filter((i) => i.id !== inviteId));
+
             if (accept) onAccepted();
         } catch (e: any) {
-            Alert.alert('Ошибка', e.message);
+            Alert.alert(t('common.error'), e.message);
         } finally {
             setLoading(null);
         }
@@ -37,41 +49,59 @@ export const FamilyInvitesBanner: React.FC<{ onAccepted: () => void }> = ({ onAc
 
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>🔔 Приглашения в семью ({invites.length})</Text>
+            <Text style={styles.title}>
+                🔔 {t('familyInvitesBanner.title', { count: invites.length })}
+            </Text>
+
             {invites.map((invite) => (
                 <View key={invite.id} style={styles.card}>
                     <View style={styles.info}>
                         <Text style={styles.from}>
-                            👤 {invite.sender?.username ?? 'Пользователь'}
+                            👤 {invite.sender?.username ?? t('familyInvitesBanner.userFallback')}
                         </Text>
+
                         <Text style={styles.detail}>
-                            приглашает тебя как{' '}
+                            {t('familyInvitesBanner.invitesAs')}{' '}
                             <Text style={styles.role}>
-                                {RELATION_LABELS[invite.relation as keyof typeof RELATION_LABELS] ?? invite.relation}
+                                {RELATION_LABELS[
+                                    invite.relation as keyof typeof RELATION_LABELS
+                                ] ?? invite.relation}
                             </Text>
-                            {invite.birthYear ? ` · ${invite.birthYear} г.р.` : ''}
+                            {invite.birthYear
+                                ? t('familyInvitesBanner.birthYearShort', {
+                                      year: invite.birthYear,
+                                  })
+                                : ''}
                         </Text>
                     </View>
+
                     <View style={styles.btns}>
                         <TouchableOpacity
                             style={styles.rejectBtn}
                             onPress={() => handleRespond(invite.id, false)}
                             disabled={loading === invite.id}
                         >
-                            {loading === invite.id
-                                ? <ActivityIndicator size="small" color={Colors.error} />
-                                : <Text style={styles.rejectTxt}>Отклонить</Text>
-                            }
+                            {loading === invite.id ? (
+                                <ActivityIndicator size="small" color={Colors.error} />
+                            ) : (
+                                <Text style={styles.rejectTxt}>
+                                    {t('familyInvitesBanner.decline')}
+                                </Text>
+                            )}
                         </TouchableOpacity>
+
                         <TouchableOpacity
                             style={styles.acceptBtn}
                             onPress={() => handleRespond(invite.id, true)}
                             disabled={loading === invite.id}
                         >
-                            {loading === invite.id
-                                ? <ActivityIndicator size="small" color={Colors.white} />
-                                : <Text style={styles.acceptTxt}>Принять</Text>
-                            }
+                            {loading === invite.id ? (
+                                <ActivityIndicator size="small" color={Colors.white} />
+                            ) : (
+                                <Text style={styles.acceptTxt}>
+                                    {t('familyInvitesBanner.accept')}
+                                </Text>
+                            )}
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -82,7 +112,14 @@ export const FamilyInvitesBanner: React.FC<{ onAccepted: () => void }> = ({ onAc
 
 const styles = StyleSheet.create({
     container: { marginHorizontal: 20, marginBottom: 16 },
-    title: { fontSize: 15, fontWeight: '700', color: Colors.textPrimary, marginBottom: 10 },
+
+    title: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: Colors.textPrimary,
+        marginBottom: 10,
+    },
+
     card: {
         backgroundColor: Colors.surface,
         borderRadius: 14,
@@ -91,20 +128,57 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: Colors.primary + '40',
     },
+
     info: { marginBottom: 12 },
-    from: { fontSize: 15, fontWeight: '700', color: Colors.textPrimary, marginBottom: 4 },
-    detail: { fontSize: 13, color: Colors.textSecondary },
-    role: { color: Colors.primary, fontWeight: '600' },
-    btns: { flexDirection: 'row', gap: 10 },
+
+    from: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: Colors.textPrimary,
+        marginBottom: 4,
+    },
+
+    detail: {
+        fontSize: 13,
+        color: Colors.textSecondary,
+    },
+
+    role: {
+        color: Colors.primary,
+        fontWeight: '600',
+    },
+
+    btns: {
+        flexDirection: 'row',
+        gap: 10,
+    },
+
     rejectBtn: {
-        flex: 1, padding: 10, borderRadius: 10,
-        borderWidth: 1, borderColor: Colors.error,
+        flex: 1,
+        padding: 10,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: Colors.error,
         alignItems: 'center',
     },
-    rejectTxt: { color: Colors.error, fontWeight: '600', fontSize: 13 },
-    acceptBtn: {
-        flex: 1, padding: 10, borderRadius: 10,
-        backgroundColor: Colors.primary, alignItems: 'center',
+
+    rejectTxt: {
+        color: Colors.error,
+        fontWeight: '600',
+        fontSize: 13,
     },
-    acceptTxt: { color: Colors.white, fontWeight: '700', fontSize: 13 },
+
+    acceptBtn: {
+        flex: 1,
+        padding: 10,
+        borderRadius: 10,
+        backgroundColor: Colors.primary,
+        alignItems: 'center',
+    },
+
+    acceptTxt: {
+        color: Colors.white,
+        fontWeight: '700',
+        fontSize: 13,
+    },
 });
