@@ -3,15 +3,16 @@ import { LoadingSpinner } from '@components/shared/LoadingSpinner';
 import { StatCard } from '@components/shared/StatCard';
 import { Card } from '@components/ui/Card';
 import { Colors } from '@constants/colors';
+import { useNotificationStore } from '@hooks/useNotifications';
 import { useProfile } from '@hooks/useProfile';
+import { DeadlineCalendar } from '@components/shared/DeadlineCalendar';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { userService } from '@services/userService';
-import { Ionicons } from '@expo/vector-icons';
-import { useNotificationStore } from '@hooks/useNotifications';
-import { DeadlineCalendar } from '@components/shared/DeadlineCalendar';
 import { ImageBackground } from 'react-native';
 import { TrendingUp, Zap, Star } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 
 import {
   RefreshControl,
@@ -21,11 +22,15 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
+
   const { displayUser, isLoading, fetchProfile } = useProfile();
+
   const [notifCount, setNotifCount] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -52,9 +57,11 @@ export default function HomeScreen() {
 
   const greeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Доброе утро';
-    if (hour < 18) return 'Добрый день';
-    return 'Добрый вечер';
+
+    if (hour < 12) return t('home.morningGreeting');
+    if (hour < 18) return t('home.afternoonGreeting');
+
+    return t('home.eveningGreeting');
   };
 
   return (
@@ -74,38 +81,42 @@ export default function HomeScreen() {
       >
         {/* Шапка */}
         <View style={styles.headerRow}>
-                  <View>
-                    <View style={styles.headerTextBlock}>
-                      <Text style={styles.greetingTitle}>
-                        {greeting()}, {displayUser?.username || 'Пользователь'}
-                      </Text>
+          <View>
+            <View style={styles.headerTextBlock}>
+              <Text style={styles.greetingTitle}>
+                {greeting()}, {displayUser?.username || 'User'}
+              </Text>
 
-                      <Text style={styles.greetingSubtitle}>
-                        Готовы к новым открытиям?
-                      </Text>
+              <Text style={styles.greetingSubtitle}>
+                {t('home.readyText')}
+              </Text>
 
-                      {/* Серия пока скрыта. Позже перенесём её в баланс */}
-                      {/*
-                      <View style={[
-                        styles.streakBadge,
-                        stats.streakCount === 0 && styles.streakBadgeZero
-                      ]}>
-                        <Text style={[
-                          styles.streakTxt,
-                          stats.streakCount === 0 && styles.streakTxtZero
-                        ]}>
-                          🔥 {stats.streakCount}
-                        </Text>
-                      </View>
-                      */}
-                    </View>
-                  </View>
+              {/*
+              <View style={[
+                styles.streakBadge,
+                stats.streakCount === 0 && styles.streakBadgeZero
+              ]}>
+                <Text style={[
+                  styles.streakTxt,
+                  stats.streakCount === 0 && styles.streakTxtZero
+                ]}>
+                  🔥 {stats.streakCount}
+                </Text>
+              </View>
+              */}
+            </View>
+          </View>
 
           <TouchableOpacity
             style={styles.notifBtn}
             onPress={() => router.push('/notifications')}
           >
-            <Ionicons name="notifications-outline" size={24} color={Colors.textPrimary} />
+            <Ionicons
+              name="notifications-outline"
+              size={24}
+              color={Colors.textPrimary}
+            />
+
             {notifCount > 0 && (
               <View style={styles.notifBadge}>
                 <Text style={styles.notifBadgeTxt}>
@@ -116,7 +127,7 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Карточка баланса Rikon */}
+        {/* Карточка баланса */}
         <ImageBackground
           source={require('../../assets/images/balance-bg.png')}
           style={styles.balanceCard}
@@ -125,56 +136,75 @@ export default function HomeScreen() {
         >
           <View style={styles.balanceContent}>
             <View style={styles.balanceMain}>
-              <Text style={styles.balanceLabel}>Твой баланс</Text>
+              <Text style={styles.balanceLabel}>
+                {t('home.coinBalance')}
+              </Text>
 
               <View style={styles.coinRow}>
-                <Text style={styles.balanceAmount}>{displayUser?.rikonCoins || 98}</Text>
-                <Text style={styles.coinText}>Rikon Coins</Text>
+                <Text style={styles.balanceAmount}>
+                  {displayUser?.rikonCoins || 98}
+                </Text>
+
+                <Text style={styles.coinText}>
+                  {t('home.rikonCoins')}
+                </Text>
               </View>
 
               <View style={styles.ratingRow}>
                 <Text style={styles.star}>★</Text>
+
                 <Text style={styles.ratingText}>5.00</Text>
+
                 <Text style={styles.ratingCount}>(16)</Text>
               </View>
             </View>
 
             <View style={styles.streakCircle}>
-              <Text style={styles.streakNumber}>{stats.streakCount || 0}</Text>
-              <Text style={styles.streakText}>Дней{'\n'}подряд</Text>
+              <Text style={styles.streakNumber}>
+                {stats.streakCount || 0}
+              </Text>
+
+              <Text style={styles.streakText}>
+                {t('home.daysInRow')}
+              </Text>
             </View>
           </View>
         </ImageBackground>
 
         {/* Статистика */}
-        <Text style={styles.sectionTitle}>Твоя статистика</Text>
+        <Text style={styles.sectionTitle}>
+          {t('home.yourStats')}
+        </Text>
+
         <View style={styles.statsRow}>
           <StatCard
             icon={<TrendingUp size={24} color={Colors.rikon} />}
-            label="Победы"
+            label={t('profile.wins')}
             value={stats.wonCount}
             color={Colors.rikon}
           />
 
           <StatCard
             icon={<Zap size={24} color={Colors.primary} />}
-            label="Челленджи"
+            label={t('home.challenges')}
             value={stats.challengeCount}
             color={Colors.primary}
           />
 
           <StatCard
             icon={<Star size={24} color={Colors.warning} />}
-            label="Очки опыта"
+            label={t('home.experience')}
             value={stats.avgRating > 0 ? stats.avgRating.toFixed(2) : '—'}
             color={Colors.warning}
           />
         </View>
 
         {/* Быстрые действия */}
-        <Text style={styles.sectionTitle}>Быстрые действия</Text>
-        <View style={styles.quickSection}>
+        <Text style={styles.sectionTitle}>
+          {t('home.quickActions')}
+        </Text>
 
+        <View style={styles.quickSection}>
           <View style={styles.quickGrid}>
             <TouchableOpacity
               style={styles.quickItem}
@@ -188,7 +218,9 @@ export default function HomeScreen() {
                 resizeMode="cover"
               >
                 <View style={styles.quickOverlay}>
-                  <Text style={styles.quickTitle}>Челленджи</Text>
+                  <Text style={styles.quickTitle}>
+                    {t('home.challenges')}
+                  </Text>
                 </View>
               </ImageBackground>
             </TouchableOpacity>
@@ -205,7 +237,9 @@ export default function HomeScreen() {
                 resizeMode="cover"
               >
                 <View style={styles.quickOverlay}>
-                  <Text style={styles.quickTitle}>AI Ассистент</Text>
+                  <Text style={styles.quickTitle}>
+                    {t('home.aiAssistant')}
+                  </Text>
                 </View>
               </ImageBackground>
             </TouchableOpacity>
@@ -222,8 +256,10 @@ export default function HomeScreen() {
                 resizeMode="cover"
               >
                 <View style={styles.quickOverlay}>
-                                  <Text style={styles.quickTitle}>Семейное дерево</Text>
-                                </View>
+                  <Text style={styles.quickTitle}>
+                    {t('home.familyTree')}
+                  </Text>
+                </View>
               </ImageBackground>
             </TouchableOpacity>
 
@@ -239,83 +275,95 @@ export default function HomeScreen() {
                 resizeMode="cover"
               >
                 <View style={styles.quickOverlay}>
-                                  <Text style={styles.quickTitle}>Уведомления</Text>
-                                </View>
+                  <Text style={styles.quickTitle}>
+                    {t('home.notifications')}
+                  </Text>
+                </View>
               </ImageBackground>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Лента активности */}
-        <Text style={styles.sectionTitle}>Календарь задач</Text>
+        {/* Календарь */}
+        <Text style={styles.sectionTitle}>
+          {t('home.taskCalendar')}
+        </Text>
+
         <View style={styles.calendarWrapper}>
           <DeadlineCalendar key={refreshKey} />
         </View>
-
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-quickSection: {
-  paddingHorizontal: 20,
-},
+  quickSection: {
+    paddingHorizontal: 20,
+  },
 
-mainSectionTitle: {
-  fontSize: 24,
-  fontWeight: '900',
-  color: Colors.textPrimary,
-  marginTop: 28,
-  marginBottom: 16,
-  paddingHorizontal: 20,
-},
+  mainSectionTitle: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: Colors.textPrimary,
+    marginTop: 28,
+    marginBottom: 16,
+    paddingHorizontal: 20,
+  },
 
-quickGrid: {
-  flexDirection: 'row',
-  flexWrap: 'wrap',
-  justifyContent: 'space-between',
-  rowGap: 12,
-},
+  quickGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: 12,
+  },
 
-quickItem: {
-  width: '48.5%',
-  height: 118,
-  borderRadius: 25,
-  overflow: 'hidden',
-  backgroundColor: Colors.white,
-  borderWidth: 1,
-  borderColor: '#E5E7EB',
-},
+  quickItem: {
+    width: '48.5%',
+    height: 118,
+    borderRadius: 25,
+    overflow: 'hidden',
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
 
-quickBg: {
-  flex: 1,
-  justifyContent: 'center',
-},
+  quickBg: {
+    flex: 1,
+    justifyContent: 'center',
+  },
 
-quickBgImage: {
-  borderRadius: 20,
-},
+  quickBgImage: {
+    borderRadius: 20,
+  },
 
-quickTitle: {
-  fontSize: 15,
-  fontWeight: '900',
-  color: '#0F172A',
-  lineHeight: 18,
+  quickTitle: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#0F172A',
+    lineHeight: 18,
+    textShadowColor: '#FFFFFF',
+    textShadowOffset: { width: 0.5, height: 0.5 },
+    textShadowRadius: 5,
+  },
 
-  textShadowColor: '#FFFFFF',
-  textShadowOffset: { width: 0.5, height: 0.5 },
-  textShadowRadius: 5,
-},
+  quickOverlay: {
+    height: '100%',
+    width: '60%',
+    justifyContent: 'center',
+    paddingLeft: 18,
+  },
 
-quickOverlay: {
-  height: '100%',
-  width: '60%',
-  justifyContent: 'center',
-  paddingLeft: 18,
-},
-  container: { flex: 1, backgroundColor: Colors.background },
-  calendarWrapper: { paddingHorizontal: 20, marginBottom: 24 },
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+
+  calendarWrapper: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -324,9 +372,23 @@ quickOverlay: {
     paddingTop: 16,
     paddingBottom: 8,
   },
-  greeting: { fontSize: 14, color: Colors.textSecondary },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  username: { fontSize: 24, fontWeight: '800', color: Colors.textPrimary },
+
+  greeting: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+  },
+
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+
+  username: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: Colors.textPrimary,
+  },
 
   headerTextBlock: {
     flex: 1,
@@ -447,8 +509,7 @@ quickOverlay: {
     textAlign: 'center',
     lineHeight: 15,
   },
-  
-  // ✅ Огонек активный
+
   streakBadge: {
     backgroundColor: Colors.error + '15',
     paddingHorizontal: 8,
@@ -457,17 +518,18 @@ quickOverlay: {
     borderWidth: 1,
     borderColor: Colors.error + '40',
   },
+
   streakTxt: {
     fontSize: 14,
     fontWeight: '800',
     color: Colors.error,
   },
-  
-  // ✅ Огонек потухший (0 дней)
+
   streakBadgeZero: {
     backgroundColor: Colors.surface,
     borderColor: Colors.border,
   },
+
   streakTxtZero: {
     color: Colors.textMuted,
   },
@@ -480,6 +542,7 @@ quickOverlay: {
     borderColor: Colors.border,
     position: 'relative',
   },
+
   notifBadge: {
     position: 'absolute',
     top: -4,
@@ -494,24 +557,12 @@ quickOverlay: {
     borderWidth: 2,
     borderColor: Colors.background,
   },
-  notifBadgeTxt: { color: Colors.white, fontSize: 10, fontWeight: '700' },
 
-  rikonCard: {
-    marginHorizontal: 20,
-    marginVertical: 16,
-    backgroundColor: Colors.primary,
-    borderRadius: 20,
-    padding: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  notifBadgeTxt: {
+    color: Colors.white,
+    fontSize: 10,
+    fontWeight: '700',
   },
-  rikonLeft: {},
-  rikonLabel: { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 4 },
-  rikonAmount: { fontSize: 32, fontWeight: '800', color: Colors.white },
-  rikonSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
-  rikonRight: { alignItems: 'flex-end', gap: 8 },
-  rikonRating: { fontSize: 13, color: 'rgba(255,255,255,0.85)', marginTop: 8 },
 
   sectionTitle: {
     fontSize: 18,
@@ -521,52 +572,10 @@ quickOverlay: {
     marginBottom: 12,
     marginTop: 8,
   },
+
   statsRow: {
     flexDirection: 'row',
     paddingHorizontal: 16,
     marginBottom: 20,
   },
-
-  actionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: 16,
-    gap: 12,
-    marginBottom: 20,
-  },
-  actionCard: {
-    width: '46%',
-    backgroundColor: Colors.surface,
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  actionCardAlert: {
-    borderColor: Colors.error + '60',
-    backgroundColor: Colors.error + '08',
-  },
-  actionIconWrapper: {
-    position: 'relative',
-    marginBottom: 8,
-  },
-  actionIcon: { fontSize: 32 },
-  actionBadge: {
-    position: 'absolute',
-    top: -6,
-    right: -10,
-    backgroundColor: Colors.error,
-    borderRadius: 9,
-    minWidth: 18,
-    height: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-    borderWidth: 2,
-    borderColor: Colors.background,
-  },
-  actionBadgeTxt: { color: Colors.white, fontSize: 10, fontWeight: '700' },
-  actionLabel: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary },
-  actionLabelAlert: { color: Colors.error },
 });

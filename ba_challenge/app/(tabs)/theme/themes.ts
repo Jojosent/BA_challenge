@@ -30,7 +30,7 @@ export interface ThemeTokens {
 export const THEMES: Record<ThemeKey, ThemeTokens> = {
   violet: {
     key: 'violet', name: 'Violet', label: 'Фиолетовый',
-    bg: '#F6F4FF', surface: '#FFFFFF', surfaceAlt: '#F0EDFF',
+    bg: '#F8FAFF', surface: '#FFFFFF', surfaceAlt: '#F0EDFF',
     border: '#E4DFFF', borderLight: '#F0EDFF',
     primary: '#7C5CFC', primaryLight: '#EDE9FF', primaryDark: '#5B3FD4',
     accent: '#A78BFA', accentLight: '#EDE9FF',

@@ -26,12 +26,14 @@ import { FamilyInvitesBanner } from '@components/shared/FamilyInvitesBanner';
 import { challengeService } from '@services/challengeService';
 import { InviteFamilyModal } from '@components/shared/InviteFamilyModal';
 import { useAuthStore } from '@store/authStore';
+import { useTranslation } from 'react-i18next';
 
 type Tab = 'tree' | 'challenges';
 
 const EVENT_EMOJIS = ['📅', '🎂', '💍', '🏠', '✈️', '🎓', '⭐', '❤️', '🕊️', '🌟'];
 
 export default function FamilyScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const { user } = useAuthStore();
 
@@ -99,7 +101,7 @@ export default function FamilyScreen() {
       setModalVisible(false);
       setEditMember(null);
     } catch (e: any) {
-      Alert.alert('Ошибка', e.message);
+      Alert.alert(t('common.error'), e.message);
     } finally {
       setModalLoading(false);
     }
@@ -107,13 +109,13 @@ export default function FamilyScreen() {
 
   const handleDeleteMember = (member: any) => {
     if (!isActiveFamilyOwner) {
-      Alert.alert('Нет прав', 'Только создатель семьи может удалять участников');
+      Alert.alert(t('family.noPermission'), t('family.onlyOwnerCanDelete'));
       return;
     }
-    Alert.alert('Удалить?', `Удалить ${member.name} из дерева?`, [
-      { text: 'Отмена', style: 'cancel' },
+    Alert.alert(t('family.deleteMemberTitle'), t('family.deleteMemberMessage', { name: member.name }), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Удалить',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
           await familyService.deleteMember(member.id);
@@ -138,14 +140,14 @@ export default function FamilyScreen() {
       setEventModal(false);
       fetchAll();
     } catch (e: any) {
-      Alert.alert('Ошибка', e.message);
+      Alert.alert(t('common.error'), e.message);
     }
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <Header
-        title="🌳 Семейное дерево"
+        title={t('family.headerTitle')}
         rightElement={
           isActiveFamilyOwner ? (
             <TouchableOpacity
@@ -182,7 +184,7 @@ export default function FamilyScreen() {
                   ]}
                   numberOfLines={1}
                 >
-                  {family.isOwn ? '🌳 Моя семья' : `🌳 ${family.ownerName}`}
+                  {family.isOwn ? t('family.myFamily') : t('family.ownerFamily', { name: family.ownerName })}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -197,7 +199,7 @@ export default function FamilyScreen() {
           onPress={() => setTab('tree')}
         >
           <Text style={[styles.tabTxt, tab === 'tree' && styles.tabTxtActive]}>
-            🌳 Дерево
+            {t('family.treeTab')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -205,7 +207,7 @@ export default function FamilyScreen() {
           onPress={() => setTab('challenges')}
         >
           <Text style={[styles.tabTxt, tab === 'challenges' && styles.tabTxtActive]}>
-            🏆 Челленджи
+            {t('family.challengesTab')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -222,7 +224,7 @@ export default function FamilyScreen() {
                   <Text style={styles.selectedName}>{selectedMember.name}</Text>
                   <Text style={styles.selectedRelation}>
                     {RELATION_LABELS[selectedMember.relation as keyof typeof RELATION_LABELS] ?? selectedMember.relation}
-                    {selectedMember.birthYear ? ` · ${selectedMember.birthYear} г.р.` : ''}
+                    {selectedMember.birthYear ? t('family.birthYearShort', { year: selectedMember.birthYear }) : ''}
                   </Text>
                 </View>
 
@@ -234,7 +236,7 @@ export default function FamilyScreen() {
                     ]}
                     onPress={() => {
                       if (!isActiveFamilyOwner) {
-                        Alert.alert('Нет прав', 'Только создатель семьи может редактировать');
+                        Alert.alert(t('family.noPermission'), t('family.onlyOwnerCanEdit'));
                         return;
                       }
                       setEditMember(selectedMember);
@@ -274,7 +276,7 @@ export default function FamilyScreen() {
 
               {!isActiveFamilyOwner && (
                 <Text style={styles.readOnlyHint}>
-                  🔒 Ты участник этой семьи — только просмотр
+                  {t('family.readOnlyHint')}
                 </Text>
               )}
             </View>
@@ -286,13 +288,13 @@ export default function FamilyScreen() {
               onPress={() =>
                 router.push(
                   `/chat?roomType=family&roomId=${activeFamily?.ownerId}&title=${encodeURIComponent(
-                    activeFamily?.isOwn ? 'Чат семьи' : `Чат семьи ${activeFamily?.ownerName}`
+                    activeFamily?.isOwn ? t('family.familyChatTitle') : t('family.ownerFamilyChatTitle', { name: activeFamily?.ownerName })
                   )}`
                 )
               }
             >
               <Ionicons name="chatbubbles" size={20} color={Colors.white} />
-              <Text style={chatBtnTxtStyle}>Семейный чат</Text>
+              <Text style={chatBtnTxtStyle}>{t('family.familyChat')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -315,8 +317,8 @@ export default function FamilyScreen() {
             >
               <Text style={styles.createChallengeIcon}>🏆</Text>
               <View style={styles.createChallengeTexts}>
-                <Text style={styles.createChallengeTxt}>Создать семейный челлендж</Text>
-                <Text style={styles.createChallengeSub}>Виден только членам твоей семьи</Text>
+                <Text style={styles.createChallengeTxt}>{t('family.createFamilyChallenge')}</Text>
+                <Text style={styles.createChallengeSub}>{t('family.createFamilyChallengeSub')}</Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color={Colors.primary} />
             </TouchableOpacity>
@@ -324,7 +326,7 @@ export default function FamilyScreen() {
             !isActiveFamilyOwner && (
               <View style={styles.viewOnlyBanner}>
                 <Text style={styles.viewOnlyTxt}>
-                  👀 Семья {activeFamily?.ownerName || 'партнера'} — только просмотр
+                  {t('family.viewOnlyFamily', { name: activeFamily?.ownerName || t('family.partner') })}
                 </Text>
               </View>
             )
@@ -333,11 +335,11 @@ export default function FamilyScreen() {
           {familyChallenges.length === 0 ? (
             <View style={styles.emptyTimeline}>
               <Text style={styles.emptyIcon}>🏆</Text>
-              <Text style={styles.emptyTitle}>Нет семейных челленджей</Text>
+              <Text style={styles.emptyTitle}>{t('family.noFamilyChallenges')}</Text>
               <Text style={styles.emptyText}>
                 {isActiveFamilyOwner && activeFamily?.isOwn
-                  ? 'Создай первый семейный челлендж!'
-                  : 'В этой семье пока нет активных челленджей'}
+                  ? t('family.createFirstFamilyChallenge')
+                  : t('family.noActiveFamilyChallenges')}
               </Text>
             </View>
           ) : (
@@ -346,10 +348,10 @@ export default function FamilyScreen() {
                 <View style={styles.challengeMeta}>
                   <View style={styles.creatorDot} />
                   <Text style={styles.challengeMetaTxt}>
-                    {challenge.creator?.username ?? 'Неизвестно'} ·{' '}
+                    {challenge.creator?.username ?? t('family.unknown')} ·{' '}
                     {challenge.familyOwnerId === ownFamily?.ownerId
-                      ? 'Твоя семья'
-                      : `Семья ${challenge.creator?.username}`}
+                      ? t('family.yourFamily')
+                      : t('family.ownerFamilyPlain', { name: challenge.creator?.username })}
                   </Text>
                 </View>
                 <ChallengeCard challenge={challenge} />
@@ -383,19 +385,19 @@ export default function FamilyScreen() {
         <View style={styles.eventModalOverlay}>
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
             <View style={styles.eventModalSheet}>
-              <Text style={styles.eventModalTitle}>📅 Новое событие</Text>
+              <Text style={styles.eventModalTitle}>{t('family.newEvent')}</Text>
 
-              <Text style={styles.label}>Название *</Text>
+              <Text style={styles.label}>{t('family.eventNameRequired')}</Text>
               <TextInput
                 style={styles.eventTextInput}
                 value={eventTitle}
                 onChangeText={setEventTitle}
-                placeholder="Например: Рождение первенца"
+                placeholder={t('family.eventTitlePlaceholder')}
                 placeholderTextColor={Colors.textMuted}
                 autoFocus
               />
 
-              <Text style={styles.label}>Год *</Text>
+              <Text style={styles.label}>{t('family.eventYearRequired')}</Text>
               <TextInput
                 style={styles.eventTextInput}
                 value={eventYear}
@@ -406,7 +408,7 @@ export default function FamilyScreen() {
                 maxLength={4}
               />
 
-              <Text style={styles.label}>Эмодзи</Text>
+              <Text style={styles.label}>{t('family.emoji')}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
                 {EVENT_EMOJIS.map((e) => (
                   <TouchableOpacity
@@ -421,14 +423,14 @@ export default function FamilyScreen() {
 
               <View style={styles.btns}>
                 <TouchableOpacity style={styles.cancelBtn} onPress={() => setEventModal(false)}>
-                  <Text style={styles.cancelTxt}>Отмена</Text>
+                  <Text style={styles.cancelTxt}>{t('common.cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.saveBtn, (!eventTitle.trim() || !eventYear) && styles.saveBtnDisabled]}
                   onPress={handleAddEvent}
                   disabled={!eventTitle.trim() || !eventYear}
                 >
-                  <Text style={styles.saveTxt}>Добавить</Text>
+                  <Text style={styles.saveTxt}>{t('family.add')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -513,7 +515,6 @@ const styles = StyleSheet.create({
   tabs: {
     flexDirection: 'row',
     marginHorizontal: 20,
-    marginTop: 8,
     marginBottom: 8,
     height: 46,
     backgroundColor: Colors.surface,

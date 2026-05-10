@@ -1,9 +1,11 @@
+import { Challenge } from '@/types';
 import { LoadingSpinner } from '@components/shared/LoadingSpinner';
+import { Colors } from '@constants/colors';
 import { Ionicons } from '@expo/vector-icons';
 import { useChallenge } from '@hooks/useChallenge';
-import { Challenge } from '@/types';
-import { useRouter, useFocusEffect } from 'expo-router';
-import React, { useState, useCallback } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   FlatList,
   RefreshControl,
@@ -14,37 +16,67 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors } from '@constants/colors';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 type FilterType = 'all' | 'active' | 'pending' | 'completed';
 
-const FILTERS: { key: FilterType; label: string }[] = [
-  { key: 'all', label: 'Все' },
-  { key: 'active', label: 'Активные' },
-  { key: 'pending', label: 'Ожидание' },
-  { key: 'completed', label: 'Завершённые' },
+const FILTERS: { key: FilterType; labelKey: string }[] = [
+  { key: 'all', labelKey: 'challenges.filterAll' },
+  { key: 'active', labelKey: 'challenges.filterActive' },
+  { key: 'pending', labelKey: 'challenges.filterPending' },
+  { key: 'completed', labelKey: 'challenges.filterCompleted' },
 ];
 
-// ─── Status helper ─────────────────────────────────────────────────────────────
-function getStatus(status: string) {
+function getStatus(status: string, t: any) {
   switch (status) {
     case 'active':
-      return { label: 'Активті', color: Colors.success, bg: '#D1FAE5', icon: 'flash' as const };
+      return {
+        label: t('challengeStatus.active'),
+        color: Colors.success,
+        bg: '#D1FAE5',
+        icon: 'flash' as const,
+      };
     case 'pending':
-      return { label: 'Күту', color: Colors.warning, bg: '#FEF3C7', icon: 'time' as const };
+      return {
+        label: t('challengeStatus.pending'),
+        color: Colors.warning,
+        bg: '#FEF3C7',
+        icon: 'time' as const,
+      };
     case 'completed':
-      return { label: 'Аяқталды', color: Colors.textMuted, bg: '#F1F5F9', icon: 'checkmark-circle' as const };
+      return {
+        label: t('challengeStatus.completed'),
+        color: Colors.textMuted,
+        bg: '#F1F5F9',
+        icon: 'checkmark-circle' as const,
+      };
     default:
-      return { label: status, color: Colors.primary, bg: '#EDE9FF', icon: 'ellipse' as const };
+      return {
+        label: status,
+        color: Colors.primary,
+        bg: '#EDE9FF',
+        icon: 'ellipse' as const,
+      };
   }
 }
 
-// ─── Challenge Card ────────────────────────────────────────────────────────────
-const ACCENTS = [Colors.primary, Colors.success, Colors.info, Colors.secondary, Colors.warning];
+const ACCENTS = [
+  Colors.primary,
+  Colors.success,
+  Colors.info,
+  Colors.secondary,
+  Colors.warning,
+];
 
-function ChallengeCard({ challenge, index }: { challenge: Challenge; index: number }) {
-  const st = getStatus(challenge.status);
+function ChallengeCard({
+  challenge,
+  index,
+  t,
+}: {
+  challenge: Challenge;
+  index: number;
+  t: any;
+}) {
+  const st = getStatus(challenge.status, t);
   const accent = ACCENTS[index % ACCENTS.length];
 
   return (
@@ -52,7 +84,6 @@ function ChallengeCard({ challenge, index }: { challenge: Challenge; index: numb
       <View style={[card.stripe, { backgroundColor: accent }]} />
 
       <View style={card.body}>
-        {/* Top row */}
         <View style={card.topRow}>
           <View style={[card.statusPill, { backgroundColor: st.bg }]}>
             <Ionicons name={st.icon} size={12} color={st.color} />
@@ -71,12 +102,10 @@ function ChallengeCard({ challenge, index }: { challenge: Challenge; index: numb
           )}
         </View>
 
-        {/* Title */}
         <Text style={card.title} numberOfLines={2}>
           {challenge.title}
         </Text>
 
-        {/* Dates */}
         {(challenge.startDate || challenge.endDate) && (
           <View style={card.dates}>
             {challenge.startDate && (
@@ -88,15 +117,17 @@ function ChallengeCard({ challenge, index }: { challenge: Challenge; index: numb
           </View>
         )}
 
-        {/* Progress */}
         {challenge.status === 'active' && (
           <View style={card.progressWrap}>
             <View style={card.progressTrack}>
-              <View style={[card.progressFill, { backgroundColor: accent, width: '42%' }]} />
+              <View
+                style={[
+                  card.progressFill,
+                  { backgroundColor: accent, width: '42%' },
+                ]}
+              />
             </View>
-            <Text style={[card.progressLabel, { color: accent }]}>
-              42%
-            </Text>
+            <Text style={[card.progressLabel, { color: accent }]}>42%</Text>
           </View>
         )}
       </View>
@@ -104,9 +135,9 @@ function ChallengeCard({ challenge, index }: { challenge: Challenge; index: numb
   );
 }
 
-// ─── Screen ────────────────────────────────────────────────────────────────────
 export default function ChallengesScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { challenges, isLoading, fetchChallenges } = useChallenge();
 
   const [filter, setFilter] = useState<FilterType>('all');
@@ -140,10 +171,8 @@ export default function ChallengesScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-
-      {/* HEADER */}
       <View style={styles.header}>
-        <Text style={styles.title}>Челлендждер</Text>
+        <Text style={styles.title}>{t('challenges.title')}</Text>
 
         <TouchableOpacity
           style={styles.createBtn}
@@ -153,12 +182,11 @@ export default function ChallengesScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* SEARCH */}
       <View style={styles.searchWrapper}>
         <Ionicons name="search-outline" size={18} color={Colors.textMuted} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Поиск челленджей..."
+          placeholder={t('challenges.search')}
           placeholderTextColor={Colors.textMuted}
           value={search}
           onChangeText={setSearch}
@@ -171,15 +199,11 @@ export default function ChallengesScreen() {
         )}
       </View>
 
-      {/* FILTERS */}
       <View style={styles.filtersRow}>
         {FILTERS.map((f) => (
           <TouchableOpacity
             key={f.key}
-            style={[
-              styles.filterChip,
-              filter === f.key && styles.filterActive,
-            ]}
+            style={[styles.filterChip, filter === f.key && styles.filterActive]}
             onPress={() => setFilter(f.key)}
           >
             <Text
@@ -188,26 +212,28 @@ export default function ChallengesScreen() {
                 filter === f.key && styles.filterTextActive,
               ]}
             >
-              {f.label}
+              {t(f.labelKey)}
             </Text>
 
             {counts[f.key] > 0 && (
               <View style={styles.filterBadge}>
-                <Text style={styles.filterBadgeTxt}>
-                  {counts[f.key]}
-                </Text>
+                <Text style={styles.filterBadgeTxt}>{counts[f.key]}</Text>
               </View>
             )}
           </TouchableOpacity>
         ))}
       </View>
 
-      {/* LIST */}
       <FlatList
         data={filtered}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item, index }) => (
-          <ChallengeCard challenge={item} index={index} />
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => router.push(`/challenge/${item.id}`)}
+          >
+            <ChallengeCard challenge={item} index={index} t={t} />
+          </TouchableOpacity>
         )}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
@@ -221,16 +247,16 @@ export default function ChallengesScreen() {
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="layers-outline" size={40} color={Colors.primary} />
-            <Text style={styles.emptyTitle}>Челлендж жоқ</Text>
-            <Text style={styles.emptyText}>
-              Алғашқы челленджіңді жаса
-            </Text>
+            <Text style={styles.emptyTitle}>{t('challenges.emptyTitle')}</Text>
+            <Text style={styles.emptyText}>{t('challenges.emptyText')}</Text>
 
             <TouchableOpacity
               style={styles.emptyBtn}
               onPress={() => router.push('/challenge/create')}
             >
-              <Text style={styles.emptyBtnText}>Жасау</Text>
+              <Text style={styles.emptyBtnText}>
+                {t('challenges.createChallenge')}
+              </Text>
             </TouchableOpacity>
           </View>
         }
@@ -239,7 +265,6 @@ export default function ChallengesScreen() {
   );
 }
 
-// ─── Styles ────────────────────────────────────────────────────────────────────
 const card = StyleSheet.create({
   wrapper: {
     backgroundColor: '#fff',
@@ -252,7 +277,6 @@ const card = StyleSheet.create({
   stripe: { height: 4 },
   body: { padding: 14, gap: 10 },
   topRow: { flexDirection: 'row', justifyContent: 'space-between' },
-
   statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -262,7 +286,6 @@ const card = StyleSheet.create({
     borderRadius: 999,
   },
   statusText: { fontSize: 12, fontWeight: '600' },
-
   betBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -272,16 +295,13 @@ const card = StyleSheet.create({
     borderRadius: 999,
   },
   betText: { fontSize: 12, fontWeight: '700' },
-
   title: {
     fontSize: 16,
     fontWeight: '700',
     color: Colors.textPrimary,
   },
-
   dates: { flexDirection: 'row', gap: 12 },
   dateText: { fontSize: 12, color: Colors.textMuted },
-
   progressWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   progressTrack: {
     flex: 1,
@@ -295,20 +315,17 @@ const card = StyleSheet.create({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     padding: 16,
   },
   title: { fontSize: 22, fontWeight: '800', color: Colors.textPrimary },
-
   createBtn: {
     backgroundColor: Colors.primary,
     padding: 10,
     borderRadius: 10,
   },
-
   searchWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -321,7 +338,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   searchInput: { flex: 1, padding: 10, color: Colors.textPrimary },
-
   filtersRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -329,7 +345,6 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 10,
   },
-
   filterChip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -347,16 +362,13 @@ const styles = StyleSheet.create({
   },
   filterText: { fontSize: 13, color: Colors.textSecondary },
   filterTextActive: { color: '#fff' },
-
   filterBadge: {
     backgroundColor: '#E5E7EB',
     borderRadius: 10,
     paddingHorizontal: 6,
   },
   filterBadgeTxt: { fontSize: 11 },
-
   list: { padding: 16 },
-
   empty: { alignItems: 'center', marginTop: 60 },
   emptyTitle: { fontSize: 18, fontWeight: '700', marginTop: 10 },
   emptyText: { color: Colors.textMuted, marginTop: 4 },

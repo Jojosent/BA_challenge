@@ -256,7 +256,7 @@ export const DeadlineCalendar: React.FC = () => {
             {selectedDate && (
                 <View style={styles.selectedBlock}>
                     <Text style={styles.selectedDateTitle}>
-                        📅 {new Date(selectedDate + 'T00:00:00').toLocaleDateString('ru-RU', {
+                        {new Date(selectedDate + 'T00:00:00').toLocaleDateString('ru-RU', {
                             day: 'numeric', month: 'long', year: 'numeric',
                         })}
                     </Text>

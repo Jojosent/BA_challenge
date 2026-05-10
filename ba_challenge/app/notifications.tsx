@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Header } from '@components/shared/Header';
 import { Colors } from '@constants/colors';
 import { familyService } from '@services/familyService';
@@ -42,7 +43,7 @@ const NOTIF_CONFIG = {
     challenge_invite: { icon: Trophy, color: '#FFB800' },
 };
 
-const formatTime = (iso: string): string => {
+const formatTime = (iso: string, t: any, locale: string): string => {
     const d = new Date(iso);
     const now = new Date();
     const diffMs = now.getTime() - d.getTime();
@@ -50,12 +51,17 @@ const formatTime = (iso: string): string => {
     const diffH = Math.floor(diffMin / 60);
     const diffD = Math.floor(diffH / 24);
 
-    if (diffMin < 1) return 'только что';
-    if (diffMin < 60) return `${diffMin} мин. назад`;
-    if (diffH < 24) return `${diffH} ч. назад`;
-    if (diffD < 7) return `${diffD} дн. назад`;
+    if (diffMin < 1) return t('notifications.justNow');
+    if (diffMin < 60) return t('notifications.minutesAgoFull', { count: diffMin });
+    if (diffH < 24) return t('notifications.hoursAgoFull', { count: diffH });
+    if (diffD < 7) return t('notifications.daysAgoFull', { count: diffD });
 
-    return d.toLocaleDateString('ru-RU', {
+    const dateLocale =
+        locale === 'ru' ? 'ru-RU' :
+        locale === 'kz' ? 'kk-KZ' :
+        'en-US';
+
+    return d.toLocaleDateString(dateLocale, {
         day: 'numeric',
         month: 'short',
     });
@@ -63,6 +69,7 @@ const formatTime = (iso: string): string => {
 
 export default function NotificationsScreen() {
     const router = useRouter();
+    const { t, i18n } = useTranslation();
 
     const [familyInvites, setFamilyInvites] = useState<any[]>([]);
     const [challengeInvites, setChallengeInvites] = useState<any[]>([]);
@@ -101,13 +108,13 @@ export default function NotificationsScreen() {
             const result = await familyService.respondInvite(inviteId, accept);
 
             Alert.alert(
-                accept ? 'Принято' : 'Отклонено',
+                accept ? t('notifications.acceptedTitle') : t('notifications.declinedTitle'),
                 result.message
             );
 
             fetchAll();
         } catch (e: any) {
-            Alert.alert('Ошибка', e.message);
+            Alert.alert(t('common.error'), e.message);
         } finally {
             setLoadingId(null);
         }
@@ -122,13 +129,13 @@ export default function NotificationsScreen() {
             });
 
             Alert.alert(
-                accept ? 'Принято' : 'Отклонено',
+                accept ? t('notifications.acceptedTitle') : t('notifications.declinedTitle'),
                 result.data.message
             );
 
             fetchAll();
         } catch (e: any) {
-            Alert.alert('Ошибка', e.message);
+            Alert.alert(t('common.error'), e.message);
         } finally {
             setLoadingId(null);
         }
@@ -165,12 +172,12 @@ export default function NotificationsScreen() {
 
     const handleClearAll = () => {
         Alert.alert(
-            'Очистить уведомления?',
-            'Все in-app уведомления будут удалены',
+            t('notifications.clearTitle'),
+            t('notifications.clearMessage'),
             [
-                { text: 'Отмена', style: 'cancel' },
+                { text: t('common.cancel'), style: 'cancel' },
                 {
-                    text: 'Очистить',
+                    text: t('notifications.clearButton'),
                     style: 'destructive',
                     onPress: async () => {
                         await notificationService.clearAll();
@@ -249,7 +256,7 @@ export default function NotificationsScreen() {
                     <Text style={styles.notifText}>{notif.body}</Text>
 
                     <Text style={styles.notifTime}>
-                        {formatTime(notif.createdAt)}
+                        {formatTime(notif.createdAt, t, i18n.language)}
                     </Text>
                 </View>
 
@@ -311,24 +318,30 @@ export default function NotificationsScreen() {
                 <View style={styles.inviteInfo}>
                     <Text style={styles.inviteTitle}>
                         {isFamily
-                            ? `${invite.sender?.username ?? 'Пользователь'} приглашает тебя`
-                            : `${invite.inviteSender?.username ?? 'Пользователь'} приглашает тебя`}
+                            ? t('notifications.familyInviteTitle', {
+                                  username: invite.sender?.username ?? t('notifications.userFallback'),
+                              })
+                            : t('notifications.challengeInviteTitle', {
+                                  username: invite.inviteSender?.username ?? t('notifications.userFallback'),
+                              })}
                     </Text>
 
                     <Text style={styles.inviteDetail}>
                         {isFamily
-                            ? `Роль: ${
+                            ? `${t('notifications.role')}: ${
                                   RELATION_LABELS[
                                       invite.relation as keyof typeof RELATION_LABELS
                                   ] ?? invite.relation
                               }${
                                   invite.birthYear
-                                      ? ` · ${invite.birthYear} г.р.`
+                                      ? t('notifications.birthYearShort', { year: invite.birthYear })
                                       : ''
                               }`
-                            : `${invite.challenge?.title ?? 'Челлендж'}${
+                            : `${invite.challenge?.title ?? t('notifications.challengeFallback')}${
                                   invite.challenge?.betAmount > 0
-                                      ? ` · ${invite.challenge.betAmount} монет`
+                                      ? t('notifications.coinsAmount', {
+                                            amount: invite.challenge.betAmount,
+                                        })
                                       : ''
                               }`}
                     </Text>
@@ -379,7 +392,7 @@ export default function NotificationsScreen() {
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
-            <Header title="Уведомления" showBack />
+            <Header title={t('notifications.title')} showBack />
 
             <ScrollView
                 contentContainerStyle={styles.content}
@@ -402,11 +415,11 @@ export default function NotificationsScreen() {
                         </View>
 
                         <Text style={styles.emptyTitle}>
-                            Нет уведомлений
+                            {t('notifications.emptyTitle')}
                         </Text>
 
                         <Text style={styles.emptyText}>
-                            Здесь будут оценки, ставки, приглашения и события по челленджам
+                            {t('notifications.emptyText')}
                         </Text>
                     </View>
                 )}
@@ -414,7 +427,7 @@ export default function NotificationsScreen() {
                 {familyInvites.length > 0 && (
                     <>
                         <Text style={styles.section}>
-                            Приглашения в семью
+                            {t('notifications.familyInvites')}
                         </Text>
 
                         {familyInvites.map(invite =>
@@ -426,7 +439,7 @@ export default function NotificationsScreen() {
                 {challengeInvites.length > 0 && (
                     <>
                         <Text style={styles.section}>
-                            Приглашения в челлендж
+                            {t('notifications.challengeInvites')}
                         </Text>
 
                         {challengeInvites.map(invite =>
@@ -439,11 +452,11 @@ export default function NotificationsScreen() {
                     <>
                         <View style={styles.inAppHeader}>
                             <Text style={styles.section}>
-                                Уведомления
+                                {t('notifications.title')}
                                 {unreadCount > 0 && (
                                     <Text style={styles.unreadBadge}>
                                         {' '}
-                                        ({unreadCount} новых)
+                                        {t('notifications.newCount', { count: unreadCount })}
                                     </Text>
                                 )}
                             </Text>
@@ -455,7 +468,7 @@ export default function NotificationsScreen() {
                                         style={styles.actionBtn}
                                     >
                                         <Text style={styles.actionBtnTxt}>
-                                            Все прочитаны
+                                            {t('notifications.markAllRead')}
                                         </Text>
                                     </TouchableOpacity>
                                 )}

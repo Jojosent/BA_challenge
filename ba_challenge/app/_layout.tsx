@@ -1,11 +1,13 @@
+import '@/i18n';
+
+import { useNotificationStore } from '@hooks/useNotifications';
 import { useAuthStore } from '@store/authStore';
+import { useLanguageStore } from '@store/languageStore';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { useNotificationStore } from '@hooks/useNotifications';
 import { ThemeProvider } from './(tabs)/theme/ThemeContext';
-
 const POLL_INTERVAL = 30000;
 
 // 🔔 Notification Poller
@@ -43,9 +45,11 @@ function NotificationPoller() {
 
 export default function RootLayout() {
   const { loadStoredAuth, isLoading } = useAuthStore();
+  const { loadLanguage } = useLanguageStore();
 
   useEffect(() => {
     loadStoredAuth();
+    loadLanguage();
   }, []);
 
   if (isLoading) {

@@ -18,17 +18,20 @@ import { DatePicker } from '@components/ui/DatePicker';
 import { Header } from '@components/shared/Header';
 import { challengeService } from '@services/challengeService';
 import { useAuthStore } from '@store/authStore';
-
-const schema = z.object({
-    title: z.string().min(3, 'Минимум 3 символа'),
-    description: z.string().min(10, 'Минимум 10 символов'),
-});
-
-type FormData = z.infer<typeof schema>;
+import { useTranslation } from 'react-i18next';
 
 export default function CreateFamilyChallengeScreen() {
+    const { t } = useTranslation();
     const router = useRouter();
     const { user } = useAuthStore();
+
+    const schema = z.object({
+        title: z.string().min(3, t('createFamilyChallenge.validationTitle')),
+        description: z.string().min(10, t('createFamilyChallenge.validationDescription')),
+    });
+
+    type FormData = z.infer<typeof schema>;
+
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [dateError, setDateError] = useState('');
@@ -47,9 +50,9 @@ export default function CreateFamilyChallengeScreen() {
     };
 
     const onSubmit = async (data: FormData) => {
-        if (!startDate) { setDateError('Выбери дату начала'); return; }
-        if (!endDate) { setDateError('Выбери дату окончания'); return; }
-        if (getDayCount() < 1) { setDateError('Дата окончания должна быть позже'); return; }
+        if (!startDate) { setDateError(t('createFamilyChallenge.startDateRequired')); return; }
+        if (!endDate) { setDateError(t('createFamilyChallenge.endDateRequired')); return; }
+        if (getDayCount() < 1) { setDateError(t('createFamilyChallenge.endDateAfterStart')); return; }
 
         try {
             setIsLoading(true);
@@ -60,15 +63,19 @@ export default function CreateFamilyChallengeScreen() {
                 startDate,
                 endDate,
                 visibility: 'secret',
-                betAmount: 0,                        // ✅ всегда бесплатно
+                betAmount: 0,
                 familyOwnerId: user!.id,
             });
 
-            Alert.alert('🎉 Семейный челлендж создан!', 'Все члены твоей семьи увидят его', [
-                { text: 'OK', onPress: () => router.replace(`/challenge/${challenge.id}`) },
-            ]);
+            Alert.alert(
+                t('createFamilyChallenge.createdTitle'),
+                t('createFamilyChallenge.createdMessage'),
+                [
+                    { text: 'OK', onPress: () => router.replace(`/challenge/${challenge.id}`) },
+                ]
+            );
         } catch (e: any) {
-            Alert.alert('Ошибка', e.message);
+            Alert.alert(t('common.error'), e.message);
         } finally {
             setIsLoading(false);
         }
@@ -78,7 +85,7 @@ export default function CreateFamilyChallengeScreen() {
 
     return (
         <SafeAreaView style={styles.container} edges={['top']}>
-            <Header title="🏆 Семейный челлендж" showBack />
+            <Header title={t('createFamilyChallenge.headerTitle')} showBack />
 
             <ScrollView
                 contentContainerStyle={styles.scroll}
@@ -88,10 +95,11 @@ export default function CreateFamilyChallengeScreen() {
                 <View style={styles.infoCard}>
                     <Text style={styles.infoIcon}>👨‍👩‍👧‍👦</Text>
                     <View style={styles.infoTexts}>
-                        <Text style={styles.infoTitle}>Только для твоей семьи</Text>
+                        <Text style={styles.infoTitle}>
+                            {t('createFamilyChallenge.infoTitle')}
+                        </Text>
                         <Text style={styles.infoDesc}>
-                            Этот челлендж будут видеть только члены твоей семьи.
-                            Участие бесплатное — монеты не требуются.
+                            {t('createFamilyChallenge.infoDesc')}
                         </Text>
                     </View>
                 </View>
@@ -101,8 +109,8 @@ export default function CreateFamilyChallengeScreen() {
                     name="title"
                     render={({ field: { onChange, value } }) => (
                         <Input
-                            label="Название"
-                            placeholder="Например: Семейный марафон"
+                            label={t('createFamilyChallenge.titleLabel')}
+                            placeholder={t('createFamilyChallenge.titlePlaceholder')}
                             onChangeText={onChange}
                             value={value}
                             error={errors.title?.message}
@@ -115,8 +123,8 @@ export default function CreateFamilyChallengeScreen() {
                     name="description"
                     render={({ field: { onChange, value } }) => (
                         <Input
-                            label="Описание"
-                            placeholder="Опиши правила для семьи..."
+                            label={t('createFamilyChallenge.descriptionLabel')}
+                            placeholder={t('createFamilyChallenge.descriptionPlaceholder')}
                             onChangeText={onChange}
                             value={value}
                             multiline
@@ -127,14 +135,14 @@ export default function CreateFamilyChallengeScreen() {
                 />
 
                 <DatePicker
-                    label="📅 Дата начала"
+                    label={t('createFamilyChallenge.startDate')}
                     value={startDate}
                     onChange={(d) => { setStartDate(d); setDateError(''); }}
                     minimumDate={new Date()}
                 />
 
                 <DatePicker
-                    label="📅 Дата окончания"
+                    label={t('createFamilyChallenge.endDate')}
                     value={endDate}
                     onChange={(d) => { setEndDate(d); setDateError(''); }}
                     minimumDate={startDate ? new Date(startDate) : new Date()}
@@ -145,8 +153,10 @@ export default function CreateFamilyChallengeScreen() {
                     <View style={styles.daysInfo}>
                         <Text style={styles.daysIcon}>📊</Text>
                         <Text style={styles.daysText}>
-                            Продолжительность:{' '}
-                            <Text style={styles.daysCount}>{dayCount} дней</Text>
+                            {t('createFamilyChallenge.duration')}{' '}
+                            <Text style={styles.daysCount}>
+                                {t('createFamilyChallenge.daysCount', { count: dayCount })}
+                            </Text>
                         </Text>
                     </View>
                 )}
@@ -155,15 +165,17 @@ export default function CreateFamilyChallengeScreen() {
                 <View style={styles.freeCard}>
                     <Text style={styles.freeIcon}>✅</Text>
                     <View style={styles.freeTexts}>
-                        <Text style={styles.freeTitle}>Бесплатное участие</Text>
+                        <Text style={styles.freeTitle}>
+                            {t('createFamilyChallenge.freeTitle')}
+                        </Text>
                         <Text style={styles.freeDesc}>
-                            Семейные челленджи не требуют ставки монет
+                            {t('createFamilyChallenge.freeDesc')}
                         </Text>
                     </View>
                 </View>
 
                 <Button
-                    title="Создать семейный челлендж 👨‍👩‍👧‍👦"
+                    title={t('createFamilyChallenge.submit')}
                     onPress={handleSubmit(onSubmit)}
                     isLoading={isLoading}
                     style={styles.submitBtn}

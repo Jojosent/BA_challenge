@@ -11,52 +11,59 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '@constants/colors';
 import { Header } from '@components/shared/Header';
 import { privacyService, ProfilePrivacySettings } from '@services/privacyService';
+import { useTranslation } from 'react-i18next';
 
-// ─── Design tokens ────────────────────────────────────────────────────────────
 const T = {
-  violet:    '#6C5CE7',
+  violet: '#6C5CE7',
   violetMid: '#8B7CF6',
-  violetSoft:'#EDE9FE',
-  teal:      '#00B894',
-  tealSoft:  '#D4F5EE',
-  coral:     '#E17055',
+  violetSoft: '#EDE9FE',
+  teal: '#00B894',
+  tealSoft: '#D4F5EE',
+  coral: '#E17055',
   coralSoft: '#FDE8E4',
-  amber:     '#FDCB6E',
+  amber: '#FDCB6E',
   amberSoft: '#FEF5DC',
-  surface:   '#FFFFFF',
-  bg:        '#F4F3F8',
-  border:    '#E5E3EF',
-  text:      '#1A1730',
-  textSub:   '#6B6585',
+  surface: '#FFFFFF',
+  bg: '#F8FAFF',
+  border: '#E5E3EF',
+  text: '#1A1730',
+  textSub: '#6B6585',
   textMuted: '#A09CB8',
 };
 
-// ─── SettingCard ──────────────────────────────────────────────────────────────
 interface SettingCardProps {
-  icon:     keyof typeof Ionicons.glyphMap;
-  title:    string;
-  desc:     string;
-  value:    boolean;
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  desc: string;
+  value: boolean;
   onToggle: (v: boolean) => void;
-  accent:   string;
+  accent: string;
   accentSoft: string;
-  isLast?:  boolean;
+  isLast?: boolean;
 }
 
 const SettingCard: React.FC<SettingCardProps> = ({
-  icon, title, desc, value, onToggle, accent, accentSoft, isLast,
+  icon,
+  title,
+  desc,
+  value,
+  onToggle,
+  accent,
+  accentSoft,
+  isLast,
 }) => (
   <View style={[card.wrap, !isLast && card.separator]}>
     <View style={[card.iconBox, { backgroundColor: accentSoft }]}>
       <Ionicons name={icon} size={18} color={accent} />
     </View>
+
     <View style={card.texts}>
       <Text style={card.title}>{title}</Text>
       <Text style={card.desc}>{desc}</Text>
     </View>
+
     <Switch
       value={value}
       onValueChange={onToggle}
@@ -89,24 +96,31 @@ const card = StyleSheet.create({
   },
   texts: { flex: 1 },
   title: { fontSize: 14, fontWeight: '600', color: T.text, marginBottom: 3 },
-  desc:  { fontSize: 12, color: T.textSub, lineHeight: 17 },
+  desc: { fontSize: 12, color: T.textSub, lineHeight: 17 },
 });
 
-// ─── VisibilityBadge ──────────────────────────────────────────────────────────
 interface VisibilityBadgeProps {
-  icon:  keyof typeof Ionicons.glyphMap;
+  icon: keyof typeof Ionicons.glyphMap;
   label: string;
-  desc:  string;
+  desc: string;
   color: string;
-  soft:  string;
+  soft: string;
 }
 
-const VisibilityBadge: React.FC<VisibilityBadgeProps> = ({ icon, label, desc, color, soft }) => (
+const VisibilityBadge: React.FC<VisibilityBadgeProps> = ({
+  icon,
+  label,
+  desc,
+  color,
+  soft,
+}) => (
   <View style={badge.wrap}>
     <View style={[badge.dot, { backgroundColor: color }]} />
+
     <View style={[badge.iconBox, { backgroundColor: soft }]}>
       <Ionicons name={icon} size={15} color={color} />
     </View>
+
     <View style={badge.texts}>
       <Text style={[badge.label, { color }]}>{label}</Text>
       <Text style={badge.desc}>{desc}</Text>
@@ -115,15 +129,20 @@ const VisibilityBadge: React.FC<VisibilityBadgeProps> = ({ icon, label, desc, co
 );
 
 const badge = StyleSheet.create({
-  wrap:    { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 6 },
-  dot:     { width: 6, height: 6, borderRadius: 3, marginTop: 6 },
-  iconBox: { width: 28, height: 28, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-  texts:   { flex: 1 },
-  label:   { fontSize: 13, fontWeight: '700', marginBottom: 2 },
-  desc:    { fontSize: 12, color: T.textSub, lineHeight: 16 },
+  wrap: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 6 },
+  dot: { width: 6, height: 6, borderRadius: 3, marginTop: 6 },
+  iconBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  texts: { flex: 1 },
+  label: { fontSize: 13, fontWeight: '700', marginBottom: 2 },
+  desc: { fontSize: 12, color: T.textSub, lineHeight: 16 },
 });
 
-// ─── SectionLabel ─────────────────────────────────────────────────────────────
 const SectionLabel = ({ children }: { children: string }) => (
   <Text style={sec.label}>{children}</Text>
 );
@@ -141,19 +160,23 @@ const sec = StyleSheet.create({
   },
 });
 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function PrivacySettingsScreen() {
+  const { t } = useTranslation();
+
   const [settings, setSettings] = useState<ProfilePrivacySettings>({
-    showChallengesPublic:  true,
-    allowFamilyInvites:    true,
+    showChallengesPublic: true,
+    allowFamilyInvites: true,
     allowChallengeInvites: true,
   });
-  const [isLoading,  setIsLoading]  = useState(true);
-  const [isSaving,   setIsSaving]   = useState(false);
-  const [hasChanges, setHasChanges] = useState(false);
-  const [original,   setOriginal]   = useState<ProfilePrivacySettings | null>(null);
 
-  useEffect(() => { loadSettings(); }, []);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [original, setOriginal] = useState<ProfilePrivacySettings | null>(null);
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
 
   const loadSettings = async () => {
     try {
@@ -162,7 +185,7 @@ export default function PrivacySettingsScreen() {
       setSettings(data);
       setOriginal(data);
     } catch {
-      Alert.alert('Ошибка', 'Не удалось загрузить настройки');
+      Alert.alert(t('common.error'), t('privacy.loadError'));
     } finally {
       setIsLoading(false);
     }
@@ -180,9 +203,9 @@ export default function PrivacySettingsScreen() {
       await privacyService.updateProfilePrivacy(settings);
       setOriginal(settings);
       setHasChanges(false);
-      Alert.alert('Сохранено', 'Настройки приватности обновлены');
+      Alert.alert(t('privacy.savedTitle'), t('privacy.savedMessage'));
     } catch (e: any) {
-      Alert.alert('Ошибка', e.message);
+      Alert.alert(t('common.error'), e.message);
     } finally {
       setIsSaving(false);
     }
@@ -191,7 +214,7 @@ export default function PrivacySettingsScreen() {
   if (isLoading) {
     return (
       <SafeAreaView style={s.container} edges={['top']}>
-        <Header title="Приватность" showBack />
+        <Header title={t('privacy.title')} showBack />
         <View style={s.loadingBox}>
           <ActivityIndicator size="large" color={T.violet} />
         </View>
@@ -199,12 +222,13 @@ export default function PrivacySettingsScreen() {
     );
   }
 
-  const anyInviteOff = !settings.allowFamilyInvites || !settings.allowChallengeInvites;
+  const anyInviteOff =
+    !settings.allowFamilyInvites || !settings.allowChallengeInvites;
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
       <Header
-        title="Приватность"
+        title={t('privacy.title')}
         showBack
         rightElement={
           hasChanges ? (
@@ -213,10 +237,11 @@ export default function PrivacySettingsScreen() {
               onPress={handleSave}
               disabled={isSaving}
             >
-              {isSaving
-                ? <ActivityIndicator size="small" color={T.surface} />
-                : <Text style={s.saveHeaderTxt}>Сохранить</Text>
-              }
+              {isSaving ? (
+                <ActivityIndicator size="small" color={T.surface} />
+              ) : (
+                <Text style={s.saveHeaderTxt}>{t('common.save')}</Text>
+              )}
             </TouchableOpacity>
           ) : undefined
         }
@@ -226,31 +251,31 @@ export default function PrivacySettingsScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={s.content}
       >
-
-        {/* ── Hero banner ── */}
         <View style={s.heroBanner}>
           <View style={s.heroLeft}>
             <View style={s.heroIconBox}>
               <Ionicons name="shield-checkmark" size={24} color={T.violet} />
             </View>
+
             <View>
-              <Text style={s.heroTitle}>Управление приватностью</Text>
-              <Text style={s.heroSub}>Кто видит тебя и кто может приглашать</Text>
+              <Text style={s.heroTitle}>{t('privacy.heroTitle')}</Text>
+              <Text style={s.heroSub}>{t('privacy.heroSub')}</Text>
             </View>
           </View>
+
           <View style={s.heroPill}>
             <View style={[s.heroDot, { backgroundColor: T.teal }]} />
-            <Text style={s.heroPillTxt}>Защищено</Text>
+            <Text style={s.heroPillTxt}>{t('privacy.protected')}</Text>
           </View>
         </View>
 
-        {/* ── Profile section ── */}
-        <SectionLabel>Профиль</SectionLabel>
+        <SectionLabel>{t('privacy.profileSection')}</SectionLabel>
+
         <View style={s.section}>
           <SettingCard
             icon="trophy-outline"
-            title="Показывать мои челленджи"
-            desc="Другие пользователи видят твои публичные челленджи"
+            title={t('privacy.showChallenges')}
+            desc={t('privacy.showChallengesDesc')}
             value={settings.showChallengesPublic}
             onToggle={handleToggle('showChallengesPublic')}
             accent={T.teal}
@@ -259,22 +284,23 @@ export default function PrivacySettingsScreen() {
           />
         </View>
 
-        {/* ── Invites section ── */}
-        <SectionLabel>Приглашения</SectionLabel>
+        <SectionLabel>{t('privacy.invitesSection')}</SectionLabel>
+
         <View style={s.section}>
           <SettingCard
             icon="git-branch-outline"
-            title="Приглашения в семью"
-            desc="Выключи, чтобы никто не мог пригласить тебя в семейное дерево"
+            title={t('privacy.familyInvites')}
+            desc={t('privacy.familyInvitesDesc')}
             value={settings.allowFamilyInvites}
             onToggle={handleToggle('allowFamilyInvites')}
             accent={T.violet}
             accentSoft={T.violetSoft}
           />
+
           <SettingCard
             icon="flag-outline"
-            title="Приглашения в челленджи"
-            desc="Выключи, чтобы никто не мог пригласить тебя в челлендж"
+            title={t('privacy.challengeInvites')}
+            desc={t('privacy.challengeInvitesDesc')}
             value={settings.allowChallengeInvites}
             onToggle={handleToggle('allowChallengeInvites')}
             accent={T.coral}
@@ -283,49 +309,50 @@ export default function PrivacySettingsScreen() {
           />
         </View>
 
-        {/* ── Warning card (conditional) ── */}
         {anyInviteOff && (
           <View style={s.warnCard}>
             <View style={s.warnIconBox}>
               <Ionicons name="alert-circle-outline" size={18} color={T.coral} />
             </View>
-            <Text style={s.warnText}>
-              Когда кто-то попытается пригласить тебя — он увидит сообщение, что приглашения отключены.
-            </Text>
+
+            <Text style={s.warnText}>{t('privacy.invitesOffWarning')}</Text>
           </View>
         )}
 
-        {/* ── Visibility guide ── */}
-        <SectionLabel>Уровни видимости</SectionLabel>
+        <SectionLabel>{t('privacy.visibilityLevels')}</SectionLabel>
+
         <View style={s.section}>
           <View style={s.visGuide}>
             <VisibilityBadge
               icon="globe-outline"
-              label="Публичный"
-              desc="Все пользователи видят и могут вступить свободно"
+              label={t('privacy.public')}
+              desc={t('privacy.publicDesc')}
               color={T.teal}
               soft={T.tealSoft}
             />
+
             <View style={s.vDivider} />
+
             <VisibilityBadge
               icon="lock-closed-outline"
-              label="Защищённый"
-              desc="Виден всем в поиске, вступить — только по паролю"
+              label={t('privacy.protectedVisibility')}
+              desc={t('privacy.protectedVisibilityDesc')}
               color={T.amber}
               soft={T.amberSoft}
             />
+
             <View style={s.vDivider} />
+
             <VisibilityBadge
               icon="eye-off-outline"
-              label="Секретный"
-              desc="Виден только приглашённым, скрыт из поиска"
+              label={t('privacy.secret')}
+              desc={t('privacy.secretDesc')}
               color={T.coral}
               soft={T.coralSoft}
             />
           </View>
         </View>
 
-        {/* ── Save button ── */}
         {hasChanges && (
           <TouchableOpacity
             style={[s.saveBtn, isSaving && s.saveBtnDisabled]}
@@ -337,30 +364,31 @@ export default function PrivacySettingsScreen() {
               <ActivityIndicator size="small" color={T.surface} />
             ) : (
               <>
-                <Ionicons name="checkmark-circle-outline" size={18} color={T.surface} />
-                <Text style={s.saveBtnTxt}>Сохранить изменения</Text>
+                <Ionicons
+                  name="checkmark-circle-outline"
+                  size={18}
+                  color={T.surface}
+                />
+                <Text style={s.saveBtnTxt}>{t('privacy.saveChanges')}</Text>
               </>
             )}
           </TouchableOpacity>
         )}
 
-        {/* ── Footer note ── */}
         <View style={s.footerRow}>
           <Ionicons name="lock-closed" size={12} color={T.textMuted} />
-          <Text style={s.footerTxt}>Твои данные защищены и не передаются третьим лицам</Text>
+          <Text style={s.footerTxt}>{t('privacy.footer')}</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
-  container:  { flex: 1, backgroundColor: T.bg },
+  container: { flex: 1, backgroundColor: T.bg },
   loadingBox: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  content:    { padding: 20, paddingBottom: 48 },
+  content: { padding: 20, paddingBottom: 48 },
 
-  // Header save button
   saveHeaderBtn: {
     backgroundColor: T.violet,
     borderRadius: 8,
@@ -369,7 +397,6 @@ const s = StyleSheet.create({
   },
   saveHeaderTxt: { color: T.surface, fontWeight: '700', fontSize: 13 },
 
-  // Hero banner
   heroBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -391,7 +418,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   heroTitle: { fontSize: 14, fontWeight: '700', color: T.text, marginBottom: 2 },
-  heroSub:   { fontSize: 12, color: T.textSub, lineHeight: 16 },
+  heroSub: { fontSize: 12, color: T.textSub, lineHeight: 16 },
   heroPill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -401,10 +428,9 @@ const s = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
   },
-  heroDot:     { width: 6, height: 6, borderRadius: 3 },
+  heroDot: { width: 6, height: 6, borderRadius: 3 },
   heroPillTxt: { fontSize: 12, fontWeight: '600', color: T.teal },
 
-  // Section card wrapper
   section: {
     backgroundColor: T.surface,
     borderRadius: 16,
@@ -414,7 +440,6 @@ const s = StyleSheet.create({
     marginBottom: 24,
   },
 
-  // Warning card
   warnCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -426,16 +451,12 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: T.coral + '33',
   },
-  warnIconBox: {
-    marginTop: 1,
-  },
+  warnIconBox: { marginTop: 1 },
   warnText: { flex: 1, fontSize: 13, color: T.coral, lineHeight: 18 },
 
-  // Visibility guide
   visGuide: { padding: 16, gap: 0 },
   vDivider: { height: 1, backgroundColor: T.border, marginVertical: 10, marginLeft: 44 },
 
-  // Save button
   saveBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -452,9 +473,8 @@ const s = StyleSheet.create({
     elevation: 4,
   },
   saveBtnDisabled: { opacity: 0.5 },
-  saveBtnTxt:      { color: T.surface, fontWeight: '700', fontSize: 15 },
+  saveBtnTxt: { color: T.surface, fontWeight: '700', fontSize: 15 },
 
-  // Footer
   footerRow: {
     flexDirection: 'row',
     justifyContent: 'center',

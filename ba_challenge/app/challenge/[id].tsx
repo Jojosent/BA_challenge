@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View,
   Text,
@@ -31,7 +32,10 @@ import { challengeService } from '@services/challengeService';
 export default function ChallengeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language || 'ru';
   const { user } = useAuthStore();
+
   const {
     currentChallenge,
     currentTasks,
@@ -41,7 +45,6 @@ export default function ChallengeDetailScreen() {
     joinChallenge,
     setCurrentTasks,
     kickParticipant,
-
   } = useChallenge();
 
   const [inviteModalVisible, setInviteModalVisible] = useState(false);
@@ -63,10 +66,13 @@ export default function ChallengeDetailScreen() {
   }, [id]);
 
   if (isLoading && !currentChallenge) return <LoadingSpinner />;
+
   if (!currentChallenge) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.errorText}>Челлендж не найден</Text>
+        <Text style={styles.errorText}>
+          {t('challengeDetails.notFound')}
+        </Text>
       </View>
     );
   }
@@ -80,14 +86,13 @@ export default function ChallengeDetailScreen() {
 
   const totalDays = Math.ceil(
     (new Date(c.endDate).getTime() - new Date(c.startDate).getTime()) /
-    (1000 * 60 * 60 * 24)
+      (1000 * 60 * 60 * 24)
   );
 
   const participantCount = c.participants?.length ?? 0;
-  const prizePool = c.prizePool ?? (c.betAmount * participantCount);
+  const prizePool = c.prizePool ?? c.betAmount * participantCount;
   const prizeInfo = c.prizeInfo;
 
-  // ✅ Основная кнопка "Вступить" — открывает пароль или сразу подтверждение
   const handleJoin = () => {
     if (isProtected) {
       setPasswordInput('');
@@ -96,24 +101,25 @@ export default function ChallengeDetailScreen() {
       setPasswordModal(true);
       return;
     }
+
     confirmJoin();
   };
 
   const handleActivate = () => {
     Alert.alert(
-      '🚀 Запустить челлендж?',
-      'Статус изменится на "Активен" и участники смогут выполнять задачи',
+      t('challengeDetails.activateTitle'),
+      t('challengeDetails.activateMessage'),
       [
-        { text: 'Отмена', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Запустить',
+          text: t('challengeDetails.activateButton'),
           onPress: async () => {
             try {
               setIsUpdatingStatus(true);
               await challengeService.updateStatus(Number(id), 'active');
               await fetchChallenge(Number(id));
             } catch (e: any) {
-              Alert.alert('Ошибка', e.message);
+              Alert.alert(t('common.error'), e.message);
             } finally {
               setIsUpdatingStatus(false);
             }
@@ -123,24 +129,34 @@ export default function ChallengeDetailScreen() {
     );
   };
 
-
-  // ✅ Выполняет вступление (с паролем или без)
   const confirmJoin = (password?: string) => {
-    const msg = c.betAmount > 0
-      ? `Вступить? Спишется ${c.betAmount} 🪙 и добавится в призовой пул.`
-      : 'Вступить в этот челлендж?';
+    const msg =
+      c.betAmount > 0
+        ? t('challengeDetails.joinWithBet', { amount: c.betAmount })
+        : t('challengeDetails.joinSimple');
 
-    Alert.alert('Вступить в челлендж?', msg, [
-      { text: 'Отмена', style: 'cancel' },
+    Alert.alert(t('challengeDetails.joinTitle'), msg, [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Вступить',
+        text: t('challengeDetails.joinButton'),
         onPress: async () => {
           const result = await joinChallenge(Number(id), password);
+
           if (result) {
-            const poolMsg = c.betAmount > 0
-              ? `\nПризовой пул: ${result.prizePool} 🪙`
-              : '';
-            Alert.alert('🎉', `Ты в игре!${poolMsg}`);
+            const poolMsg =
+              c.betAmount > 0
+                ? t('challengeDetails.prizePoolResult', {
+                    amount: result.prizePool,
+                  })
+                : '';
+
+            Alert.alert(
+              '🎉',
+              t('challengeDetails.joinSuccess', {
+                pool: poolMsg,
+              })
+            );
+
             setPasswordModal(false);
           }
         },
@@ -148,16 +164,15 @@ export default function ChallengeDetailScreen() {
     ]);
   };
 
-  // ✅ Обработка отправки пароля
   const handlePasswordSubmit = () => {
     if (!passwordInput.trim()) {
-      setPasswordError('Введи пароль');
+      setPasswordError(t('challengeDetails.enterPassword'));
       return;
     }
+
     confirmJoin(passwordInput.trim());
   };
 
-  // Добавить задачу
   const handleAddTask = async (title: string, description: string) => {
     try {
       setTaskLoading(true);
@@ -165,15 +180,18 @@ export default function ChallengeDetailScreen() {
       setCurrentTasks(updatedTasks);
       setTaskModalVisible(false);
     } catch (e: any) {
-      Alert.alert('Нельзя добавить задачу', e.message || 'Ошибка при добавлении задачи');
+      Alert.alert(
+        t('challengeDetails.cannotAddTask'),
+        e.message || t('challengeDetails.addTaskError')
+      );
     } finally {
       setTaskLoading(false);
     }
   };
 
-  // Изменить задачу
   const handleEditTask = async (title: string, description: string) => {
     if (!editingTask) return;
+
     try {
       setTaskLoading(true);
       await taskService.update(editingTask.id, title, description);
@@ -181,28 +199,29 @@ export default function ChallengeDetailScreen() {
       setEditingTask(null);
       setTaskModalVisible(false);
     } catch (e: any) {
-      Alert.alert('Ошибка', e.message);
+      Alert.alert(t('common.error'), e.message);
     } finally {
       setTaskLoading(false);
     }
   };
 
-  // Удалить задачу
   const handleDeleteTask = (task: Task) => {
     Alert.alert(
-      'Удалить задачу?',
-      `"${task.title}" будет удалена. Дедлайны остальных задач пересчитаются.`,
+      t('challengeDetails.deleteTaskTitle'),
+      t('challengeDetails.deleteTaskMessage', {
+        title: task.title,
+      }),
       [
-        { text: 'Отмена', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Удалить',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
               const updatedTasks = await taskService.delete(task.id);
               setCurrentTasks(updatedTasks);
             } catch (e: any) {
-              Alert.alert('Ошибка', e.message);
+              Alert.alert(t('common.error'), e.message);
             }
           },
         },
@@ -210,24 +229,23 @@ export default function ChallengeDetailScreen() {
     );
   };
 
-  // Сдвинуть задачу
   const handleReorder = async (task: Task, direction: 'up' | 'down') => {
     try {
       const updatedTasks = await taskService.reorder(task.id, direction);
       setCurrentTasks(updatedTasks);
     } catch (e: any) {
-      Alert.alert('Ошибка', e.message);
+      Alert.alert(t('common.error'), e.message);
     }
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <Header
-        title="Детали"
+        title={t('challengeDetails.title')}
         showBack
         rightElement={
           canEdit ? (
-            <TouchableOpacity onPress={() => { }}>
+            <TouchableOpacity onPress={() => {}}>
               <Ionicons name="settings-outline" size={22} color={Colors.textPrimary} />
             </TouchableOpacity>
           ) : undefined
@@ -235,49 +253,62 @@ export default function ChallengeDetailScreen() {
       />
 
       <ScrollView showsVerticalScrollIndicator={false}>
-
-        {/* ── Главная инфо ── */}
         <View style={styles.heroSection}>
           <Text style={styles.challengeTitle}>{c.title}</Text>
           <Text style={styles.challengeDesc}>{c.description}</Text>
+
           <View style={styles.metaRow}>
             <View style={styles.metaItem}>
               <Ionicons name="calendar-outline" size={14} color={Colors.textSecondary} />
               <Text style={styles.metaText}>
-                {new Date(c.startDate).toLocaleDateString('ru-RU')} —{' '}
-                {new Date(c.endDate).toLocaleDateString('ru-RU')}
+                {new Date(c.startDate).toLocaleDateString(locale)} —{' '}
+                {new Date(c.endDate).toLocaleDateString(locale)}
               </Text>
             </View>
+
             <View style={styles.metaItem}>
               <Ionicons name="time-outline" size={14} color={Colors.textSecondary} />
-              <Text style={styles.metaText}>{totalDays} дней</Text>
+              <Text style={styles.metaText}>
+                {t('challengeDetails.daysCount', { count: totalDays })}
+              </Text>
             </View>
+
             {c.betAmount > 0 && (
               <View style={styles.metaItem}>
-                <Text style={styles.metaText}>🪙 {c.betAmount} взнос</Text>
+                <Text style={styles.metaText}>
+                  {t('challengeDetails.betAmount', { amount: c.betAmount })}
+                </Text>
               </View>
             )}
-            {/* ✅ Бейдж защищённого */}
+
             {isProtected && (
               <View style={styles.protectedBadge}>
                 <Ionicons name="shield-checkmark" size={12} color={Colors.warning} />
-                <Text style={styles.protectedBadgeText}>Защищён паролем</Text>
+                <Text style={styles.protectedBadgeText}>
+                  {t('challengeDetails.protected')}
+                </Text>
               </View>
             )}
           </View>
         </View>
 
-        {/* ✅ ── Призовой пул ── */}
         {c.betAmount > 0 && (
           <View style={styles.prizeSection}>
             <View style={styles.prizeHeader}>
               <Text style={styles.prizeHeaderIcon}>🏆</Text>
+
               <View style={styles.prizeHeaderTexts}>
-                <Text style={styles.prizeHeaderTitle}>Призовой пул</Text>
+                <Text style={styles.prizeHeaderTitle}>
+                  {t('challengeDetails.prizePool')}
+                </Text>
                 <Text style={styles.prizeHeaderSub}>
-                  {c.betAmount} 🪙 × {participantCount} участников
+                  {t('challengeDetails.poolFormula', {
+                    amount: c.betAmount,
+                    count: participantCount,
+                  })}
                 </Text>
               </View>
+
               <Text style={styles.prizeTotal}>{prizePool} 🪙</Text>
             </View>
 
@@ -292,10 +323,11 @@ export default function ChallengeDetailScreen() {
                     </View>
                   </View>
                 ))}
+
                 {participantCount > 3 && (
                   <View style={styles.prizeLosers}>
                     <Text style={styles.prizeLosersText}>
-                      😔 4+ место — монеты не возвращаются
+                      {t('challengeDetails.noCoinsForFourthPlace')}
                     </Text>
                   </View>
                 )}
@@ -303,30 +335,45 @@ export default function ChallengeDetailScreen() {
             ) : (
               <View style={styles.prizeTiers}>
                 <View style={styles.prizeTierRow}>
-                  <Text style={styles.prizeTierLabel}>🥇 1 место</Text>
+                  <Text style={styles.prizeTierLabel}>
+                    {t('challengeDetails.firstPlace')}
+                  </Text>
                   <View style={styles.prizeTierRight}>
                     <Text style={styles.prizeTierPercent}>50%</Text>
-                    <Text style={styles.prizeTierAmount}>{Math.floor(prizePool * 0.5)} 🪙</Text>
+                    <Text style={styles.prizeTierAmount}>
+                      {Math.floor(prizePool * 0.5)} 🪙
+                    </Text>
                   </View>
                 </View>
+
                 <View style={styles.prizeTierRow}>
-                  <Text style={styles.prizeTierLabel}>🥈 2 место</Text>
+                  <Text style={styles.prizeTierLabel}>
+                    {t('challengeDetails.secondPlace')}
+                  </Text>
                   <View style={styles.prizeTierRight}>
                     <Text style={styles.prizeTierPercent}>30%</Text>
-                    <Text style={styles.prizeTierAmount}>{Math.floor(prizePool * 0.3)} 🪙</Text>
+                    <Text style={styles.prizeTierAmount}>
+                      {Math.floor(prizePool * 0.3)} 🪙
+                    </Text>
                   </View>
                 </View>
+
                 <View style={styles.prizeTierRow}>
-                  <Text style={styles.prizeTierLabel}>🥉 3 место</Text>
+                  <Text style={styles.prizeTierLabel}>
+                    {t('challengeDetails.thirdPlace')}
+                  </Text>
                   <View style={styles.prizeTierRight}>
                     <Text style={styles.prizeTierPercent}>20%</Text>
-                    <Text style={styles.prizeTierAmount}>{Math.floor(prizePool * 0.2)} 🪙</Text>
+                    <Text style={styles.prizeTierAmount}>
+                      {Math.floor(prizePool * 0.2)} 🪙
+                    </Text>
                   </View>
                 </View>
+
                 {participantCount > 3 && (
                   <View style={styles.prizeLosers}>
                     <Text style={styles.prizeLosersText}>
-                      😔 4+ место — монеты не возвращаются
+                      {t('challengeDetails.noCoinsForFourthPlace')}
                     </Text>
                   </View>
                 )}
@@ -335,18 +382,21 @@ export default function ChallengeDetailScreen() {
           </View>
         )}
 
-        {/* ── Кнопка вступить ── */}
         {!isParticipant && !canEdit && c.status !== 'completed' && (
           <View style={styles.joinSection}>
             <Button
               title={
                 isProtected
                   ? c.betAmount > 0
-                    ? `🛡️ Вступить (взнос ${c.betAmount} 🪙)`
-                    : '🛡️ Вступить (нужен пароль)'
+                    ? t('challengeDetails.joinProtectedWithBet', {
+                        amount: c.betAmount,
+                      })
+                    : t('challengeDetails.joinProtected')
                   : c.betAmount > 0
-                    ? `🎯 Вступить (взнос ${c.betAmount} 🪙)`
-                    : '🎯 Вступить в челлендж'
+                    ? t('challengeDetails.joinPublicWithBet', {
+                        amount: c.betAmount,
+                      })
+                    : t('challengeDetails.joinChallenge')
               }
               onPress={handleJoin}
               isLoading={isLoading}
@@ -357,24 +407,29 @@ export default function ChallengeDetailScreen() {
         {canEdit && c.status === 'pending' && (
           <View style={styles.joinSection}>
             <Button
-              title={isUpdatingStatus ? 'Запускаем...' : '🚀 Запустить челлендж'}
+              title={
+                isUpdatingStatus
+                  ? t('challengeDetails.activating')
+                  : t('challengeDetails.activateChallenge')
+              }
               onPress={handleActivate}
               isLoading={isUpdatingStatus}
               variant="outline"
             />
             <Text style={styles.activateHint}>
-              Или дождись даты начала — запустится автоматически
+              {t('challengeDetails.autoStartHint')}
             </Text>
           </View>
         )}
 
         {isParticipant && !canEdit && (
           <View style={styles.joinedBadge}>
-            <Text style={styles.joinedText}>✅ Ты участвуешь в этом челлендже</Text>
+            <Text style={styles.joinedText}>
+              {t('challengeDetails.youParticipate')}
+            </Text>
           </View>
         )}
 
-        {/* ── AI генератор ── */}
         {canEdit && (
           <View style={styles.aiSection}>
             <AITaskGenerator
@@ -393,8 +448,12 @@ export default function ChallengeDetailScreen() {
           >
             <Text style={styles.aiChatIcon}>🤖</Text>
             <View style={styles.aiChatTexts}>
-              <Text style={styles.aiChatTitle}>AI Помощник</Text>
-              <Text style={styles.aiChatSub}>Советы, мотивация, вопросы</Text>
+              <Text style={styles.aiChatTitle}>
+                {t('challengeDetails.aiAssistant')}
+              </Text>
+              <Text style={styles.aiChatSub}>
+                {t('challengeDetails.aiAssistantSub')}
+              </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={Colors.primary} />
           </TouchableOpacity>
@@ -406,14 +465,16 @@ export default function ChallengeDetailScreen() {
             style={chatBtnChallStyle}
             onPress={() =>
               router.push(
-                `/chat?roomType=challenge&roomId=${id}&title=${encodeURIComponent(`Чат: ${c.title}`)}`
+                `/chat?roomType=challenge&roomId=${id}&title=${encodeURIComponent(
+                  t('challengeDetails.chatWithTitle', { title: c.title })
+                )}`
               )
             }
           >
             <Text style={{ fontSize: 22 }}>💬</Text>
             <View style={{ flex: 1 }}>
-              <Text style={chatTitleStyle}>Чат участников</Text>
-              <Text style={chatSubStyle}>Обсуждение челленджа</Text>
+              <Text style={chatTitleStyle}>{t('challengeDetails.chat')}</Text>
+              <Text style={chatSubStyle}>{t('challengeDetails.chatSub')}</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={Colors.accent} />
           </TouchableOpacity>
@@ -426,13 +487,18 @@ export default function ChallengeDetailScreen() {
             onPress={() => setInviteModalVisible(true)}
           >
             <Ionicons name="person-add-outline" size={18} color={Colors.white} />
-            <Text style={styles.inviteBtnTxt}>Пригласить участника</Text>
+            <Text style={styles.inviteBtnTxt}>
+              {t('challengeDetails.inviteParticipant')}
+            </Text>
           </TouchableOpacity>
         )}
 
         {/* ── Задачи ── */}
         <View style={styles.tasksTitleRow}>
-          <Text style={styles.sectionTitle}>Задачи ({currentTasks.length})</Text>
+          <Text style={styles.sectionTitle}>
+            {t('challengeDetails.tasks')} ({currentTasks.length})
+          </Text>
+
           {canEdit && (
             <TouchableOpacity
               style={styles.addTaskBtn}
@@ -442,7 +508,7 @@ export default function ChallengeDetailScreen() {
               }}
             >
               <Ionicons name="add" size={18} color={Colors.white} />
-              <Text style={styles.addTaskTxt}>Добавить</Text>
+              <Text style={styles.addTaskTxt}>{t('common.create')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -462,7 +528,6 @@ export default function ChallengeDetailScreen() {
               return (
                 <Card key={task.id} style={[styles.taskCard, isExpired && styles.taskExpired]}>
                   <View style={styles.taskInner}>
-
                     {canEdit && (
                       <View style={styles.reorderCol}>
                         <TouchableOpacity
@@ -476,6 +541,7 @@ export default function ChallengeDetailScreen() {
                             color={(isFirst || isExpired) ? Colors.textMuted : Colors.primary}
                           />
                         </TouchableOpacity>
+
                         <TouchableOpacity
                           style={[styles.arrowBtn, (isLast || isExpired) && styles.arrowBtnDisabled]}
                           onPress={() => !isLast && !isExpired && handleReorder(task, 'down')}
@@ -494,20 +560,27 @@ export default function ChallengeDetailScreen() {
                       style={styles.taskContent}
                       onPress={() => {
                         if (isExpired) {
-                          Alert.alert('⏰ Дедлайн прошёл', 'Время для загрузки истекло.');
+                          Alert.alert(
+                            t('challengeDetails.deadlinePassed'),
+                            t('challengeDetails.deadlineExpiredMessage')
+                          );
                           return;
                         }
+
                         if (!isParticipant && !canEdit) {
-                          Alert.alert('', 'Вступи в челлендж чтобы выполнять задачи');
+                          Alert.alert('', t('challengeDetails.joinToComplete'));
                           return;
                         }
+
                         router.push(`/challenge/task/${task.id}?challengeId=${id}`);
                       }}
                       activeOpacity={isExpired ? 0.6 : 0.8}
                     >
                       <View style={styles.taskHeader}>
                         <View style={styles.dayBadge}>
-                          <Text style={styles.dayText}>Задача {task.day}</Text>
+                          <Text style={styles.dayText}>
+                            {t('challengeDetails.taskDay', { day: task.day })}
+                          </Text>
                         </View>
 
                         {task.isAiGenerated ? (
@@ -516,22 +589,32 @@ export default function ChallengeDetailScreen() {
                           </View>
                         ) : (
                           <View style={styles.humanBadge}>
-                            <Text style={styles.humanText}>👤 Вручную</Text>
+                            <Text style={styles.humanText}>
+                              {t('challengeDetails.manual')}
+                            </Text>
                           </View>
                         )}
 
                         {isExpired ? (
                           <View style={styles.expiredBadge}>
-                            <Text style={styles.expiredText}>⏰ Просрочено</Text>
+                            <Text style={styles.expiredText}>
+                              {t('challengeDetails.expired')}
+                            </Text>
                           </View>
                         ) : daysLeft !== null && daysLeft <= 2 ? (
                           <View style={styles.urgentBadge}>
-                            <Text style={styles.urgentText}>🔥 {daysLeft} дн.</Text>
+                            <Text style={styles.urgentText}>
+                              🔥 {t('challengeDetails.daysLeftShort', { count: daysLeft })}
+                            </Text>
                           </View>
                         ) : deadline ? (
                           <View style={styles.deadlineBadge}>
                             <Text style={styles.deadlineText}>
-                              до {deadline.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
+                              {t('challengeDetails.until')}{' '}
+                              {deadline.toLocaleDateString(locale, {
+                                day: 'numeric',
+                                month: 'short',
+                              })}
                             </Text>
                           </View>
                         ) : null}
@@ -540,14 +623,22 @@ export default function ChallengeDetailScreen() {
                       <Text style={[styles.taskTitle, isExpired && styles.textExpired]}>
                         {task.title}
                       </Text>
-                      <Text style={[styles.taskDesc, isExpired && styles.textExpired]} numberOfLines={2}>
+
+                      <Text
+                        style={[styles.taskDesc, isExpired && styles.textExpired]}
+                        numberOfLines={2}
+                      >
                         {task.description}
                       </Text>
 
                       {isExpired ? (
-                        <Text style={styles.expiredHint}>🔒 Дедлайн прошёл</Text>
+                        <Text style={styles.expiredHint}>
+                          🔒 {t('challengeDetails.deadlinePassed')}
+                        </Text>
                       ) : (isParticipant || canEdit) ? (
-                        <Text style={styles.tapHint}>Нажми чтобы загрузить доказательство →</Text>
+                        <Text style={styles.tapHint}>
+                          {t('challengeDetails.uploadProof')}
+                        </Text>
                       ) : null}
                     </TouchableOpacity>
 
@@ -562,6 +653,7 @@ export default function ChallengeDetailScreen() {
                         >
                           <Ionicons name="pencil" size={15} color={Colors.primary} />
                         </TouchableOpacity>
+
                         <TouchableOpacity
                           style={styles.deleteTaskBtn}
                           onPress={() => handleDeleteTask(task)}
@@ -578,19 +670,28 @@ export default function ChallengeDetailScreen() {
         ) : (
           <Card style={styles.emptyCard}>
             <Text style={styles.emptyIcon}>📋</Text>
-            <Text style={styles.emptyTitle}>Задачи ещё не добавлены</Text>
+
+            <Text style={styles.emptyTitle}>
+              {t('challengeDetails.noTasks')}
+            </Text>
+
             {canEdit ? (
-              <Text style={styles.emptyText}>Сгенерируй через AI или добавь вручную</Text>
+              <Text style={styles.emptyText}>
+                {t('challengeDetails.noTasksCreator')}
+              </Text>
             ) : (
-              <Text style={styles.emptyText}>Создатель пока не добавил задачи</Text>
+              <Text style={styles.emptyText}>
+                {t('challengeDetails.noTasksParticipant')}
+              </Text>
             )}
           </Card>
         )}
 
         {/* ── Участники ── */}
         <Text style={[styles.sectionTitle, styles.sectionTitlePadded]}>
-          Участники ({c.participants?.length ?? 0})
+          {t('challengeDetails.participants')} ({c.participants?.length ?? 0})
         </Text>
+
         <Card style={styles.participantsCard}>
           <ParticipantList
             participants={c.participants ?? []}
@@ -600,408 +701,462 @@ export default function ChallengeDetailScreen() {
             currentUserId={user?.id}
             onKick={async (participant) => {
               const result = await kickParticipant(Number(id), participant.userId);
+
               if (result) {
-                Alert.alert(
-                  '✅ Готово',
-                  result.message
-                );
+                Alert.alert(t('common.success'), result.message);
               } else {
-                Alert.alert('Ошибка', 'Не удалось удалить участника');
+                Alert.alert(
+                  t('common.error'),
+                  t('challengeDetails.kickParticipantError')
+                );
               }
             }}
           />
         </Card>
 
-      </ScrollView>
+        </ScrollView>
 
-      {/* ✅ ── Модальное окно пароля ── */}
-      <Modal
-        visible={passwordModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setPasswordModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalSheet}>
-            {/* Заголовок */}
-            <View style={styles.modalHeader}>
-              <View style={styles.modalTitleRow}>
-                <Ionicons name="shield-checkmark" size={22} color={Colors.warning} />
-                <Text style={styles.modalTitle}>Защищённый челлендж</Text>
+        {/* ✅ ── Модальное окно пароля ── */}
+        <Modal
+          visible={passwordModal}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setPasswordModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalSheet}>
+              <View style={styles.modalHeader}>
+                <View style={styles.modalTitleRow}>
+                  <Ionicons name="shield-checkmark" size={22} color={Colors.warning} />
+                  <Text style={styles.modalTitle}>
+                    {t('challengeDetails.protectedModalTitle')}
+                  </Text>
+                </View>
+
+                <TouchableOpacity onPress={() => setPasswordModal(false)}>
+                  <Ionicons name="close" size={22} color={Colors.textMuted} />
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity onPress={() => setPasswordModal(false)}>
-                <Ionicons name="close" size={22} color={Colors.textMuted} />
-              </TouchableOpacity>
-            </View>
 
-            <Text style={styles.modalSubtitle}>
-              Этот челлендж защищён паролем. Введи пароль чтобы вступить.
-            </Text>
+              <Text style={styles.modalSubtitle}>
+                {t('challengeDetails.protectedModalSubtitle')}
+              </Text>
 
-            {/* Поле пароля */}
-            <View style={[
-              styles.passwordInputWrapper,
-              passwordError ? styles.passwordInputError : null,
-            ]}>
-              <Ionicons name="lock-closed-outline" size={18} color={Colors.textMuted} />
-              <TextInput
-                style={styles.passwordInput}
-                value={passwordInput}
-                onChangeText={(t) => {
-                  setPasswordInput(t);
-                  setPasswordError('');
-                }}
-                placeholder="Введи пароль..."
-                placeholderTextColor={Colors.textMuted}
-                secureTextEntry={!passwordVisible}
-                autoFocus
-                autoCapitalize="none"
-                onSubmitEditing={handlePasswordSubmit}
-                returnKeyType="done"
-              />
-              <TouchableOpacity onPress={() => setPasswordVisible(!passwordVisible)}>
-                <Ionicons
-                  name={passwordVisible ? 'eye-off-outline' : 'eye-outline'}
-                  size={18}
-                  color={Colors.textMuted}
-                />
-              </TouchableOpacity>
-            </View>
-
-            {passwordError ? (
-              <Text style={styles.passwordErrorText}>{passwordError}</Text>
-            ) : null}
-
-            {/* Кнопки */}
-            <View style={styles.modalBtns}>
-              <TouchableOpacity
-                style={styles.modalCancelBtn}
-                onPress={() => setPasswordModal(false)}
-              >
-                <Text style={styles.modalCancelTxt}>Отмена</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
+              <View
                 style={[
-                  styles.passwordSubmitBtn,
-                  (!passwordInput.trim() || isLoading) && styles.passwordSubmitBtnDisabled,
+                  styles.passwordInputWrapper,
+                  passwordError ? styles.passwordInputError : null,
                 ]}
-                onPress={handlePasswordSubmit}
-                disabled={!passwordInput.trim() || isLoading}
               >
-                {isLoading ? (
-                  <ActivityIndicator size="small" color={Colors.white} />
-                ) : (
-                  <Text style={styles.passwordSubmitTxt}>Вступить 🛡️</Text>
-                )}
-              </TouchableOpacity>
+                <Ionicons name="lock-closed-outline" size={18} color={Colors.textMuted} />
+
+                <TextInput
+                  style={styles.passwordInput}
+                  value={passwordInput}
+                  onChangeText={(value) => {
+                    setPasswordInput(value);
+                    setPasswordError('');
+                  }}
+                  placeholder={t('challengeDetails.passwordPlaceholder')}
+                  placeholderTextColor={Colors.textMuted}
+                  secureTextEntry={!passwordVisible}
+                  autoFocus
+                  autoCapitalize="none"
+                  onSubmitEditing={handlePasswordSubmit}
+                  returnKeyType="done"
+                />
+
+                <TouchableOpacity onPress={() => setPasswordVisible(!passwordVisible)}>
+                  <Ionicons
+                    name={passwordVisible ? 'eye-off-outline' : 'eye-outline'}
+                    size={18}
+                    color={Colors.textMuted}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {passwordError ? (
+                <Text style={styles.passwordErrorText}>{passwordError}</Text>
+              ) : null}
+
+              <View style={styles.modalBtns}>
+                <TouchableOpacity
+                  style={styles.modalCancelBtn}
+                  onPress={() => setPasswordModal(false)}
+                >
+                  <Text style={styles.modalCancelTxt}>{t('common.cancel')}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.passwordSubmitBtn,
+                    (!passwordInput.trim() || isLoading) && styles.passwordSubmitBtnDisabled,
+                  ]}
+                  onPress={handlePasswordSubmit}
+                  disabled={!passwordInput.trim() || isLoading}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator size="small" color={Colors.white} />
+                  ) : (
+                    <Text style={styles.passwordSubmitTxt}>
+                      {t('challengeDetails.joinProtected')}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
 
-      {/* Модалки задач */}
-      <TaskFormModal
-        visible={taskModalVisible}
-        onClose={() => { setTaskModalVisible(false); setEditingTask(null); }}
-        onSave={editingTask ? handleEditTask : handleAddTask}
-        editTask={editingTask}
-        isLoading={taskLoading}
-      />
+        {/* Модалки задач */}
+        <TaskFormModal
+          visible={taskModalVisible}
+          onClose={() => {
+            setTaskModalVisible(false);
+            setEditingTask(null);
+          }}
+          onSave={editingTask ? handleEditTask : handleAddTask}
+          editTask={editingTask}
+          isLoading={taskLoading}
+        />
 
-      <InviteToChallengeModal
-        visible={inviteModalVisible}
-        onClose={() => setInviteModalVisible(false)}
-        challengeId={Number(id)}
-      />
-    </SafeAreaView>
-  );
-}
+        <InviteToChallengeModal
+          visible={inviteModalVisible}
+          onClose={() => setInviteModalVisible(false)}
+          challengeId={Number(id)}
+        />
+        </SafeAreaView>
+        );
+        }
 
-const chatBtnChallStyle = {
-  flexDirection: 'row' as const,
-  alignItems: 'center' as const,
-  backgroundColor: Colors.surface,
-  marginHorizontal: 20,
-  marginBottom: 16,
-  borderRadius: 14,
-  padding: 16,
-  borderWidth: 1,
-  borderColor: Colors.accent + '44',
-  gap: 12,
-};
-const chatTitleStyle = { fontSize: 15, fontWeight: '700' as const, color: Colors.textPrimary };
-const chatSubStyle = { fontSize: 12, color: Colors.textSecondary, marginTop: 2 };
+        const chatBtnChallStyle = {
+          flexDirection: 'row' as const,
+          alignItems: 'center' as const,
+          backgroundColor: Colors.surface,
+          marginHorizontal: 20,
+          marginBottom: 16,
+          borderRadius: 14,
+          padding: 16,
+          borderWidth: 1,
+          borderColor: Colors.accent + '44',
+          gap: 12,
+        };
 
-const styles = StyleSheet.create({
-  activateHint: {
-    fontSize: 12,
-    color: Colors.textMuted,
-    textAlign: 'center',
-    marginTop: 6,
-},
-  container: { flex: 1, backgroundColor: Colors.background },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  errorText: { color: Colors.textSecondary, fontSize: 16 },
+        const chatTitleStyle = {
+          fontSize: 15,
+          fontWeight: '700' as const,
+          color: Colors.textPrimary,
+        };
 
-  heroSection: { padding: 20 },
-  challengeTitle: { fontSize: 24, fontWeight: '800', color: Colors.textPrimary, marginBottom: 8 },
-  challengeDesc: { fontSize: 15, color: Colors.textSecondary, lineHeight: 22, marginBottom: 14 },
-  metaRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap', alignItems: 'center' },
-  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  metaText: { fontSize: 13, color: Colors.textSecondary },
+        const chatSubStyle = {
+          fontSize: 12,
+          color: Colors.textSecondary,
+          marginTop: 2,
+        };
 
-  // ✅ Бейдж защищённого
-  protectedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: Colors.warning + '20',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.warning + '50',
-  },
-  protectedBadgeText: {
-    fontSize: 11,
-    color: Colors.warning,
-    fontWeight: '600',
-  },
+        const styles = StyleSheet.create({
+          activateHint: {
+            fontSize: 12,
+            color: Colors.textMuted,
+            textAlign: 'center',
+            marginTop: 6,
+          },
+          container: { flex: 1, backgroundColor: Colors.background },
+          centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+          errorText: { color: Colors.textSecondary, fontSize: 16 },
 
-  // Призовой пул
-  prizeSection: {
-    marginHorizontal: 20,
-    marginBottom: 16,
-    backgroundColor: Colors.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: Colors.rikon + '40',
-    overflow: 'hidden',
-  },
-  prizeHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: Colors.rikon + '12',
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.rikon + '25',
-    gap: 12,
-  },
-  prizeHeaderIcon: { fontSize: 28 },
-  prizeHeaderTexts: { flex: 1 },
-  prizeHeaderTitle: { fontSize: 16, fontWeight: '700', color: Colors.textPrimary },
-  prizeHeaderSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
-  prizeTotal: { fontSize: 22, fontWeight: '800', color: Colors.rikon },
-  prizeTiers: { padding: 12, gap: 2 },
-  prizeTierRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  prizeTierLabel: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary },
-  prizeTierRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  prizeTierPercent: { fontSize: 13, color: Colors.textMuted, width: 36, textAlign: 'right' },
-  prizeTierAmount: { fontSize: 15, fontWeight: '700', color: Colors.rikon, minWidth: 60, textAlign: 'right' },
-  prizeLosers: { paddingVertical: 10, paddingHorizontal: 4, alignItems: 'center' },
-  prizeLosersText: { fontSize: 12, color: Colors.textMuted, fontStyle: 'italic' },
+          heroSection: { padding: 20 },
+          challengeTitle: { fontSize: 24, fontWeight: '800', color: Colors.textPrimary, marginBottom: 8 },
+          challengeDesc: { fontSize: 15, color: Colors.textSecondary, lineHeight: 22, marginBottom: 14 },
+          metaRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap', alignItems: 'center' },
+          metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+          metaText: { fontSize: 13, color: Colors.textSecondary },
 
-  joinSection: { paddingHorizontal: 20, marginBottom: 12 },
-  joinedBadge: {
-    marginHorizontal: 20, backgroundColor: Colors.accent + '22',
-    borderRadius: 10, padding: 12, marginBottom: 12,
-    borderWidth: 1, borderColor: Colors.accent,
-  },
-  joinedText: { color: Colors.accent, textAlign: 'center', fontWeight: '600' },
+          protectedBadge: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 4,
+            backgroundColor: Colors.warning + '20',
+            paddingHorizontal: 8,
+            paddingVertical: 3,
+            borderRadius: 8,
+            borderWidth: 1,
+            borderColor: Colors.warning + '50',
+          },
+          protectedBadgeText: {
+            fontSize: 11,
+            color: Colors.warning,
+            fontWeight: '600',
+          },
 
-  aiSection: { paddingHorizontal: 20, marginBottom: 12 },
-  aiChatBtn: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: Colors.surface, marginHorizontal: 20,
-    marginBottom: 16, borderRadius: 14, padding: 16,
-    borderWidth: 1, borderColor: Colors.primary + '44', gap: 12,
-  },
-  aiChatIcon: { fontSize: 28 },
-  aiChatTexts: { flex: 1 },
-  aiChatTitle: { fontSize: 15, fontWeight: '700', color: Colors.textPrimary },
-  aiChatSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
+          prizeSection: {
+            marginHorizontal: 20,
+            marginBottom: 16,
+            backgroundColor: Colors.surface,
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: Colors.rikon + '40',
+            overflow: 'hidden',
+          },
+          prizeHeader: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            padding: 16,
+            backgroundColor: Colors.rikon + '12',
+            borderBottomWidth: 1,
+            borderBottomColor: Colors.rikon + '25',
+            gap: 12,
+          },
+          prizeHeaderIcon: { fontSize: 28 },
+          prizeHeaderTexts: { flex: 1 },
+          prizeHeaderTitle: { fontSize: 16, fontWeight: '700', color: Colors.textPrimary },
+          prizeHeaderSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
+          prizeTotal: { fontSize: 22, fontWeight: '800', color: Colors.rikon },
+          prizeTiers: { padding: 12, gap: 2 },
+          prizeTierRow: {
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            paddingVertical: 10,
+            paddingHorizontal: 4,
+            borderBottomWidth: 1,
+            borderBottomColor: Colors.border,
+          },
+          prizeTierLabel: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary },
+          prizeTierRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+          prizeTierPercent: { fontSize: 13, color: Colors.textMuted, width: 36, textAlign: 'right' },
+          prizeTierAmount: { fontSize: 15, fontWeight: '700', color: Colors.rikon, minWidth: 60, textAlign: 'right' },
+          prizeLosers: { paddingVertical: 10, paddingHorizontal: 4, alignItems: 'center' },
+          prizeLosersText: { fontSize: 12, color: Colors.textMuted, fontStyle: 'italic' },
 
-  inviteBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: Colors.secondary,
-    marginHorizontal: 20, marginBottom: 12,
-    borderRadius: 12, padding: 14,
-  },
-  inviteBtnTxt: { color: Colors.white, fontWeight: '700', fontSize: 14 },
+          joinSection: { paddingHorizontal: 20, marginBottom: 12 },
+          joinedBadge: {
+            marginHorizontal: 20,
+            backgroundColor: Colors.accent + '22',
+            borderRadius: 10,
+            padding: 12,
+            marginBottom: 12,
+            borderWidth: 1,
+            borderColor: Colors.accent,
+          },
+          joinedText: { color: Colors.accent, textAlign: 'center', fontWeight: '600' },
 
-  sectionTitlePadded: { paddingHorizontal: 20 },
-  tasksTitleRow: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    alignItems: 'center', paddingHorizontal: 20,
-    marginBottom: 10, marginTop: 4,
-  },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary },
-  addTaskBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: Colors.primary, paddingHorizontal: 12,
-    paddingVertical: 7, borderRadius: 10,
-  },
-  addTaskTxt: { color: Colors.white, fontWeight: '600', fontSize: 13 },
+          aiSection: { paddingHorizontal: 20, marginBottom: 12 },
+          aiChatBtn: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: Colors.surface,
+            marginHorizontal: 20,
+            marginBottom: 16,
+            borderRadius: 14,
+            padding: 16,
+            borderWidth: 1,
+            borderColor: Colors.primary + '44',
+            gap: 12,
+          },
+          aiChatIcon: { fontSize: 28 },
+          aiChatTexts: { flex: 1 },
+          aiChatTitle: { fontSize: 15, fontWeight: '700', color: Colors.textPrimary },
+          aiChatSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
 
-  tasksSection: { paddingHorizontal: 20, marginBottom: 16 },
-  taskCard: { marginBottom: 10, padding: 0, overflow: 'hidden' },
-  taskExpired: { opacity: 0.5, borderColor: Colors.textMuted },
-  taskInner: { flexDirection: 'row', alignItems: 'stretch' },
+          inviteBtn: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+            backgroundColor: Colors.secondary,
+            marginHorizontal: 20,
+            marginBottom: 12,
+            borderRadius: 12,
+            padding: 14,
+          },
+          inviteBtnTxt: { color: Colors.white, fontWeight: '700', fontSize: 14 },
 
-  reorderCol: {
-    justifyContent: 'center', alignItems: 'center',
-    paddingHorizontal: 4, paddingVertical: 12,
-    borderRightWidth: 1, borderRightColor: Colors.border, gap: 4,
-  },
-  arrowBtn: { padding: 6, borderRadius: 6 },
-  arrowBtnDisabled: { opacity: 0.25 },
+          sectionTitlePadded: { paddingHorizontal: 20 },
+          tasksTitleRow: {
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            paddingHorizontal: 20,
+            marginBottom: 10,
+            marginTop: 4,
+          },
+          sectionTitle: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary },
+          addTaskBtn: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 4,
+            backgroundColor: Colors.primary,
+            paddingHorizontal: 12,
+            paddingVertical: 7,
+            borderRadius: 10,
+          },
+          addTaskTxt: { color: Colors.white, fontWeight: '600', fontSize: 13 },
 
-  taskContent: { flex: 1, padding: 12 },
-  taskHeader: { flexDirection: 'row', gap: 6, marginBottom: 8, flexWrap: 'wrap' },
-  dayBadge: { backgroundColor: Colors.primary + '22', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  dayText: { color: Colors.primary, fontSize: 11, fontWeight: '600' },
-  aiBadge: { backgroundColor: Colors.secondary + '22', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  aiText: { color: Colors.secondary, fontSize: 11, fontWeight: '600' },
-  humanBadge: { backgroundColor: Colors.accent + '22', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  humanText: { color: Colors.accent, fontSize: 11, fontWeight: '600' },
-  expiredBadge: { backgroundColor: Colors.error + '22', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  expiredText: { color: Colors.error, fontSize: 11, fontWeight: '600' },
-  urgentBadge: { backgroundColor: Colors.warning + '22', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  urgentText: { color: Colors.warning, fontSize: 11, fontWeight: '600' },
-  deadlineBadge: { backgroundColor: Colors.accent + '22', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  deadlineText: { color: Colors.accent, fontSize: 11, fontWeight: '600' },
+          tasksSection: { paddingHorizontal: 20, marginBottom: 16 },
+          taskCard: { marginBottom: 10, padding: 0, overflow: 'hidden' },
+          taskExpired: { opacity: 0.5, borderColor: Colors.textMuted },
+          taskInner: { flexDirection: 'row', alignItems: 'stretch' },
 
-  taskTitle: { fontSize: 15, fontWeight: '700', color: Colors.textPrimary, marginBottom: 4 },
-  taskDesc: { fontSize: 13, color: Colors.textSecondary, lineHeight: 18, marginBottom: 6 },
-  textExpired: { color: Colors.textMuted },
-  tapHint: { fontSize: 11, color: Colors.primary, fontStyle: 'italic' },
-  expiredHint: { fontSize: 11, color: Colors.error, fontStyle: 'italic' },
+          reorderCol: {
+            justifyContent: 'center',
+            alignItems: 'center',
+            paddingHorizontal: 4,
+            paddingVertical: 12,
+            borderRightWidth: 1,
+            borderRightColor: Colors.border,
+            gap: 4,
+          },
+          arrowBtn: { padding: 6, borderRadius: 6 },
+          arrowBtnDisabled: { opacity: 0.25 },
 
-  taskActions: {
-    justifyContent: 'center', gap: 6,
-    paddingHorizontal: 8, paddingVertical: 12,
-    borderLeftWidth: 1, borderLeftColor: Colors.border,
-  },
-  editTaskBtn: {
-    padding: 8, borderRadius: 8,
-    backgroundColor: Colors.primary + '15',
-    borderWidth: 1, borderColor: Colors.primary + '30',
-  },
-  deleteTaskBtn: {
-    padding: 8, borderRadius: 8,
-    backgroundColor: Colors.error + '15',
-    borderWidth: 1, borderColor: Colors.error + '30',
-  },
+          taskContent: { flex: 1, padding: 12 },
+          taskHeader: { flexDirection: 'row', gap: 6, marginBottom: 8, flexWrap: 'wrap' },
+          dayBadge: { backgroundColor: Colors.primary + '22', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+          dayText: { color: Colors.primary, fontSize: 11, fontWeight: '600' },
+          aiBadge: { backgroundColor: Colors.secondary + '22', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+          aiText: { color: Colors.secondary, fontSize: 11, fontWeight: '600' },
+          humanBadge: { backgroundColor: Colors.accent + '22', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+          humanText: { color: Colors.accent, fontSize: 11, fontWeight: '600' },
+          expiredBadge: { backgroundColor: Colors.error + '22', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+          expiredText: { color: Colors.error, fontSize: 11, fontWeight: '600' },
+          urgentBadge: { backgroundColor: Colors.warning + '22', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+          urgentText: { color: Colors.warning, fontSize: 11, fontWeight: '600' },
+          deadlineBadge: { backgroundColor: Colors.accent + '22', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+          deadlineText: { color: Colors.accent, fontSize: 11, fontWeight: '600' },
 
-  emptyCard: { marginHorizontal: 20, marginBottom: 16, alignItems: 'center', paddingVertical: 32 },
-  emptyIcon: { fontSize: 40, marginBottom: 12 },
-  emptyTitle: { fontSize: 16, fontWeight: '700', color: Colors.textPrimary, marginBottom: 6 },
-  emptyText: { fontSize: 13, color: Colors.textSecondary, textAlign: 'center' },
+          taskTitle: { fontSize: 15, fontWeight: '700', color: Colors.textPrimary, marginBottom: 4 },
+          taskDesc: { fontSize: 13, color: Colors.textSecondary, lineHeight: 18, marginBottom: 6 },
+          textExpired: { color: Colors.textMuted },
+          tapHint: { fontSize: 11, color: Colors.primary, fontStyle: 'italic' },
+          expiredHint: { fontSize: 11, color: Colors.error, fontStyle: 'italic' },
 
-  participantsCard: { marginHorizontal: 20, marginBottom: 30 },
+          taskActions: {
+            justifyContent: 'center',
+            gap: 6,
+            paddingHorizontal: 8,
+            paddingVertical: 12,
+            borderLeftWidth: 1,
+            borderLeftColor: Colors.border,
+          },
+          editTaskBtn: {
+            padding: 8,
+            borderRadius: 8,
+            backgroundColor: Colors.primary + '15',
+            borderWidth: 1,
+            borderColor: Colors.primary + '30',
+          },
+          deleteTaskBtn: {
+            padding: 8,
+            borderRadius: 8,
+            backgroundColor: Colors.error + '15',
+            borderWidth: 1,
+            borderColor: Colors.error + '30',
+          },
 
-  // ✅ Модальное окно пароля
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.75)',
-    justifyContent: 'flex-end',
-  },
-  modalSheet: {
-    backgroundColor: Colors.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    paddingBottom: 40,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  modalTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-  },
-  modalSubtitle: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    marginBottom: 20,
-    lineHeight: 20,
-  },
-  passwordInputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: Colors.card,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    paddingHorizontal: 14,
-    marginBottom: 8,
-  },
-  passwordInputError: {
-    borderColor: Colors.error,
-  },
-  passwordInput: {
-    flex: 1,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: Colors.textPrimary,
-  },
-  passwordErrorText: {
-    color: Colors.error,
-    fontSize: 12,
-    marginBottom: 12,
-    marginLeft: 4,
-  },
-  modalBtns: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
-  },
-  modalCancelBtn: {
-    flex: 1,
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    alignItems: 'center',
-  },
-  modalCancelTxt: {
-    color: Colors.textSecondary,
-    fontWeight: '600',
-    fontSize: 15,
-  },
-  passwordSubmitBtn: {
-    flex: 2,
-    backgroundColor: Colors.primary,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  passwordSubmitBtnDisabled: {
-    opacity: 0.45,
-  },
-  passwordSubmitTxt: {
-    color: Colors.white,
-    fontWeight: '700',
-    fontSize: 15,
-  },
-});
+          emptyCard: {
+            marginHorizontal: 20,
+            marginBottom: 16,
+            alignItems: 'center',
+            paddingVertical: 32,
+          },
+          emptyIcon: { fontSize: 40, marginBottom: 12 },
+          emptyTitle: { fontSize: 16, fontWeight: '700', color: Colors.textPrimary, marginBottom: 6 },
+          emptyText: { fontSize: 13, color: Colors.textSecondary, textAlign: 'center' },
+
+          participantsCard: { marginHorizontal: 20, marginBottom: 30 },
+
+          modalOverlay: {
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.75)',
+            justifyContent: 'flex-end',
+          },
+          modalSheet: {
+            backgroundColor: Colors.surface,
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            padding: 24,
+            paddingBottom: 40,
+          },
+          modalHeader: {
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 8,
+          },
+          modalTitleRow: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+          },
+          modalTitle: {
+            fontSize: 20,
+            fontWeight: '700',
+            color: Colors.textPrimary,
+          },
+          modalSubtitle: {
+            fontSize: 14,
+            color: Colors.textSecondary,
+            marginBottom: 20,
+            lineHeight: 20,
+          },
+          passwordInputWrapper: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 10,
+            backgroundColor: Colors.card,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: Colors.border,
+            paddingHorizontal: 14,
+            marginBottom: 8,
+          },
+          passwordInputError: {
+            borderColor: Colors.error,
+          },
+          passwordInput: {
+            flex: 1,
+            paddingVertical: 14,
+            fontSize: 16,
+            color: Colors.textPrimary,
+          },
+          passwordErrorText: {
+            color: Colors.error,
+            fontSize: 12,
+            marginBottom: 12,
+            marginLeft: 4,
+          },
+          modalBtns: {
+            flexDirection: 'row',
+            gap: 12,
+            marginTop: 8,
+          },
+          modalCancelBtn: {
+            flex: 1,
+            padding: 14,
+            borderRadius: 12,
+            borderWidth: 1,
+            borderColor: Colors.border,
+            alignItems: 'center',
+          },
+          modalCancelTxt: {
+            color: Colors.textSecondary,
+            fontWeight: '600',
+            fontSize: 15,
+          },
+          passwordSubmitBtn: {
+            flex: 2,
+            backgroundColor: Colors.primary,
+            borderRadius: 12,
+            paddingVertical: 14,
+            alignItems: 'center',
+            justifyContent: 'center',
+          },
+          passwordSubmitBtnDisabled: {
+            opacity: 0.45,
+          },
+          passwordSubmitTxt: {
+            color: Colors.white,
+            fontWeight: '700',
+            fontSize: 15,
+          },
+        });
