@@ -9,7 +9,7 @@ import {
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '@constants/colors';
+import { Colors } from '@/constants/colors';
 import { voteService } from '@services/voteService';
 
 export const ReceivedVotes: React.FC = () => {

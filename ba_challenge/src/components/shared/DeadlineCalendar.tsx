@@ -8,7 +8,7 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '@constants/colors';
+import { Colors } from '@/constants/colors';
 import { challengeService } from '@services/challengeService';
 import { useRouter } from 'expo-router';
 import { Linking } from 'react-native';

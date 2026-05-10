@@ -1,4 +1,4 @@
-import { Colors } from '@constants/colors';
+import { Colors } from '@/constants/colors';
 import { Ionicons } from '@expo/vector-icons';
 import { aiService } from '@services/aiService';
 import React, { useState } from 'react';

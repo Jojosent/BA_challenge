@@ -1,5 +1,5 @@
 import { LoadingSpinner } from '@components/shared/LoadingSpinner';
-import { Colors } from '@constants/colors';
+import { Colors } from '@/constants/colors';
 import { Config } from '@constants/config';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';

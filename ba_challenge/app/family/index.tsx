@@ -14,7 +14,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '@constants/colors';
 import { familyService } from '@services/familyService';
 import { RELATION_LABELS } from '@/types/index';
 import { FamilyTree } from '@components/shared/FamilyTree';
@@ -27,6 +26,7 @@ import { challengeService } from '@services/challengeService';
 import { InviteFamilyModal } from '@components/shared/InviteFamilyModal';
 import { useAuthStore } from '@store/authStore';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '@/theme/ThemeContext';
 
 type Tab = 'tree' | 'challenges';
 
@@ -36,6 +36,7 @@ export default function FamilyScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const { user } = useAuthStore();
+  const { theme } = useTheme();
 
   const [tab, setTab] = useState<Tab>('tree');
   const [familyChallenges, setFamilyChallenges] = useState<any[]>([]);
@@ -77,7 +78,6 @@ export default function FamilyScreen() {
 
       const familyChalls = await challengeService.getFamilyChallenges(currentOwnerId);
       setFamilyChallenges(familyChalls);
-
     } catch (err) {
       console.log('Family fetch error:', err);
     } finally {
@@ -112,18 +112,22 @@ export default function FamilyScreen() {
       Alert.alert(t('family.noPermission'), t('family.onlyOwnerCanDelete'));
       return;
     }
-    Alert.alert(t('family.deleteMemberTitle'), t('family.deleteMemberMessage', { name: member.name }), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.delete'),
-        style: 'destructive',
-        onPress: async () => {
-          await familyService.deleteMember(member.id);
-          setSelectedMember(null);
-          fetchAll();
+    Alert.alert(
+      t('family.deleteMemberTitle'),
+      t('family.deleteMemberMessage', { name: member.name }),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('common.delete'),
+          style: 'destructive',
+          onPress: async () => {
+            await familyService.deleteMember(member.id);
+            setSelectedMember(null);
+            fetchAll();
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
   const handleAddEvent = async () => {
@@ -145,46 +149,53 @@ export default function FamilyScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[s.container, { backgroundColor: theme.bg }]} edges={['top']}>
       <Header
         title={t('family.headerTitle')}
         rightElement={
           isActiveFamilyOwner ? (
             <TouchableOpacity
-              style={styles.addBtn}
+              style={[s.addBtn, { backgroundColor: theme.primary }]}
               onPress={() => setInviteModal(true)}
             >
-              <Ionicons name="person-add-outline" size={20} color={Colors.white} />
+              <Ionicons name="person-add-outline" size={20} color="#fff" />
             </TouchableOpacity>
           ) : undefined
         }
       />
 
       {/* Переключатель семей */}
-      <View style={styles.familyTabsWrapper}>
+      <View style={s.familyTabsWrapper}>
         {allFamilies.length > 1 && (
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.familyTabsContent}
+            contentContainerStyle={s.familyTabsContent}
           >
             {allFamilies.map((family, idx) => (
               <TouchableOpacity
                 key={family.ownerId}
                 style={[
-                  styles.familyTab,
-                  activeFamilyIdx === idx && styles.familyTabActive,
+                  s.familyTab,
+                  { backgroundColor: theme.surface, borderColor: theme.border },
+                  activeFamilyIdx === idx && {
+                    backgroundColor: theme.primary,
+                    borderColor: theme.primary,
+                  },
                 ]}
                 onPress={() => setActiveFamilyIdx(idx)}
               >
                 <Text
                   style={[
-                    styles.familyTabTxt,
-                    activeFamilyIdx === idx && styles.familyTabTxtActive,
+                    s.familyTabTxt,
+                    { color: theme.textSecondary },
+                    activeFamilyIdx === idx && { color: '#fff', fontWeight: '700' },
                   ]}
                   numberOfLines={1}
                 >
-                  {family.isOwn ? t('family.myFamily') : t('family.ownerFamily', { name: family.ownerName })}
+                  {family.isOwn
+                    ? t('family.myFamily')
+                    : t('family.ownerFamily', { name: family.ownerName })}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -192,21 +203,44 @@ export default function FamilyScreen() {
         )}
       </View>
 
-      {/* Табы — только два */}
-      <View style={styles.tabs}>
+      {/* Табы */}
+      <View
+        style={[
+          s.tabs,
+          { backgroundColor: theme.surface, borderColor: theme.border },
+        ]}
+      >
         <TouchableOpacity
-          style={[styles.tab, tab === 'tree' && styles.tabActive]}
+          style={[
+            s.tab,
+            tab === 'tree' && { backgroundColor: theme.primary },
+          ]}
           onPress={() => setTab('tree')}
         >
-          <Text style={[styles.tabTxt, tab === 'tree' && styles.tabTxtActive]}>
+          <Text
+            style={[
+              s.tabTxt,
+              { color: theme.textSecondary },
+              tab === 'tree' && { color: '#fff', fontWeight: '700' },
+            ]}
+          >
             {t('family.treeTab')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, tab === 'challenges' && styles.tabActive]}
+          style={[
+            s.tab,
+            tab === 'challenges' && { backgroundColor: theme.primary },
+          ]}
           onPress={() => setTab('challenges')}
         >
-          <Text style={[styles.tabTxt, tab === 'challenges' && styles.tabTxtActive]}>
+          <Text
+            style={[
+              s.tabTxt,
+              { color: theme.textSecondary },
+              tab === 'challenges' && { color: '#fff', fontWeight: '700' },
+            ]}
+          >
             {t('family.challengesTab')}
           </Text>
         </TouchableOpacity>
@@ -214,29 +248,54 @@ export default function FamilyScreen() {
 
       {/* ── ВКЛАДКА ДЕРЕВО ── */}
       {tab === 'tree' && (
-        <View style={styles.treeContainer}>
+        <View style={s.treeContainer}>
           <FamilyTree members={members} onSelect={setSelectedMember} />
 
           {selectedMember && (
-            <View style={styles.selectedCard}>
-              <View style={styles.selectedHeader}>
-                <View style={styles.selectedLeft}>
-                  <Text style={styles.selectedName}>{selectedMember.name}</Text>
-                  <Text style={styles.selectedRelation}>
-                    {RELATION_LABELS[selectedMember.relation as keyof typeof RELATION_LABELS] ?? selectedMember.relation}
-                    {selectedMember.birthYear ? t('family.birthYearShort', { year: selectedMember.birthYear }) : ''}
+            <View
+              style={[
+                s.selectedCard,
+                {
+                  backgroundColor: theme.surface,
+                  borderTopColor: theme.border,
+                },
+              ]}
+            >
+              <View style={s.selectedHeader}>
+                <View style={s.selectedLeft}>
+                  <Text style={[s.selectedName, { color: theme.textPrimary }]}>
+                    {selectedMember.name}
+                  </Text>
+                  <Text style={[s.selectedRelation, { color: theme.textSecondary }]}>
+                    {RELATION_LABELS[
+                      selectedMember.relation as keyof typeof RELATION_LABELS
+                    ] ?? selectedMember.relation}
+                    {selectedMember.birthYear
+                      ? t('family.birthYearShort', { year: selectedMember.birthYear })
+                      : ''}
                   </Text>
                 </View>
 
-                <View style={styles.selectedActions}>
+                <View style={s.selectedActions}>
                   <TouchableOpacity
                     style={[
-                      styles.editMemberBtn,
-                      !isActiveFamilyOwner && styles.btnDisabled,
+                      s.editMemberBtn,
+                      {
+                        backgroundColor: (theme.primary ?? '#5E4BDB') + '15',
+                        borderColor: (theme.primary ?? '#5E4BDB') + '30',
+                      },
+                      !isActiveFamilyOwner && {
+                        backgroundColor: theme.surface,
+                        borderColor: theme.border,
+                        opacity: 0.5,
+                      },
                     ]}
                     onPress={() => {
                       if (!isActiveFamilyOwner) {
-                        Alert.alert(t('family.noPermission'), t('family.onlyOwnerCanEdit'));
+                        Alert.alert(
+                          t('family.noPermission'),
+                          t('family.onlyOwnerCanEdit')
+                        );
                         return;
                       }
                       setEditMember(selectedMember);
@@ -246,36 +305,48 @@ export default function FamilyScreen() {
                     <Ionicons
                       name="pencil"
                       size={15}
-                      color={isActiveFamilyOwner ? Colors.primary : Colors.textMuted}
+                      color={
+                        isActiveFamilyOwner
+                          ? (theme.primary ?? '#5E4BDB')
+                          : theme.textSecondary
+                      }
                     />
                   </TouchableOpacity>
 
                   <TouchableOpacity
                     style={[
-                      styles.deleteMemberBtn,
-                      !isActiveFamilyOwner && styles.btnDisabled,
+                      s.deleteMemberBtn,
+                      !isActiveFamilyOwner && {
+                        backgroundColor: theme.surface,
+                        borderColor: theme.border,
+                        opacity: 0.5,
+                      },
                     ]}
                     onPress={() => handleDeleteMember(selectedMember)}
                   >
                     <Ionicons
                       name="trash-outline"
                       size={15}
-                      color={isActiveFamilyOwner ? Colors.error : Colors.textMuted}
+                      color={
+                        isActiveFamilyOwner ? '#E11D48' : theme.textSecondary
+                      }
                     />
                   </TouchableOpacity>
 
                   <TouchableOpacity onPress={() => setSelectedMember(null)}>
-                    <Ionicons name="close" size={18} color={Colors.textMuted} />
+                    <Ionicons name="close" size={18} color={theme.textSecondary} />
                   </TouchableOpacity>
                 </View>
               </View>
 
               {selectedMember.bio && (
-                <Text style={styles.selectedBio}>{selectedMember.bio}</Text>
+                <Text style={[s.selectedBio, { color: theme.textSecondary }]}>
+                  {selectedMember.bio}
+                </Text>
               )}
 
               {!isActiveFamilyOwner && (
-                <Text style={styles.readOnlyHint}>
+                <Text style={[s.readOnlyHint, { color: theme.textSecondary }]}>
                   {t('family.readOnlyHint')}
                 </Text>
               )}
@@ -284,17 +355,27 @@ export default function FamilyScreen() {
 
           {!selectedMember && (
             <TouchableOpacity
-              style={chatBtnStyle}
+              style={[
+                s.chatBtn,
+                {
+                  backgroundColor: theme.primary,
+                  shadowColor: theme.primary,
+                },
+              ]}
               onPress={() =>
                 router.push(
                   `/chat?roomType=family&roomId=${activeFamily?.ownerId}&title=${encodeURIComponent(
-                    activeFamily?.isOwn ? t('family.familyChatTitle') : t('family.ownerFamilyChatTitle', { name: activeFamily?.ownerName })
+                    activeFamily?.isOwn
+                      ? t('family.familyChatTitle')
+                      : t('family.ownerFamilyChatTitle', {
+                          name: activeFamily?.ownerName,
+                        })
                   )}`
                 )
               }
             >
-              <Ionicons name="chatbubbles" size={20} color={Colors.white} />
-              <Text style={chatBtnTxtStyle}>{t('family.familyChat')}</Text>
+              <Ionicons name="chatbubbles" size={20} color="#fff" />
+              <Text style={s.chatBtnTxt}>{t('family.familyChat')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -303,40 +384,63 @@ export default function FamilyScreen() {
       {/* ── ВКЛАДКА ЧЕЛЛЕНДЖИ ── */}
       {tab === 'challenges' && (
         <ScrollView
-          contentContainerStyle={styles.challengesContent}
+          contentContainerStyle={s.challengesContent}
           refreshControl={
-            <RefreshControl refreshing={isLoading} onRefresh={fetchAll} tintColor={Colors.primary} />
+            <RefreshControl
+              refreshing={isLoading}
+              onRefresh={fetchAll}
+              tintColor={theme.primary}
+            />
           }
         >
           <FamilyInvitesBanner onAccepted={fetchAll} />
 
           {isActiveFamilyOwner && activeFamily?.isOwn ? (
             <TouchableOpacity
-              style={styles.createChallengeBtn}
+              style={[
+                s.createChallengeBtn,
+                {
+                  backgroundColor: theme.surface,
+                  borderColor: (theme.primary ?? '#5E4BDB') + '40',
+                },
+              ]}
               onPress={() => router.push('/family/create-challenge')}
             >
-              <Text style={styles.createChallengeIcon}>🏆</Text>
-              <View style={styles.createChallengeTexts}>
-                <Text style={styles.createChallengeTxt}>{t('family.createFamilyChallenge')}</Text>
-                <Text style={styles.createChallengeSub}>{t('family.createFamilyChallengeSub')}</Text>
+              <Text style={s.createChallengeIcon}>🏆</Text>
+              <View style={s.createChallengeTexts}>
+                <Text style={[s.createChallengeTxt, { color: theme.textPrimary }]}>
+                  {t('family.createFamilyChallenge')}
+                </Text>
+                <Text style={[s.createChallengeSub, { color: theme.textSecondary }]}>
+                  {t('family.createFamilyChallengeSub')}
+                </Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color={Colors.primary} />
+              <Ionicons name="chevron-forward" size={18} color={theme.primary} />
             </TouchableOpacity>
           ) : (
             !isActiveFamilyOwner && (
-              <View style={styles.viewOnlyBanner}>
-                <Text style={styles.viewOnlyTxt}>
-                  {t('family.viewOnlyFamily', { name: activeFamily?.ownerName || t('family.partner') })}
+              <View
+                style={[
+                  s.viewOnlyBanner,
+                  { backgroundColor: theme.surface, borderColor: theme.border },
+                ]}
+              >
+                <Text style={[s.viewOnlyTxt, { color: theme.textSecondary }]}>
+                  {t('family.viewOnlyFamily', {
+                    name: activeFamily?.ownerName || t('family.partner'),
+                  })}
                 </Text>
               </View>
             )
           )}
 
           {familyChallenges.length === 0 ? (
-            <View style={styles.emptyTimeline}>
-              <Text style={styles.emptyIcon}>🏆</Text>
-              <Text style={styles.emptyTitle}>{t('family.noFamilyChallenges')}</Text>
-              <Text style={styles.emptyText}>
+            <View style={s.emptyTimeline}>
+              <Text style={s.emptyIcon}>🏆</Text>
+              <Text style={[s.emptyTitle, { color: theme.textPrimary }]}>
+                {t('family.noFamilyChallenges')}
+              </Text>
+              <Text style={[s.emptyText, { color: theme.textSecondary }]}>
                 {isActiveFamilyOwner && activeFamily?.isOwn
                   ? t('family.createFirstFamilyChallenge')
                   : t('family.noActiveFamilyChallenges')}
@@ -345,13 +449,15 @@ export default function FamilyScreen() {
           ) : (
             familyChallenges.map((challenge) => (
               <View key={challenge.id}>
-                <View style={styles.challengeMeta}>
-                  <View style={styles.creatorDot} />
-                  <Text style={styles.challengeMetaTxt}>
+                <View style={s.challengeMeta}>
+                  <View style={[s.creatorDot, { backgroundColor: theme.primary }]} />
+                  <Text style={[s.challengeMetaTxt, { color: theme.textSecondary }]}>
                     {challenge.creator?.username ?? t('family.unknown')} ·{' '}
                     {challenge.familyOwnerId === ownFamily?.ownerId
                       ? t('family.yourFamily')
-                      : t('family.ownerFamilyPlain', { name: challenge.creator?.username })}
+                      : t('family.ownerFamilyPlain', {
+                          name: challenge.creator?.username,
+                        })}
                   </Text>
                 </View>
                 <ChallengeCard challenge={challenge} />
@@ -364,7 +470,10 @@ export default function FamilyScreen() {
       {/* Модалки */}
       <FamilyMemberModal
         visible={modalVisible}
-        onClose={() => { setModalVisible(false); setEditMember(null); }}
+        onClose={() => {
+          setModalVisible(false);
+          setEditMember(null);
+        }}
         onSave={handleAddMember}
         editMember={editMember}
         members={members}
@@ -382,55 +491,97 @@ export default function FamilyScreen() {
       />
 
       {eventModal && (
-        <View style={styles.eventModalOverlay}>
+        <View style={s.eventModalOverlay}>
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-            <View style={styles.eventModalSheet}>
-              <Text style={styles.eventModalTitle}>{t('family.newEvent')}</Text>
+            <View style={[s.eventModalSheet, { backgroundColor: theme.surface }]}>
+              <Text style={[s.eventModalTitle, { color: theme.textPrimary }]}>
+                {t('family.newEvent')}
+              </Text>
 
-              <Text style={styles.label}>{t('family.eventNameRequired')}</Text>
+              <Text style={[s.label, { color: theme.textSecondary }]}>
+                {t('family.eventNameRequired')}
+              </Text>
               <TextInput
-                style={styles.eventTextInput}
+                style={[
+                  s.eventTextInput,
+                  {
+                    backgroundColor: theme.bg,
+                    borderColor: theme.border,
+                    color: theme.textPrimary,
+                  },
+                ]}
                 value={eventTitle}
                 onChangeText={setEventTitle}
                 placeholder={t('family.eventTitlePlaceholder')}
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={theme.textSecondary}
                 autoFocus
               />
 
-              <Text style={styles.label}>{t('family.eventYearRequired')}</Text>
+              <Text style={[s.label, { color: theme.textSecondary }]}>
+                {t('family.eventYearRequired')}
+              </Text>
               <TextInput
-                style={styles.eventTextInput}
+                style={[
+                  s.eventTextInput,
+                  {
+                    backgroundColor: theme.bg,
+                    borderColor: theme.border,
+                    color: theme.textPrimary,
+                  },
+                ]}
                 value={eventYear}
                 onChangeText={setEventYear}
                 placeholder="2024"
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={theme.textSecondary}
                 keyboardType="numeric"
                 maxLength={4}
               />
 
-              <Text style={styles.label}>{t('family.emoji')}</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
+              <Text style={[s.label, { color: theme.textSecondary }]}>
+                {t('family.emoji')}
+              </Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={{ marginBottom: 16 }}
+              >
                 {EVENT_EMOJIS.map((e) => (
                   <TouchableOpacity
                     key={e}
-                    style={[styles.emojiBtn, eventEmoji === e && styles.emojiBtnActive]}
+                    style={[
+                      s.emojiBtn,
+                      { backgroundColor: theme.bg, borderColor: theme.border },
+                      eventEmoji === e && {
+                        borderColor: theme.primary,
+                        backgroundColor: (theme.primary ?? '#5E4BDB') + '20',
+                      },
+                    ]}
                     onPress={() => setEventEmoji(e)}
                   >
-                    <Text style={styles.emojiTxt}>{e}</Text>
+                    <Text style={s.emojiTxt}>{e}</Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
 
-              <View style={styles.btns}>
-                <TouchableOpacity style={styles.cancelBtn} onPress={() => setEventModal(false)}>
-                  <Text style={styles.cancelTxt}>{t('common.cancel')}</Text>
+              <View style={s.btns}>
+                <TouchableOpacity
+                  style={[s.cancelBtn, { borderColor: theme.border }]}
+                  onPress={() => setEventModal(false)}
+                >
+                  <Text style={[s.cancelTxt, { color: theme.textSecondary }]}>
+                    {t('common.cancel')}
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.saveBtn, (!eventTitle.trim() || !eventYear) && styles.saveBtnDisabled]}
+                  style={[
+                    s.saveBtn,
+                    { backgroundColor: theme.primary },
+                    (!eventTitle.trim() || !eventYear) && s.saveBtnDisabled,
+                  ]}
                   onPress={handleAddEvent}
                   disabled={!eventTitle.trim() || !eventYear}
                 >
-                  <Text style={styles.saveTxt}>{t('family.add')}</Text>
+                  <Text style={s.saveTxt}>{t('family.add')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -441,49 +592,10 @@ export default function FamilyScreen() {
   );
 }
 
-const chatBtnStyle = {
-  position: 'absolute' as const,
-  bottom: 16,
-  right: 16,
-  flexDirection: 'row' as const,
-  alignItems: 'center' as const,
-  gap: 8,
-  backgroundColor: Colors.primary,
-  borderRadius: 24,
-  paddingHorizontal: 18,
-  paddingVertical: 12,
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 4 },
-  shadowOpacity: 0.3,
-  shadowRadius: 6,
-  elevation: 8,
-};
-
-const chatBtnTxtStyle = {
-  color: Colors.white,
-  fontWeight: '700' as const,
-  fontSize: 14,
-};
-
-const styles = StyleSheet.create({
-  viewOnlyBanner: {
-    backgroundColor: Colors.card,
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    alignItems: 'center',
-  },
-  viewOnlyTxt: {
-    color: Colors.textSecondary,
-    fontSize: 13,
-    fontStyle: 'italic',
-  },
-  container: { flex: 1, backgroundColor: Colors.background },
+const s = StyleSheet.create({
+  container: { flex: 1 },
 
   addBtn: {
-    backgroundColor: Colors.primary,
     borderRadius: 10,
     padding: 8,
   },
@@ -491,7 +603,6 @@ const styles = StyleSheet.create({
   familyTabsWrapper: {
     height: 48,
     justifyContent: 'center',
-    marginBottom: 0,
   },
   familyTabsContent: {
     paddingHorizontal: 20,
@@ -503,25 +614,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: Colors.border,
   },
-  familyTabActive:    { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  familyTabTxt:       { fontSize: 13, color: Colors.textSecondary, fontWeight: '500' },
-  familyTabTxtActive: { color: Colors.white, fontWeight: '700' },
+  familyTabTxt: { fontSize: 13, fontWeight: '500' },
 
   tabs: {
     flexDirection: 'row',
     marginHorizontal: 20,
     marginBottom: 8,
     height: 46,
-    backgroundColor: Colors.surface,
     borderRadius: 12,
     padding: 4,
     borderWidth: 1,
-    borderColor: Colors.border,
   },
   tab: {
     flex: 1,
@@ -530,9 +635,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tabActive:    { backgroundColor: Colors.primary },
-  tabTxt:       { fontSize: 13, color: Colors.textSecondary, fontWeight: '500' },
-  tabTxtActive: { color: Colors.white, fontWeight: '700' },
+  tabTxt: { fontSize: 13, fontWeight: '500' },
 
   treeContainer: { flex: 1 },
 
@@ -541,62 +644,81 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: Colors.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
   },
   selectedHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   selectedLeft: { flex: 1 },
-  selectedName: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary },
-  selectedRelation: { fontSize: 13, color: Colors.textSecondary, marginTop: 2 },
+  selectedName: { fontSize: 18, fontWeight: '700' },
+  selectedRelation: { fontSize: 13, marginTop: 2 },
   selectedActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-  selectedBio: { fontSize: 13, color: Colors.textSecondary, lineHeight: 18 },
+  selectedBio: { fontSize: 13, lineHeight: 18 },
 
   editMemberBtn: {
     padding: 8,
     borderRadius: 8,
-    backgroundColor: Colors.primary + '15',
     borderWidth: 1,
-    borderColor: Colors.primary + '30',
   },
   deleteMemberBtn: {
     padding: 8,
     borderRadius: 8,
-    backgroundColor: Colors.error + '15',
+    backgroundColor: '#E11D48' + '15',
     borderWidth: 1,
-    borderColor: Colors.error + '30',
-  },
-  btnDisabled: {
-    backgroundColor: Colors.surface,
-    borderColor: Colors.border,
-    opacity: 0.5,
+    borderColor: '#E11D48' + '30',
   },
   readOnlyHint: {
     fontSize: 12,
-    color: Colors.textMuted,
     marginTop: 8,
     fontStyle: 'italic',
+    opacity: 0.7,
   },
+
+  chatBtn: {
+    position: 'absolute',
+    bottom: 16,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderRadius: 24,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  chatBtnTxt: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+
+  viewOnlyBanner: {
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  viewOnlyTxt: { fontSize: 13, fontStyle: 'italic' },
 
   challengesContent: { padding: 20 },
   createChallengeBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: Colors.surface,
     borderRadius: 14,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: Colors.primary + '40',
   },
   createChallengeTexts: { flex: 1 },
   createChallengeIcon: { fontSize: 28 },
-  createChallengeTxt: { fontSize: 15, fontWeight: '700', color: Colors.textPrimary },
-  createChallengeSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
+  createChallengeTxt: { fontSize: 15, fontWeight: '700' },
+  createChallengeSub: { fontSize: 12, marginTop: 2 },
 
   challengeMeta: {
     flexDirection: 'row',
@@ -605,54 +727,65 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     paddingHorizontal: 4,
   },
-  creatorDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.primary },
-  challengeMetaTxt: { fontSize: 12, color: Colors.textSecondary, fontWeight: '500' },
+  creatorDot: { width: 6, height: 6, borderRadius: 3 },
+  challengeMetaTxt: { fontSize: 12, fontWeight: '500' },
 
   emptyTimeline: { alignItems: 'center', paddingVertical: 40 },
   emptyIcon: { fontSize: 48, marginBottom: 12 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary, marginBottom: 6 },
-  emptyText: { fontSize: 14, color: Colors.textSecondary, textAlign: 'center' },
+  emptyTitle: { fontSize: 18, fontWeight: '700', marginBottom: 6 },
+  emptyText: { fontSize: 14, textAlign: 'center' },
 
-  // Модалка событий
+  // Event modal
   eventModalOverlay: {
     position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'flex-end',
   },
   eventModalSheet: {
-    backgroundColor: Colors.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
     paddingBottom: 40,
   },
-  eventModalTitle: { fontSize: 20, fontWeight: '700', color: Colors.textPrimary, marginBottom: 20 },
-  label: { fontSize: 13, color: Colors.textSecondary, fontWeight: '500', marginBottom: 8 },
+  eventModalTitle: { fontSize: 20, fontWeight: '700', marginBottom: 20 },
+  label: { fontSize: 13, fontWeight: '500', marginBottom: 8 },
   eventTextInput: {
-    backgroundColor: Colors.card,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
     padding: 14,
     fontSize: 15,
-    color: Colors.textPrimary,
     marginBottom: 16,
   },
   emojiBtn: {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: Colors.card,
-    justifyContent: 'center', alignItems: 'center',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 8,
-    borderWidth: 1, borderColor: Colors.border,
+    borderWidth: 1,
   },
-  emojiBtnActive: { borderColor: Colors.primary, backgroundColor: Colors.primary + '20' },
   emojiTxt: { fontSize: 22 },
 
   btns: { flexDirection: 'row', gap: 12, marginTop: 8 },
-  cancelBtn: { flex: 1, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: Colors.border, alignItems: 'center' },
-  cancelTxt: { color: Colors.textSecondary, fontWeight: '600' },
-  saveBtn: { flex: 1, padding: 14, borderRadius: 12, backgroundColor: Colors.primary, alignItems: 'center' },
+  cancelBtn: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  cancelTxt: { fontWeight: '600' },
+  saveBtn: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
   saveBtnDisabled: { opacity: 0.45 },
-  saveTxt: { color: Colors.white, fontWeight: '700', fontSize: 15 },
+  saveTxt: { color: '#fff', fontWeight: '700', fontSize: 15 },
 });

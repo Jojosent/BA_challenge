@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '@constants/colors';
+import { Colors } from '@/constants/colors';
 import { Submission } from '@/types/index';
 import { StarRating } from '@components/shared/StarRating';
 import { aiService } from '@services/aiService';

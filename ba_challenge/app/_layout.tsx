@@ -7,10 +7,12 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { ThemeProvider } from './(tabs)/theme/ThemeContext';
+
+import { ThemeProvider, useTheme } from '../src/theme/ThemeContext';
+
 const POLL_INTERVAL = 30000;
 
-// 🔔 Notification Poller
+// 🔔 Notifications
 function NotificationPoller() {
   const { isAuthenticated } = useAuthStore();
   const { refresh } = useNotificationStore();
@@ -18,31 +20,51 @@ function NotificationPoller() {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
+      if (intervalRef.current) clearInterval(intervalRef.current);
       useNotificationStore.getState().setCount(0);
       return;
     }
 
     refresh();
 
-    intervalRef.current = setInterval(() => {
-      refresh();
-    }, POLL_INTERVAL);
+    intervalRef.current = setInterval(refresh, POLL_INTERVAL);
 
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
+      if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, [isAuthenticated]);
 
   return null;
 }
 
+// 🔥 App UI
+function InnerApp() {
+  const { theme } = useTheme();
+
+  const isDark = theme.key === 'midnight';
+
+  return (
+    <>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+
+      <NotificationPoller />
+
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: {
+            backgroundColor: theme.bg, // 🔥 IMPORTANT
+          },
+        }}
+      >
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(tabs)" />
+      </Stack>
+    </>
+  );
+}
+
+// 🔥 ROOT
 export default function RootLayout() {
   const { loadStoredAuth, isLoading } = useAuthStore();
   const { loadLanguage } = useLanguageStore();
@@ -54,14 +76,12 @@ export default function RootLayout() {
 
   if (isLoading) {
     return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-          backgroundColor: '#0B0F19',
-        }}
-      >
+      <View style={{
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#0B0F19',
+      }}>
         <ActivityIndicator size="large" color="#6366F1" />
       </View>
     );
@@ -69,14 +89,7 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider>
-      <StatusBar style="light" />
-
-      <NotificationPoller />
-
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="(tabs)" />
-      </Stack>
+      <InnerApp />
     </ThemeProvider>
   );
 }

@@ -1,4 +1,4 @@
-import { Colors } from '@constants/colors';
+import { Colors } from '@/constants/colors';
 import { aiService } from '@services/aiService';
 import React, { useState } from 'react';
 import {

@@ -9,7 +9,7 @@ import {
     Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '@constants/colors';
+import { Colors } from '@/constants/colors';
 import { privacyService } from '@services/privacyService';
 
 interface ProtectedChallengeGateProps {

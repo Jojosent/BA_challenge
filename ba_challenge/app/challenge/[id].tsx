@@ -14,7 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '@constants/colors';
+import { Colors } from '@/constants/colors';
 import { useChallenge } from '@hooks/useChallenge';
 import { useAuthStore } from '@store/authStore';
 import { Header } from '@components/shared/Header';

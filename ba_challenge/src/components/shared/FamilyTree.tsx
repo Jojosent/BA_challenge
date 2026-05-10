@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import Svg, { Line } from 'react-native-svg';
-import { Colors } from '@constants/colors';
+import { Colors } from '@/constants/colors';
 import { FamilyMember, RELATION_LABELS, RELATION_COLORS } from '@/types/index';
 
 const CARD_W = 90;

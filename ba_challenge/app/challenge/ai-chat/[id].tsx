@@ -1,6 +1,6 @@
 import { AIChat } from '@components/shared/AIChat';
 import { Header } from '@components/shared/Header';
-import { Colors } from '@constants/colors';
+import { Colors } from '@/constants/colors';
 import { useLocalSearchParams } from 'expo-router';
 import React from 'react';
 import { StyleSheet } from 'react-native';

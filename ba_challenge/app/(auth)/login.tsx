@@ -1,6 +1,6 @@
 import { Button } from '@components/ui/Button';
 import { Input } from '@components/ui/Input';
-import { Colors } from '@constants/colors';
+import { Colors } from '@/constants/colors';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '@hooks/useAuth';
 import { Link } from 'expo-router';

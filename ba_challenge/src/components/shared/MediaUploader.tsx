@@ -1,4 +1,4 @@
-import { Colors } from '@constants/colors';
+import { Colors } from '@/constants/colors';
 import { Ionicons } from '@expo/vector-icons';
 import { submissionService } from '@services/submissionService';
 import * as ImagePicker from 'expo-image-picker';
