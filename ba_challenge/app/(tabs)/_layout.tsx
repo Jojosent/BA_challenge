@@ -4,17 +4,27 @@ import { useNotificationStore } from '@hooks/useNotifications';
 import { Tabs } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
+import { useTheme } from '@/theme/ThemeContext';
 
 const TabIcon = ({
   name,
   color,
   focused,
+  isDark,
 }: {
   name: any;
   color: string;
   focused: boolean;
+  isDark: boolean;
 }) => (
-  <View style={[styles.iconWrapper, focused && styles.iconWrapperActive]}>
+  <View
+    style={[
+      styles.iconWrapper,
+      focused && {
+        backgroundColor: isDark ? '#2A1F4A' : '#F1EEFF',
+      },
+    ]}
+  >
     <Ionicons name={name} size={22} color={color} />
   </View>
 );
@@ -22,15 +32,28 @@ const TabIcon = ({
 const HomeTabIcon = ({
   color,
   focused,
+  isDark,
 }: {
   color: string;
   focused: boolean;
+  isDark: boolean;
 }) => {
   const count = useNotificationStore((state) => state.count);
 
   return (
-    <View style={[styles.iconWrapper, focused && styles.iconWrapperActive]}>
-      <Ionicons name={focused ? 'home' : 'home-outline'} size={22} color={color} />
+    <View
+      style={[
+        styles.iconWrapper,
+        focused && {
+          backgroundColor: isDark ? '#2A1F4A' : '#F1EEFF',
+        },
+      ]}
+    >
+      <Ionicons
+        name={focused ? 'home' : 'home-outline'}
+        size={22}
+        color={color}
+      />
 
       {count > 0 && (
         <View style={styles.badge}>
@@ -43,26 +66,33 @@ const HomeTabIcon = ({
 
 export default function TabsLayout() {
   const { t } = useTranslation();
+  const { theme } = useTheme();
+
+  const isDark = theme.bg === '#000' || theme.bg === '#121212';
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
+
+        // 🔥 TAB BAR FIX
         tabBarStyle: {
-          backgroundColor: Colors.white,
-          borderTopColor: Colors.softBorder,
+          backgroundColor: theme.bg,
+          borderTopColor: theme.border,
           borderTopWidth: 1,
           height: 76,
           paddingTop: 8,
           paddingBottom: 14,
-          shadowColor: Colors.shadow,
-          shadowOpacity: 0.08,
+          shadowColor: '#000',
+          shadowOpacity: isDark ? 0.35 : 0.08,
           shadowRadius: 16,
           shadowOffset: { width: 0, height: -6 },
           elevation: 10,
         },
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.textMuted,
+
+        tabBarActiveTintColor: theme.primary,
+        tabBarInactiveTintColor: theme.textSecondary,
+
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '800',
@@ -75,7 +105,7 @@ export default function TabsLayout() {
         options={{
           title: t('tabs.home'),
           tabBarIcon: ({ color, focused }) => (
-            <HomeTabIcon color={color} focused={focused} />
+            <HomeTabIcon color={color} focused={focused} isDark={isDark} />
           ),
         }}
       />
@@ -89,6 +119,7 @@ export default function TabsLayout() {
               name={focused ? 'trophy' : 'trophy-outline'}
               color={color}
               focused={focused}
+              isDark={isDark}
             />
           ),
         }}
@@ -103,6 +134,7 @@ export default function TabsLayout() {
               name={focused ? 'sparkles' : 'sparkles-outline'}
               color={color}
               focused={focused}
+              isDark={isDark}
             />
           ),
         }}
@@ -117,6 +149,7 @@ export default function TabsLayout() {
               name={focused ? 'person' : 'person-outline'}
               color={color}
               focused={focused}
+              isDark={isDark}
             />
           ),
         }}
@@ -133,14 +166,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  iconWrapperActive: {
-    backgroundColor: '#F1EEFF',
-  },
+
   badge: {
     position: 'absolute',
     top: -5,
     right: -7,
-    backgroundColor: Colors.secondary,
+    backgroundColor: '#FF4D6D',
     borderRadius: 10,
     minWidth: 18,
     height: 18,
@@ -148,10 +179,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 4,
     borderWidth: 2,
-    borderColor: Colors.white,
+    borderColor: '#fff',
   },
+
   badgeTxt: {
-    color: Colors.white,
+    color: '#fff',
     fontSize: 10,
     fontWeight: '900',
   },
