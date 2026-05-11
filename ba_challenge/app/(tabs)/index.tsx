@@ -322,7 +322,9 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    padding: 20,
+    paddingTop: 30,
+    paddingLeft: 100,
+    paddingRight: 60,
   },
 
   balanceMain: { flex: 1 },
@@ -379,6 +381,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: 'hidden',
     borderWidth: 1,
+    marginTop: 10,
   },
 
   quickBg: { flex: 1, justifyContent: 'center' },
