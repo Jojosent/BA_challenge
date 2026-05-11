@@ -19,9 +19,7 @@ export const userService = {
 
     uploadAvatar: async (formData: FormData): Promise<User> => {
         const response = await api.post('/users/avatar', formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-            },
+            headers: { 'Content-Type': 'multipart/form-data' },
         });
         return response.data;
     },
@@ -32,15 +30,15 @@ export const userService = {
     },
 
     getStats: async (): Promise<{
-      avgRating: number;
-      totalVoters: number;
-      totalVoteCount: number;
-      challengeCount: number;
-      wonCount: number;
-      submissionCount: number;
-      streakCount: number; // ✅ добавили
+        avgRating: number;
+        totalVoters: number;
+        totalVoteCount: number;
+        challengeCount: number;
+        wonCount: number;
+        submissionCount: number;
+        streakCount: number; // ✅ добавили
     }> => {
-      const response = await api.get('/users/stats');
-      return response.data;
+        const response = await api.get('/users/stats');
+        return response.data;
     },
 };

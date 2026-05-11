@@ -26,6 +26,11 @@ app.use(express.urlencoded({ extended: true }));
 // Статика — только для старых файлов без шифрования
 // Новые файлы (.enc) недоступны напрямую — только через /api/submissions/:id/media
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+app.use('/avatars', express.static(path.join(__dirname, '..', 'uploads', 'avatar')));
+
+const uploadsPath = path.join(__dirname, '..', 'uploads');
+console.log('📁 Uploads path:', uploadsPath);
+app.use('/uploads', express.static(uploadsPath));
 
 app.use('/api', routes);
 
@@ -46,7 +51,8 @@ const startServer = async () => {
     // ✅ Запускаем планировщик очистки файлов
     startScheduler();
 
-    app.listen(ENV.PORT, () => {
+    // app.listen(ENV.PORT, () => {
+    app.listen(Number(ENV.PORT), '0.0.0.0', () => {
       console.log(`🚀 Сервер запущен на порту ${ENV.PORT}`);
       console.log(`📡 API: http://localhost:${ENV.PORT}/api`);
       console.log(`❤️  Health: http://localhost:${ENV.PORT}/health`);

@@ -10,7 +10,6 @@ router.use(authMiddleware);
 router.get('/stats', userController.getStats);
 router.put('/profile', userController.updateProfile);
 
-
 router.post('/avatar', upload.single('avatar'), userController.uploadAvatar);
 
 router.get('/:id', userController.getUserById);

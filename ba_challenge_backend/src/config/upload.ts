@@ -12,12 +12,14 @@ const createDirIfNotExists = (dir: string) => {
 
 createDirIfNotExists('uploads/photos');
 createDirIfNotExists('uploads/videos');
+createDirIfNotExists('uploads/avatar');
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         // Фото и видео в разные папки
         const isVideo = file.mimetype.startsWith('video/');
-        const folder = isVideo ? 'uploads/videos' : 'uploads/photos';
+        const isAvatar = req.url?.includes('avatar') || req.path?.includes('avatar');
+        const folder = isAvatar ? 'uploads/avatar' : isVideo ? 'uploads/videos' : 'uploads/photos';
         cb(null, folder);
     },
     filename: (req, file, cb) => {

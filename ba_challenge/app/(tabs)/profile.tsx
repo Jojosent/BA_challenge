@@ -26,7 +26,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// ─── Theme — relative import (файлдар app/(tabs)/theme/ ішінде) ───────────────
 import { ThemePicker } from '../../src/theme/ThemePicker';
 import { useTheme } from '../../src/theme/ThemeContext';
 import { ThemeTokens } from '../../src/theme/themes';
@@ -85,15 +84,15 @@ function Divider({ D }: { D: ThemeTokens }) {
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function ProfileScreen() {
-    const { t } = useTranslation();
-    const { language, setLanguage } = useLanguageStore();
-    const [languageModal, setLanguageModal] = useState(false);
+  const { t } = useTranslation();
+  const { language, setLanguage } = useLanguageStore();
+  const [languageModal, setLanguageModal] = useState(false);
   const { theme: D } = useTheme();
   const { displayUser, isLoading, editProfile, fetchProfile } = useProfile();
   const { logout } = useAuth();
 
-  const [editModal,   setEditModal]   = useState(false);
-  const [themeModal,  setThemeModal]  = useState(false);
+  const [editModal, setEditModal] = useState(false);
+  const [themeModal, setThemeModal] = useState(false);
   const [newUsername, setNewUsername] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [stats, setStats] = useState({ challengeCount: 0, wonCount: 0, streakCount: 0 });
@@ -105,6 +104,7 @@ export default function ProfileScreen() {
 
   if (isLoading && !displayUser) return <LoadingSpinner />;
 
+  // ── Выбор фото из галереи ──────────────────────────────────────────────────
   const handlePickAvatar = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -113,7 +113,10 @@ export default function ProfileScreen() {
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.5,
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
       });
       if (!result.canceled && result.assets[0]) {
         await uploadAvatar(result.assets[0].uri);
@@ -123,6 +126,7 @@ export default function ProfileScreen() {
     }
   };
 
+  // ── Загрузка аватара на сервер ─────────────────────────────────────────────
   const uploadAvatar = async (uri: string) => {
     try {
       setIsUploading(true);
@@ -130,7 +134,11 @@ export default function ProfileScreen() {
       const filename = uri.split('/').pop() ?? 'avatar.jpg';
       const match = /\.(\w+)$/.exec(filename);
       const type = match ? `image/${match[1]}` : 'image/jpeg';
-      formData.append('avatar', { uri: Platform.OS === 'android' ? uri : uri.replace('file://', ''), name: filename, type } as any);
+      formData.append('avatar', {
+        uri: Platform.OS === 'android' ? uri : uri.replace('file://', ''),
+        name: filename,
+        type,
+      } as any);
       await userService.uploadAvatar(formData);
       await fetchProfile();
       Alert.alert(t('common.success'), t('profile.avatarSuccess'));
@@ -139,6 +147,20 @@ export default function ProfileScreen() {
     } finally {
       setIsUploading(false);
     }
+  };
+
+  // ── Строим полный URL аватарки ─────────────────────────────────────────────
+  // avatarUrl с бэкенда приходит как '/avatars/filename.jpg'
+  // BASE_URL = 'http://192.168.35.103:3000'
+  // Итог: 'http://192.168.35.103:3000/avatars/filename.jpg'
+  const getFullAvatarUrl = (): string | null => {
+    if (!displayUser?.avatarUrl) return null;
+    const avatarUrl = displayUser.avatarUrl;
+    // Если уже полный URL — возвращаем как есть
+    if (avatarUrl.startsWith('http')) return avatarUrl;
+    // Иначе склеиваем с BASE (убираем /api из конца)
+    const base = Config.API_URL.replace('/api', '');
+    return `${base}${avatarUrl}`;
   };
 
   const handleEdit = async () => {
@@ -153,22 +175,14 @@ export default function ProfileScreen() {
       t('profile.logoutMessage'),
       [
         { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('profile.logout'),
-          style: 'destructive',
-          onPress: logout,
-        },
+        { text: t('profile.logout'), style: 'destructive', onPress: logout },
       ]
     );
   };
 
-  const getFullAvatarUrl = () => {
-    if (!displayUser?.avatarUrl) return null;
-    return `${Config.API_URL.split('/api')[0]}${displayUser.avatarUrl}`;
-  };
-
   const isAdminOrModerator = displayUser?.role === 'admin' || displayUser?.role === 'moderator';
   const initial = displayUser?.username?.charAt(0).toUpperCase() ?? '?';
+  const fullAvatarUrl = getFullAvatarUrl();
 
   return (
     <SafeAreaView style={[s.container, { backgroundColor: D.bg }]} edges={['top']}>
@@ -187,8 +201,14 @@ export default function ProfileScreen() {
           <View style={s.avatarWrap}>
             <View style={[s.avatarRing, { backgroundColor: D.avatarRing, shadowColor: D.avatarRing }]}>
               <View style={[s.avatarInner, { borderColor: D.bg }]}>
-                {displayUser?.avatarUrl ? (
-                  <Image source={{ uri: getFullAvatarUrl()! }} style={s.avatarImg} />
+                {fullAvatarUrl ? (
+                  <Image
+                    source={{ uri: fullAvatarUrl }}
+                    style={s.avatarImg}
+                    resizeMode="cover"
+                    onError={(e) => console.log('❌ Avatar load error:', e.nativeEvent.error, 'URL:', fullAvatarUrl)}
+                    onLoad={() => console.log('✅ Avatar loaded:', fullAvatarUrl)}
+                  />
                 ) : (
                   <View style={[s.avatarFallback, { backgroundColor: D.primary }]}>
                     <Text style={[s.avatarInitial, { color: D.white }]}>{initial}</Text>
@@ -201,6 +221,8 @@ export default function ProfileScreen() {
                 )}
               </View>
             </View>
+
+            {/* Кнопка камеры — нажимаем для загрузки аватара */}
             <TouchableOpacity
               style={[s.cameraBtn, { backgroundColor: D.primary, borderColor: D.bg }]}
               onPress={handlePickAvatar}
@@ -209,6 +231,7 @@ export default function ProfileScreen() {
               <Ionicons name="add" size={14} color={D.white} />
             </TouchableOpacity>
           </View>
+
           <View style={s.statsRow}>
             <StatCol D={D} value={stats.challengeCount} label={t('home.challenges')} />
             <StatCol D={D} value={stats.wonCount} label={t('profile.wins')} />
@@ -280,15 +303,14 @@ export default function ProfileScreen() {
       {/* Theme picker */}
       <ThemePicker visible={themeModal} onClose={() => setThemeModal(false)} />
 
+      {/* Language modal */}
       <Modal visible={languageModal} transparent animationType="slide" onRequestClose={() => setLanguageModal(false)}>
         <Pressable style={m.overlay} onPress={() => setLanguageModal(false)}>
-          <Pressable style={[m.sheet, { backgroundColor: D.surface }]} onPress={() => {}}>
+          <Pressable style={[m.sheet, { backgroundColor: D.surface }]} onPress={() => { }}>
             <View style={[m.handle, { backgroundColor: D.border }]} />
-
             <Text style={[m.title, { color: D.textPrimary }]}>
               {t('language.select')}
             </Text>
-
             {[
               { code: 'ru', label: t('language.ru') },
               { code: 'kz', label: t('language.kz') },
@@ -296,12 +318,7 @@ export default function ProfileScreen() {
             ].map((item) => (
               <TouchableOpacity
                 key={item.code}
-                style={{
-                  paddingVertical: 16,
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}
+                style={{ paddingVertical: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
                 onPress={async () => {
                   await setLanguage(item.code as 'ru' | 'kz' | 'en');
                   setLanguageModal(false);
@@ -310,7 +327,6 @@ export default function ProfileScreen() {
                 <Text style={{ color: D.textPrimary, fontSize: 16, fontWeight: '700' }}>
                   {item.label}
                 </Text>
-
                 {language === item.code && (
                   <Ionicons name="checkmark-circle" size={22} color={D.primary} />
                 )}
@@ -323,7 +339,7 @@ export default function ProfileScreen() {
       {/* Edit modal */}
       <Modal visible={editModal} transparent animationType="slide" onRequestClose={() => setEditModal(false)}>
         <Pressable style={m.overlay} onPress={() => setEditModal(false)}>
-          <Pressable style={[m.sheet, { backgroundColor: D.surface }]} onPress={() => {}}>
+          <Pressable style={[m.sheet, { backgroundColor: D.surface }]} onPress={() => { }}>
             <View style={[m.handle, { backgroundColor: D.border }]} />
             <Text style={[m.title, { color: D.textPrimary }]}>
               {t('profile.editName')}
@@ -338,12 +354,18 @@ export default function ProfileScreen() {
               autoFocus
             />
             <View style={m.btnRow}>
-              <TouchableOpacity style={[m.cancelBtn, { backgroundColor: D.bg, borderColor: D.border }]} onPress={() => setEditModal(false)}>
+              <TouchableOpacity
+                style={[m.cancelBtn, { backgroundColor: D.bg, borderColor: D.border }]}
+                onPress={() => setEditModal(false)}
+              >
                 <Text style={[m.cancelText, { color: D.textSecondary }]}>
                   {t('common.cancel')}
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[m.saveBtn, { backgroundColor: D.primary, shadowColor: D.primary }]} onPress={handleEdit}>
+              <TouchableOpacity
+                style={[m.saveBtn, { backgroundColor: D.primary, shadowColor: D.primary }]}
+                onPress={handleEdit}
+              >
                 {isLoading
                   ? <ActivityIndicator color={D.white} size="small" />
                   : <Text style={[m.saveText, { color: D.white }]}>{t('common.save')}</Text>
@@ -358,41 +380,41 @@ export default function ProfileScreen() {
 }
 
 const s = StyleSheet.create({
-  container:  { flex: 1 },
-  scroll:     { paddingBottom: 40 },
-  topBar:     { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16, paddingVertical: 10, position: 'relative' },
-  topUsername:{ fontSize: 18, fontWeight: '800', letterSpacing: -0.3 },
-  menuBtn:    { position: 'absolute', right: 16 },
+  container: { flex: 1 },
+  scroll: { paddingBottom: 40 },
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16, paddingVertical: 10, position: 'relative' },
+  topUsername: { fontSize: 18, fontWeight: '800', letterSpacing: -0.3 },
+  menuBtn: { position: 'absolute', right: 16 },
   profileRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 14, gap: 20 },
   avatarWrap: { position: 'relative' },
   avatarRing: { width: 92, height: 92, borderRadius: 46, padding: 3, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.35, shadowRadius: 12, elevation: 8 },
-  avatarInner:{ flex: 1, borderRadius: 43, borderWidth: 2.5, overflow: 'hidden' },
-  avatarImg:  { width: '100%', height: '100%' },
-  avatarFallback:{ flex: 1, alignItems: 'center', justifyContent: 'center' },
+  avatarInner: { flex: 1, borderRadius: 43, borderWidth: 2.5, overflow: 'hidden' },
+  avatarImg: { width: '100%', height: '100%' },
+  avatarFallback: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   avatarInitial: { fontSize: 34, fontWeight: '900' },
   uploadOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center' },
-  cameraBtn:  { position: 'absolute', bottom: 0, right: 0, width: 26, height: 26, borderRadius: 13, borderWidth: 2.5, alignItems: 'center', justifyContent: 'center' },
-  statsRow:   { flex: 1, flexDirection: 'row' },
-  nameBlock:  { paddingHorizontal: 18, marginBottom: 14, gap: 4 },
-  nameRow:    { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  displayName:{ fontSize: 16, fontWeight: '800' },
-  emailText:  { fontSize: 13 },
-  actionRow:  { flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginBottom: 16 },
-  actionBtn:  { flex: 1, borderRadius: 10, paddingVertical: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5 },
-  actionBtnText:{ fontSize: 13, fontWeight: '700' },
+  cameraBtn: { position: 'absolute', bottom: 0, right: 0, width: 26, height: 26, borderRadius: 13, borderWidth: 2.5, alignItems: 'center', justifyContent: 'center' },
+  statsRow: { flex: 1, flexDirection: 'row' },
+  nameBlock: { paddingHorizontal: 18, marginBottom: 14, gap: 4 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  displayName: { fontSize: 16, fontWeight: '800' },
+  emailText: { fontSize: 13 },
+  actionRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginBottom: 16 },
+  actionBtn: { flex: 1, borderRadius: 10, paddingVertical: 8, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5 },
+  actionBtnText: { fontSize: 13, fontWeight: '700' },
   sectionLabel: { fontSize: 13, fontWeight: '700', paddingHorizontal: 20, marginBottom: 8, letterSpacing: 0.5, textTransform: 'uppercase' },
-  version:    { fontSize: 12, textAlign: 'center', marginTop: 8 },
+  version: { fontSize: 12, textAlign: 'center', marginTop: 8 },
 });
 
 const m = StyleSheet.create({
-  overlay:    { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
-  sheet:      { borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 44 },
-  handle:     { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
-  title:      { fontSize: 20, fontWeight: '800', letterSpacing: -0.4, marginBottom: 18 },
-  input:      { borderRadius: 14, padding: 14, fontSize: 16, borderWidth: 1.5, marginBottom: 20 },
-  btnRow:     { flexDirection: 'row', gap: 12 },
-  cancelBtn:  { flex: 1, borderRadius: 14, paddingVertical: 14, alignItems: 'center', borderWidth: 1.5 },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+  sheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 44 },
+  handle: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
+  title: { fontSize: 20, fontWeight: '800', letterSpacing: -0.4, marginBottom: 18 },
+  input: { borderRadius: 14, padding: 14, fontSize: 16, borderWidth: 1.5, marginBottom: 20 },
+  btnRow: { flexDirection: 'row', gap: 12 },
+  cancelBtn: { flex: 1, borderRadius: 14, paddingVertical: 14, alignItems: 'center', borderWidth: 1.5 },
   cancelText: { fontSize: 15, fontWeight: '700' },
-  saveBtn:    { flex: 1, borderRadius: 14, paddingVertical: 14, alignItems: 'center', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 14, elevation: 8 },
-  saveText:   { fontSize: 15, fontWeight: '800' },
+  saveBtn: { flex: 1, borderRadius: 14, paddingVertical: 14, alignItems: 'center', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 14, elevation: 8 },
+  saveText: { fontSize: 15, fontWeight: '800' },
 });
