@@ -29,22 +29,21 @@ const FILTERS: { key: FilterType; labelKey: string }[] = [
 function getStatus(status: string, t: any, theme: any) {
   switch (status) {
     case 'active':
-      return { label: t('challengeStatus.active'), color: '#22C55E', bg: '#22C55E15', icon: 'flash' as const };
+      return { label: t('challengeStatus.active'), color: theme.emerald, bg: theme.emerald + '20', icon: 'flash' as const };
     case 'pending':
-      return { label: t('challengeStatus.pending'), color: '#F59E0B', bg: '#F59E0B15', icon: 'time' as const };
+      return { label: t('challengeStatus.pending'), color: theme.amber, bg: theme.amber + '20', icon: 'time' as const };
     case 'completed':
-      return { label: t('challengeStatus.completed'), color: '#64748B', bg: '#64748B15', icon: 'checkmark-circle' as const };
+      return { label: t('challengeStatus.completed'), color: theme.textMuted, bg: theme.textMuted + '20', icon: 'checkmark-circle' as const };
     default:
-      return { label: status, color: '#6366F1', bg: '#6366F115', icon: 'ellipse' as const };
+      return { label: status, color: theme.primary, bg: theme.primaryLight, icon: 'ellipse' as const };
   }
 }
-
-const ACCENTS = ['#6366F1', '#22C55E', '#0EA5E9', '#F59E0B', '#EF4444'];
 
 function ChallengeCard({ challenge, index, t }: any) {
   const { theme } = useTheme();
   const st = getStatus(challenge.status, t, theme);
-  const accent = ACCENTS[index % ACCENTS.length];
+  const accents = [theme.primary, theme.emerald, theme.accent, theme.amber, theme.rose];
+  const accent = accents[index % accents.length];
 
   return (
     <View style={[card.wrapper, { backgroundColor: theme.surface, borderColor: theme.border }]}>

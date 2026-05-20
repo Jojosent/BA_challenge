@@ -1,9 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Colors } from '@constants/colors';
 import { Participant } from '@/types/index';
 import { Config } from '@constants/config';
+import { useTheme } from '@/theme/ThemeContext';
 
 interface ParticipantListProps {
   participants: Participant[];
@@ -27,6 +27,7 @@ export const ParticipantList: React.FC<ParticipantListProps> = ({
   creatorId,
 }) => {
   const { t } = useTranslation();
+  const { theme } = useTheme();
 
   const sorted = [...participants].sort((a, b) => b.score - a.score);
 
@@ -38,19 +39,22 @@ export const ParticipantList: React.FC<ParticipantListProps> = ({
         const initial = p.user?.username?.charAt(0).toUpperCase() ?? '?';
 
         return (
-          <View key={p.id} style={[styles.row, isCreator && styles.rowCreator]}>
+          <View key={p.id} style={[styles.row, { borderBottomColor: theme.border }, isCreator && { backgroundColor: theme.amber + '08' }]}>
             <View style={styles.rankCol}>
               {index < 3 ? (
                 <Text style={styles.medal}>{MEDAL[index]}</Text>
               ) : (
-                <Text style={styles.rankNum}>#{index + 1}</Text>
+                <Text style={[styles.rankNum, { color: theme.textMuted }]}>#{index + 1}</Text>
               )}
             </View>
 
             {avatarUrl ? (
               <Image
                 source={{ uri: avatarUrl }}
-                style={[styles.avatar, isCreator && styles.avatarCreator]}
+                style={[
+                  styles.avatar,
+                  isCreator && { backgroundColor: theme.amber, borderWidth: 2, borderColor: theme.amber },
+                ]}
                 resizeMode="cover"
                 onError={() => console.log('ParticipantList avatar error:', avatarUrl)}
               />
@@ -58,7 +62,9 @@ export const ParticipantList: React.FC<ParticipantListProps> = ({
               <View
                 style={[
                   styles.avatar,
-                  isCreator ? styles.avatarCreator : styles.avatarDefault,
+                  isCreator
+                    ? { backgroundColor: theme.amber, borderWidth: 2, borderColor: theme.amber }
+                    : { backgroundColor: theme.primary },
                 ]}
               >
                 <Text style={styles.avatarText}>{initial}</Text>
@@ -67,7 +73,7 @@ export const ParticipantList: React.FC<ParticipantListProps> = ({
 
             <View style={styles.nameCol}>
               <View style={styles.nameRow}>
-                <Text style={styles.username} numberOfLines={1}>
+                <Text style={[styles.username, { color: theme.textPrimary }]} numberOfLines={1}>
                   {p.user?.username ??
                     t('participantList.participantFallback', {
                       id: p.userId,
@@ -75,8 +81,8 @@ export const ParticipantList: React.FC<ParticipantListProps> = ({
                 </Text>
 
                 {isCreator && (
-                  <View style={styles.creatorBadge}>
-                    <Text style={styles.creatorBadgeTxt}>
+                  <View style={[styles.creatorBadge, { backgroundColor: theme.amber + '25', borderColor: theme.amber + '60' }]}>
+                    <Text style={[styles.creatorBadgeTxt, { color: theme.amber }]}>
                       {t('participantList.creator')}
                     </Text>
                   </View>
@@ -84,7 +90,7 @@ export const ParticipantList: React.FC<ParticipantListProps> = ({
               </View>
 
               {p.user?.rating !== undefined && (
-                <Text style={styles.rating}>
+                <Text style={[styles.rating, { color: theme.textMuted }]}>
                   {t('participantList.rating', {
                     rating: p.user.rating,
                   })}
@@ -93,8 +99,8 @@ export const ParticipantList: React.FC<ParticipantListProps> = ({
             </View>
 
             <View style={styles.scoreCol}>
-              <Text style={styles.score}>{p.score}</Text>
-              <Text style={styles.scoreLabel}>
+              <Text style={[styles.score, { color: theme.accent }]}>{p.score}</Text>
+              <Text style={[styles.scoreLabel, { color: theme.textMuted }]}>
                 {t('participantList.points')}
               </Text>
             </View>
@@ -103,7 +109,7 @@ export const ParticipantList: React.FC<ParticipantListProps> = ({
       })}
 
       {participants.length === 0 && (
-        <Text style={styles.empty}>
+        <Text style={[styles.empty, { color: theme.textMuted }]}>
           {t('participantList.empty')}
         </Text>
       )}
@@ -120,13 +126,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 4,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
     gap: 10,
   },
 
-  rowCreator: {
-    backgroundColor: Colors.rikon + '08',
-  },
+  rowCreator: {},
 
   rankCol: {
     width: 32,
@@ -140,7 +143,6 @@ const styles = StyleSheet.create({
   rankNum: {
     fontSize: 13,
     fontWeight: '700',
-    color: Colors.textMuted,
   },
 
   avatar: {
@@ -152,18 +154,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  avatarDefault: {
-    backgroundColor: Colors.primary,
-  },
+  avatarDefault: {},
 
-  avatarCreator: {
-    backgroundColor: Colors.rikon,
-    borderWidth: 2,
-    borderColor: Colors.rikon,
-  },
+  avatarCreator: {},
 
   avatarText: {
-    color: Colors.white,
+    color: '#ffffff',
     fontWeight: '700',
     fontSize: 15,
   },
@@ -182,28 +178,23 @@ const styles = StyleSheet.create({
   username: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.textPrimary,
   },
 
   rating: {
     fontSize: 11,
-    color: Colors.textMuted,
     marginTop: 2,
   },
 
   creatorBadge: {
-    backgroundColor: Colors.rikon + '25',
     paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: Colors.rikon + '60',
   },
 
   creatorBadgeTxt: {
     fontSize: 10,
     fontWeight: '600',
-    color: Colors.rikon,
   },
 
   scoreCol: {
@@ -214,16 +205,13 @@ const styles = StyleSheet.create({
   score: {
     fontSize: 16,
     fontWeight: '800',
-    color: Colors.accent,
   },
 
   scoreLabel: {
     fontSize: 10,
-    color: Colors.textMuted,
   },
 
   empty: {
-    color: Colors.textMuted,
     textAlign: 'center',
     paddingVertical: 16,
   },

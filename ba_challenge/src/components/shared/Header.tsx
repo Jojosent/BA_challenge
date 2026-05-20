@@ -1,14 +1,13 @@
-import { Colors } from '@/constants/colors';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
-    StatusBar,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useTheme } from '@/theme/ThemeContext';
 
 interface HeaderProps {
   title: string;
@@ -22,21 +21,22 @@ export const Header: React.FC<HeaderProps> = ({
   rightElement,
 }) => {
   const router = useRouter();
+  const { theme } = useTheme();
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.bg, borderBottomColor: theme.border }]}>
       <View style={styles.left}>
         {showBack && (
           <TouchableOpacity
             onPress={() => router.back()}
             style={styles.backBtn}
           >
-            <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
+            <Ionicons name="arrow-back" size={24} color={theme.textPrimary} />
           </TouchableOpacity>
         )}
       </View>
 
-      <Text style={styles.title}>{title}</Text>
+      <Text style={[styles.title, { color: theme.textPrimary }]}>{title}</Text>
 
       <View style={styles.right}>
         {rightElement || <View style={styles.placeholder} />}
@@ -53,9 +53,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     paddingTop: 12,
-    backgroundColor: Colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
   },
   left: { width: 40 },
   right: { width: 40, alignItems: 'flex-end' },
@@ -64,6 +62,5 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: Colors.textPrimary,
   },
 });

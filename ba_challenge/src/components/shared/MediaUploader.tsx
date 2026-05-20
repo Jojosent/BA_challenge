@@ -1,4 +1,3 @@
-import { Colors } from '@/constants/colors';
 import { Ionicons } from '@expo/vector-icons';
 import { submissionService } from '@services/submissionService';
 import * as ImagePicker from 'expo-image-picker';
@@ -14,6 +13,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useTheme } from '@/theme/ThemeContext';
 
 interface MediaItem {
     uri: string;
@@ -31,6 +31,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
     onSuccess,
 }) => {
     const { t } = useTranslation();
+    const { theme } = useTheme();
 
     const [selectedMedia, setSelectedMedia] = useState<MediaItem[]>([]);
     const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
@@ -150,7 +151,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
         <View style={styles.container}>
             {selectedMedia.length > 0 && (
                 <View style={styles.previewSection}>
-                    <Text style={styles.previewLabel}>
+                    <Text style={[styles.previewLabel, { color: theme.textSecondary }]}>
                         {t('mediaUploader.selectedFiles', {
                             count: selectedMedia.length,
                         })}
@@ -162,7 +163,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
                         contentContainerStyle={styles.previewScroll}
                     >
                         {selectedMedia.map((item, index) => (
-                            <View key={index} style={styles.previewItem}>
+                            <View key={index} style={[styles.previewItem, { backgroundColor: theme.card, borderColor: theme.border }]}>
                                 {item.type === 'photo' ? (
                                     <Image
                                         source={{ uri: item.uri }}
@@ -170,8 +171,8 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
                                         resizeMode="cover"
                                     />
                                 ) : (
-                                    <View style={styles.previewVideo}>
-                                        <Ionicons name="play-circle" size={36} color={Colors.white} />
+                                    <View style={[styles.previewVideo, { backgroundColor: theme.card }]}>
+                                        <Ionicons name="play-circle" size={36} color="#ffffff" />
                                         <Text style={styles.previewVideoTxt}>
                                             {t('mediaUploader.video')}
                                         </Text>
@@ -182,13 +183,13 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
                                     <Ionicons
                                         name={item.type === 'video' ? 'videocam' : 'camera'}
                                         size={14}
-                                        color={Colors.white}
+                                        color="#ffffff"
                                     />
                                 </View>
 
                                 {isUploading && uploadingIndex === index && (
                                     <View style={styles.uploadingOverlay}>
-                                        <ActivityIndicator size="small" color={Colors.white} />
+                                        <ActivityIndicator size="small" color="#ffffff" />
                                     </View>
                                 )}
 
@@ -197,7 +198,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
                                         style={styles.removeBtn}
                                         onPress={() => removeSelected(index)}
                                     >
-                                        <Ionicons name="close-circle" size={22} color={Colors.error} />
+                                        <Ionicons name="close-circle" size={22} color={theme.rose} />
                                     </TouchableOpacity>
                                 )}
                             </View>
@@ -205,11 +206,11 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
 
                         {!isUploading && (
                             <TouchableOpacity
-                                style={styles.addMoreBtn}
+                                style={[styles.addMoreBtn, { backgroundColor: theme.surface, borderColor: theme.primary + '60' }]}
                                 onPress={pickFromGallery}
                             >
-                                <Ionicons name="add" size={28} color={Colors.primary} />
-                                <Text style={styles.addMoreTxt}>
+                                <Ionicons name="add" size={28} color={theme.primary} />
+                                <Text style={[styles.addMoreTxt, { color: theme.primary }]}>
                                     {t('mediaUploader.addMore')}
                                 </Text>
                             </TouchableOpacity>
@@ -220,19 +221,19 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
 
             {selectedMedia.length === 0 && (
                 <View style={styles.pickersRow}>
-                    <TouchableOpacity style={styles.pickerBtn} onPress={takePhoto}>
-                        <Ionicons name="camera" size={28} color={Colors.primary} />
-                        <Text style={styles.pickerLabel}>
+                    <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={takePhoto}>
+                        <Ionicons name="camera" size={28} color={theme.primary} />
+                        <Text style={[styles.pickerLabel, { color: theme.textSecondary }]}>
                             {t('mediaUploader.camera')}
                         </Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.pickerBtn} onPress={pickFromGallery}>
-                        <Ionicons name="images" size={28} color={Colors.accent} />
-                        <Text style={styles.pickerLabel}>
+                    <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={pickFromGallery}>
+                        <Ionicons name="images" size={28} color={theme.accent} />
+                        <Text style={[styles.pickerLabel, { color: theme.textSecondary }]}>
                             {t('mediaUploader.gallery')}
                         </Text>
-                        <Text style={styles.pickerSub}>
+                        <Text style={[styles.pickerSub, { color: theme.textMuted }]}>
                             {t('mediaUploader.multipleAllowed')}
                         </Text>
                     </TouchableOpacity>
@@ -241,13 +242,13 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
 
             {selectedMedia.length > 0 && (
                 <TouchableOpacity
-                    style={[styles.uploadBtn, isUploading && styles.uploadBtnDisabled]}
+                    style={[styles.uploadBtn, isUploading && styles.uploadBtnDisabled, { backgroundColor: theme.primary }]}
                     onPress={handleUploadAll}
                     disabled={isUploading}
                 >
                     {isUploading ? (
                         <View style={styles.uploadingRow}>
-                            <ActivityIndicator color={Colors.white} size="small" />
+                            <ActivityIndicator color="#ffffff" size="small" />
                             <Text style={styles.uploadBtnText}>
                                 {t('mediaUploader.uploadingProgress', {
                                     current: (uploadingIndex ?? 0) + 1,
@@ -257,7 +258,7 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
                         </View>
                     ) : (
                         <View style={styles.uploadingRow}>
-                            <Ionicons name="cloud-upload" size={20} color={Colors.white} />
+                            <Ionicons name="cloud-upload" size={20} color="#ffffff" />
                             <Text style={styles.uploadBtnText}>
                                 {selectedMedia.length > 1
                                     ? t('mediaUploader.uploadFiles', {
@@ -279,7 +280,6 @@ const styles = StyleSheet.create({
     previewSection: { marginBottom: 12 },
     previewLabel: {
         fontSize: 13,
-        color: Colors.textSecondary,
         marginBottom: 8,
         fontWeight: '500',
     },
@@ -293,9 +293,7 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         overflow: 'hidden',
         position: 'relative',
-        backgroundColor: Colors.card,
         borderWidth: 1,
-        borderColor: Colors.border,
     },
     previewImage: {
         width: '100%',
@@ -306,11 +304,10 @@ const styles = StyleSheet.create({
         height: '100%',
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: Colors.card,
         gap: 4,
     },
     previewVideoTxt: {
-        color: Colors.white,
+        color: '#ffffff',
         fontSize: 11,
         fontWeight: '600',
     },
@@ -339,16 +336,13 @@ const styles = StyleSheet.create({
         width: 110,
         height: 110,
         borderRadius: 12,
-        backgroundColor: Colors.surface,
         borderWidth: 1.5,
-        borderColor: Colors.primary + '60',
         borderStyle: 'dashed',
         justifyContent: 'center',
         alignItems: 'center',
         gap: 4,
     },
     addMoreTxt: {
-        color: Colors.primary,
         fontSize: 12,
         fontWeight: '600',
     },
@@ -359,27 +353,22 @@ const styles = StyleSheet.create({
     },
     pickerBtn: {
         flex: 1,
-        backgroundColor: Colors.surface,
         borderRadius: 14,
         paddingVertical: 20,
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: Colors.border,
         borderStyle: 'dashed',
         gap: 6,
     },
     pickerLabel: {
-        color: Colors.textSecondary,
         fontSize: 13,
         fontWeight: '600',
     },
     pickerSub: {
-        color: Colors.textMuted,
         fontSize: 10,
     },
 
     uploadBtn: {
-        backgroundColor: Colors.primary,
         borderRadius: 12,
         paddingVertical: 14,
         alignItems: 'center',
@@ -393,7 +382,7 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     uploadBtnText: {
-        color: Colors.white,
+        color: '#ffffff',
         fontWeight: '700',
         fontSize: 15,
     },

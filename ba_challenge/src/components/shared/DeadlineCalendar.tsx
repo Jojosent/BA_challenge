@@ -7,11 +7,11 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '@/constants/colors';
 import { challengeService } from '@services/challengeService';
 import { useRouter } from 'expo-router';
 import { PartyPopper } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '@/theme/ThemeContext';
 
 interface DeadlineItem {
     taskId: number;
@@ -27,7 +27,7 @@ interface DeadlineItem {
 export const DeadlineCalendar: React.FC = () => {
     const router = useRouter();
     const { t, i18n } = useTranslation();
-
+    const { theme } = useTheme();
 
     const [deadlines, setDeadlines] = useState<DeadlineItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -145,15 +145,15 @@ export const DeadlineCalendar: React.FC = () => {
         const hasExpired = items.some((d) => d.isExpired);
         const hasUrgent = items.some((d) => !d.isExpired && d.daysLeft <= 2);
 
-        if (hasExpired) return Colors.error;
-        if (hasUrgent) return Colors.warning;
-        return Colors.primary;
+        if (hasExpired) return theme.rose;
+        if (hasUrgent) return theme.amber;
+        return theme.primary;
     };
 
     if (isLoading) {
         return (
             <View style={styles.loadingBox}>
-                <ActivityIndicator color={Colors.primary} />
+                <ActivityIndicator color={theme.primary} />
             </View>
         );
     }
@@ -161,9 +161,9 @@ export const DeadlineCalendar: React.FC = () => {
     return (
         <View style={styles.wrapper}>
             {upcomingDeadlines.length > 0 && (
-                <View style={styles.urgentBanner}>
-                    <Ionicons name="alarm-outline" size={16} color={Colors.warning} />
-                    <Text style={styles.urgentTxt}>
+                <View style={[styles.urgentBanner, { backgroundColor: theme.amber + '18', borderColor: theme.amber + '40' }]}>
+                    <Ionicons name="alarm-outline" size={16} color={theme.amber} />
+                    <Text style={[styles.urgentTxt, { color: theme.amber }]}>
                         {upcomingDeadlines.length === 1
                             ? t('calendar.deadlineInDays', {
                                 count: upcomingDeadlines[0].daysLeft,
@@ -176,24 +176,24 @@ export const DeadlineCalendar: React.FC = () => {
                 </View>
             )}
 
-            <View style={styles.calendar}>
+            <View style={[styles.calendar, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                 <View style={styles.monthNav}>
-                    <TouchableOpacity style={styles.navBtn} onPress={prevMonth}>
-                        <Ionicons name="chevron-back" size={20} color={Colors.textPrimary} />
+                    <TouchableOpacity style={[styles.navBtn, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={prevMonth}>
+                        <Ionicons name="chevron-back" size={20} color={theme.textPrimary} />
                     </TouchableOpacity>
 
-                    <Text style={styles.monthTitle}>
+                    <Text style={[styles.monthTitle, { color: theme.textPrimary }]}>
                         {monthNames[currentMonth]} {currentYear}
                     </Text>
 
-                    <TouchableOpacity style={styles.navBtn} onPress={nextMonth}>
-                        <Ionicons name="chevron-forward" size={20} color={Colors.textPrimary} />
+                    <TouchableOpacity style={[styles.navBtn, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={nextMonth}>
+                        <Ionicons name="chevron-forward" size={20} color={theme.textPrimary} />
                     </TouchableOpacity>
                 </View>
 
                 <View style={styles.weekRow}>
                     {dayNames.map((d) => (
-                        <Text key={d} style={styles.weekDay}>{d}</Text>
+                        <Text key={d} style={[styles.weekDay, { color: theme.textMuted }]}>{d}</Text>
                     ))}
                 </View>
 
@@ -212,16 +212,17 @@ export const DeadlineCalendar: React.FC = () => {
                                 key={`day-${day}`}
                                 style={[
                                     styles.cell,
-                                    todayCell && styles.cellToday,
-                                    selectedCell && styles.cellSelected,
+                                    todayCell && { backgroundColor: theme.primary + '20', borderRadius: 10 },
+                                    selectedCell && { backgroundColor: theme.primary, borderRadius: 10 },
                                 ]}
                                 onPress={() => handleDayPress(day)}
                                 activeOpacity={0.7}
                             >
                                 <Text style={[
                                     styles.cellTxt,
-                                    todayCell && styles.cellTxtToday,
-                                    selectedCell && styles.cellTxtSelected,
+                                    { color: theme.textPrimary },
+                                    todayCell && { color: theme.primary, fontWeight: '800' as const },
+                                    selectedCell && { color: '#ffffff', fontWeight: '800' as const },
                                 ]}>
                                     {day}
                                 </Text>
@@ -234,27 +235,27 @@ export const DeadlineCalendar: React.FC = () => {
                     })}
                 </View>
 
-                <View style={styles.legend}>
+                <View style={[styles.legend, { borderTopColor: theme.border }]}>
                     <View style={styles.legendItem}>
-                        <View style={[styles.legendDot, { backgroundColor: Colors.primary }]} />
-                        <Text style={styles.legendTxt}>{t('calendar.legendDeadline')}</Text>
+                        <View style={[styles.legendDot, { backgroundColor: theme.primary }]} />
+                        <Text style={[styles.legendTxt, { color: theme.textMuted }]}>{t('calendar.legendDeadline')}</Text>
                     </View>
 
                     <View style={styles.legendItem}>
-                        <View style={[styles.legendDot, { backgroundColor: Colors.warning }]} />
-                        <Text style={styles.legendTxt}>{t('calendar.legendUrgent')}</Text>
+                        <View style={[styles.legendDot, { backgroundColor: theme.amber }]} />
+                        <Text style={[styles.legendTxt, { color: theme.textMuted }]}>{t('calendar.legendUrgent')}</Text>
                     </View>
 
                     <View style={styles.legendItem}>
-                        <View style={[styles.legendDot, { backgroundColor: Colors.error }]} />
-                        <Text style={styles.legendTxt}>{t('calendar.legendOverdue')}</Text>
+                        <View style={[styles.legendDot, { backgroundColor: theme.rose }]} />
+                        <Text style={[styles.legendTxt, { color: theme.textMuted }]}>{t('calendar.legendOverdue')}</Text>
                     </View>
                 </View>
             </View>
 
             {selectedDate && (
                 <View style={styles.selectedBlock}>
-                    <Text style={styles.selectedDateTitle}>
+                    <Text style={[styles.selectedDateTitle, { color: theme.textPrimary }]}>
                         {new Date(selectedDate + 'T00:00:00').toLocaleDateString(locale, {
                             day: 'numeric',
                             month: 'long',
@@ -263,19 +264,19 @@ export const DeadlineCalendar: React.FC = () => {
                     </Text>
 
                     {selectedDeadlines.length === 0 ? (
-                        <Text style={styles.noTasksTxt}>{t('calendar.noDeadlinesThisDay')}</Text>
+                        <Text style={[styles.noTasksTxt, { color: theme.textMuted }]}>{t('calendar.noDeadlinesThisDay')}</Text>
                     ) : (
                         selectedDeadlines.map((item) => {
                             const urgent = !item.isExpired && item.daysLeft <= 2;
                             const expired = item.isExpired;
-                            const accent = expired ? Colors.error : urgent ? Colors.warning : Colors.primary;
+                            const accent = expired ? theme.rose : urgent ? theme.amber : theme.primary;
 
                             return (
                                 <TouchableOpacity
                                     key={item.taskId}
                                     style={[
                                         styles.taskCard,
-                                        { borderLeftColor: accent },
+                                        { backgroundColor: theme.surface, borderColor: theme.border, borderLeftColor: accent },
                                         item.isExpired && styles.cardExpired,
                                     ]}
                                     onPress={() => {
@@ -286,7 +287,7 @@ export const DeadlineCalendar: React.FC = () => {
                                     disabled={item.isExpired}
                                 >
                                     <View style={styles.taskCardTop}>
-                                        <Text style={styles.taskCardChallenge} numberOfLines={1}>
+                                        <Text style={[styles.taskCardChallenge, { color: theme.textSecondary }]} numberOfLines={1}>
                                             {item.challengeTitle}
                                         </Text>
 
@@ -304,7 +305,7 @@ export const DeadlineCalendar: React.FC = () => {
                                         </View>
                                     </View>
 
-                                    <Text style={styles.taskCardTitle}>
+                                    <Text style={[styles.taskCardTitle, { color: theme.textPrimary }]}>
                                         {t('calendar.taskWithDay', {
                                             day: item.taskDay,
                                             title: item.taskTitle,
@@ -326,16 +327,16 @@ export const DeadlineCalendar: React.FC = () => {
 
             {!selectedDate && (
                 <View style={styles.upcomingBlock}>
-                    <Text style={styles.upcomingTitle}>{t('calendar.upcomingDeadlines')}</Text>
+                    <Text style={[styles.upcomingTitle, { color: theme.textPrimary }]}>{t('calendar.upcomingDeadlines')}</Text>
 
                     {deadlines.filter((d) => !d.isExpired).length === 0 ? (
-                        <View style={styles.emptyBox}>
+                        <View style={[styles.emptyBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                             <PartyPopper
                                 size={42}
-                                color={Colors.primary}
+                                color={theme.primary}
                                 strokeWidth={2.4}
                             />
-                            <Text style={styles.emptyTxt}>{t('calendar.allTasksDone')}</Text>
+                            <Text style={[styles.emptyTxt, { color: theme.textMuted }]}>{t('calendar.allTasksDone')}</Text>
                         </View>
                     ) : (
                         deadlines
@@ -343,21 +344,21 @@ export const DeadlineCalendar: React.FC = () => {
                             .slice(0, 5)
                             .map((item) => {
                                 const urgent = item.daysLeft <= 2;
-                                const accent = urgent ? Colors.warning : Colors.accent;
+                                const accent = urgent ? theme.amber : theme.accent;
 
                                 return (
                                     <TouchableOpacity
                                         key={item.taskId}
-                                        style={[styles.upcomingCard, { borderLeftColor: accent }]}
+                                        style={[styles.upcomingCard, { backgroundColor: theme.surface, borderColor: theme.border, borderLeftColor: accent }]}
                                         onPress={() => navigateToTask(item.taskId, item.challengeId)}
                                         activeOpacity={0.8}
                                     >
                                         <View style={styles.upcomingLeft}>
-                                            <Text style={styles.upcomingChallenge} numberOfLines={1}>
+                                            <Text style={[styles.upcomingChallenge, { color: theme.textMuted }]} numberOfLines={1}>
                                                 {item.challengeTitle}
                                             </Text>
 
-                                            <Text style={styles.upcomingTask} numberOfLines={1}>
+                                            <Text style={[styles.upcomingTask, { color: theme.textPrimary }]} numberOfLines={1}>
                                                 {t('calendar.taskWithDay', {
                                                     day: item.taskDay,
                                                     title: item.taskTitle,
@@ -372,7 +373,7 @@ export const DeadlineCalendar: React.FC = () => {
                                                     : t('calendar.daysShort', { count: item.daysLeft })}
                                             </Text>
 
-                                            <Text style={styles.upcomingDate}>
+                                            <Text style={[styles.upcomingDate, { color: theme.textMuted }]}>
                                                 {new Date(item.deadline).toLocaleDateString(locale, {
                                                     day: 'numeric',
                                                     month: 'short',
@@ -407,26 +408,21 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
-        backgroundColor: Colors.warning + '18',
         borderRadius: 10,
         padding: 12,
         marginBottom: 12,
         borderWidth: 1,
-        borderColor: Colors.warning + '40',
     },
     urgentTxt: {
         flex: 1,
         fontSize: 13,
-        color: Colors.warning,
         fontWeight: '600',
     },
 
     calendar: {
-        backgroundColor: Colors.surface,
         borderRadius: 16,
         padding: 16,
         borderWidth: 1,
-        borderColor: Colors.border,
         marginBottom: 16,
     },
 
@@ -439,14 +435,11 @@ const styles = StyleSheet.create({
     navBtn: {
         padding: 6,
         borderRadius: 8,
-        backgroundColor: Colors.card,
         borderWidth: 1,
-        borderColor: Colors.border,
     },
     monthTitle: {
         fontSize: 16,
         fontWeight: '700',
-        color: Colors.textPrimary,
     },
 
     weekRow: {
@@ -458,7 +451,6 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         fontSize: 12,
         fontWeight: '600',
-        color: Colors.textMuted,
     },
 
     grid: {
@@ -472,24 +464,19 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     cellToday: {
-        backgroundColor: Colors.primary + '20',
         borderRadius: 10,
     },
     cellSelected: {
-        backgroundColor: Colors.primary,
         borderRadius: 10,
     },
     cellTxt: {
         fontSize: 14,
-        color: Colors.textPrimary,
         fontWeight: '500',
     },
     cellTxtToday: {
-        color: Colors.primary,
         fontWeight: '800',
     },
     cellTxtSelected: {
-        color: Colors.white,
         fontWeight: '800',
     },
     dot: {
@@ -506,7 +493,6 @@ const styles = StyleSheet.create({
         marginTop: 12,
         paddingTop: 12,
         borderTopWidth: 1,
-        borderTopColor: Colors.border,
     },
     legendItem: {
         flexDirection: 'row',
@@ -520,7 +506,6 @@ const styles = StyleSheet.create({
     },
     legendTxt: {
         fontSize: 11,
-        color: Colors.textMuted,
     },
 
     selectedBlock: {
@@ -529,22 +514,18 @@ const styles = StyleSheet.create({
     selectedDateTitle: {
         fontSize: 15,
         fontWeight: '700',
-        color: Colors.textPrimary,
         marginBottom: 10,
     },
     noTasksTxt: {
-        color: Colors.textMuted,
         fontSize: 13,
         textAlign: 'center',
         paddingVertical: 16,
     },
     taskCard: {
-        backgroundColor: Colors.surface,
         borderRadius: 12,
         padding: 14,
         marginBottom: 8,
         borderWidth: 1,
-        borderColor: Colors.border,
         borderLeftWidth: 4,
         gap: 6,
     },
@@ -557,7 +538,6 @@ const styles = StyleSheet.create({
     taskCardChallenge: {
         flex: 1,
         fontSize: 12,
-        color: Colors.textSecondary,
         fontWeight: '500',
     },
     statusPill: {
@@ -573,7 +553,6 @@ const styles = StyleSheet.create({
     taskCardTitle: {
         fontSize: 14,
         fontWeight: '700',
-        color: Colors.textPrimary,
     },
     taskCardFooter: {
         flexDirection: 'row',
@@ -591,31 +570,25 @@ const styles = StyleSheet.create({
     upcomingTitle: {
         fontSize: 18,
         fontWeight: '700',
-        color: Colors.textPrimary,
         marginBottom: 10,
     },
     emptyBox: {
         alignItems: 'center',
         paddingVertical: 24,
-        backgroundColor: Colors.surface,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: Colors.border,
     },
     emptyTxt: {
         fontSize: 14,
-        color: Colors.textMuted,
     },
 
     upcomingCard: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: Colors.surface,
         borderRadius: 12,
         padding: 14,
         marginBottom: 8,
         borderWidth: 1,
-        borderColor: Colors.border,
         borderLeftWidth: 4,
         gap: 10,
     },
@@ -624,13 +597,11 @@ const styles = StyleSheet.create({
     },
     upcomingChallenge: {
         fontSize: 12,
-        color: Colors.textMuted,
         marginBottom: 3,
     },
     upcomingTask: {
         fontSize: 14,
         fontWeight: '600',
-        color: Colors.textPrimary,
     },
     upcomingRight: {
         alignItems: 'flex-end',
@@ -641,7 +612,6 @@ const styles = StyleSheet.create({
     },
     upcomingDate: {
         fontSize: 11,
-        color: Colors.textMuted,
         marginTop: 2,
     },
 });

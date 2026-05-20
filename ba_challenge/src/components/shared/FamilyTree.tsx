@@ -10,8 +10,8 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import Svg, { Line } from 'react-native-svg';
-import { Colors } from '@/constants/colors';
 import { FamilyMember, RELATION_LABELS, RELATION_COLORS } from '@/types/index';
+import { useTheme } from '@/theme/ThemeContext';
 
 const CARD_W = 90;
 const CARD_H = 70;
@@ -32,6 +32,7 @@ interface FamilyTreeProps {
 
 export const FamilyTree: React.FC<FamilyTreeProps> = ({ members, onSelect }) => {
   const { t } = useTranslation();
+  const { theme } = useTheme();
 
   const { positions, svgWidth, svgHeight, lines } = useMemo(() => {
     if (members.length === 0) {
@@ -134,11 +135,11 @@ export const FamilyTree: React.FC<FamilyTreeProps> = ({ members, onSelect }) => 
       <View style={styles.empty}>
         <Text style={styles.emptyIcon}>🌳</Text>
 
-        <Text style={styles.emptyTitle}>
+        <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>
           {t('familyTree.emptyTitle')}
         </Text>
 
-        <Text style={styles.emptyText}>
+        <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
           {t('familyTree.emptyText')}
         </Text>
       </View>
@@ -163,7 +164,7 @@ export const FamilyTree: React.FC<FamilyTreeProps> = ({ members, onSelect }) => 
                 y1={line.y1}
                 x2={line.x2}
                 y2={line.y2 + CARD_H / 2}
-                stroke={Colors.border}
+                stroke={theme.border}
                 strokeWidth={1.5}
                 strokeDasharray="4 3"
               />
@@ -173,7 +174,7 @@ export const FamilyTree: React.FC<FamilyTreeProps> = ({ members, onSelect }) => 
           {/* Карточки */}
           {positions.map(({ member, x, y }) => {
             const color =
-              RELATION_COLORS[member.relation] || Colors.primary;
+              RELATION_COLORS[member.relation] || theme.primary;
 
             const label =
               RELATION_LABELS[member.relation] || member.relation;
@@ -187,6 +188,7 @@ export const FamilyTree: React.FC<FamilyTreeProps> = ({ members, onSelect }) => 
                     left: x,
                     top: y,
                     borderColor: color,
+                    backgroundColor: theme.surface,
                   },
                 ]}
                 onPress={() => onSelect(member)}
@@ -214,7 +216,7 @@ export const FamilyTree: React.FC<FamilyTreeProps> = ({ members, onSelect }) => 
 
                 {/* Имя */}
                 <Text
-                  style={styles.nodeName}
+                  style={[styles.nodeName, { color: theme.textPrimary }]}
                   numberOfLines={1}
                 >
                   {member.name}
@@ -233,7 +235,7 @@ export const FamilyTree: React.FC<FamilyTreeProps> = ({ members, onSelect }) => 
 
                 {/* Год рождения */}
                 {member.birthYear && (
-                  <Text style={styles.nodeBirth}>
+                  <Text style={[styles.nodeBirth, { color: theme.textMuted }]}>
                     {member.birthYear}
                   </Text>
                 )}
@@ -260,20 +262,17 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: Colors.textPrimary,
     marginBottom: 6,
   },
 
   emptyText: {
     fontSize: 14,
-    color: Colors.textSecondary,
   },
 
   node: {
     position: 'absolute',
     width: CARD_W,
     height: CARD_H,
-    backgroundColor: Colors.surface,
     borderRadius: 12,
     borderWidth: 1.5,
     alignItems: 'center',
@@ -306,7 +305,6 @@ const styles = StyleSheet.create({
   nodeName: {
     fontSize: 10,
     fontWeight: '600',
-    color: Colors.textPrimary,
     textAlign: 'center',
   },
 
@@ -317,6 +315,5 @@ const styles = StyleSheet.create({
 
   nodeBirth: {
     fontSize: 8,
-    color: Colors.textMuted,
   },
 });

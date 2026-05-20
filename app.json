@@ -1,8 +1,23 @@
 {
-  "ios": {
-    "bundleIdentifier": "com.anonymous.ba-challenge"
-  },
-  "android": {
-    "package": "com.anonymous.bachallenge"
+  "expo": {
+    "name": "BA_challenge",
+    "slug": "ba-challenge",
+    "version": "1.0.0",
+    "scheme": "ba-challenge",
+    "platforms": ["ios", "android", "web"],
+    "ios": {
+      "bundleIdentifier": "com.anonymous.ba-challenge",
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.anonymous.bachallenge",
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "newArchEnabled": true
   }
 }

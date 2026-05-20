@@ -1,4 +1,3 @@
-import { Colors } from '@/constants/colors';
 import { Ionicons } from '@expo/vector-icons';
 import { aiService } from '@services/aiService';
 import React, { useState } from 'react';
@@ -13,6 +12,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useTheme } from '@/theme/ThemeContext';
 
 interface Message {
     id: string;
@@ -25,6 +25,7 @@ interface AIChatProps {
 }
 
 export const AIChat: React.FC<AIChatProps> = ({ challengeId }) => {
+    const { theme } = useTheme();
     const [messages, setMessages] = useState<Message[]>([
         {
             id: '0',
@@ -73,7 +74,7 @@ export const AIChat: React.FC<AIChatProps> = ({ challengeId }) => {
 
     return (
         <KeyboardAvoidingView
-            style={styles.container}
+            style={[styles.container, { backgroundColor: theme.bg }]}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
             {/* Сообщения */}
@@ -87,16 +88,18 @@ export const AIChat: React.FC<AIChatProps> = ({ challengeId }) => {
                         key={msg.id}
                         style={[
                             styles.bubble,
-                            msg.role === 'user' ? styles.userBubble : styles.aiBubble,
+                            msg.role === 'user'
+                                ? [styles.userBubble, { backgroundColor: theme.primary }]
+                                : [styles.aiBubble, { backgroundColor: theme.surface, borderColor: theme.border }],
                         ]}
                     >
                         {msg.role === 'ai' && (
-                            <Text style={styles.aiLabel}>🤖 AI</Text>
+                            <Text style={[styles.aiLabel, { color: theme.textMuted }]}>🤖 AI</Text>
                         )}
                         <Text
                             style={[
                                 styles.bubbleText,
-                                msg.role === 'user' ? styles.userText : styles.aiText,
+                                msg.role === 'user' ? styles.userText : [styles.aiText, { color: theme.textPrimary }],
                             ]}
                         >
                             {msg.text}
@@ -105,33 +108,33 @@ export const AIChat: React.FC<AIChatProps> = ({ challengeId }) => {
                 ))}
 
                 {isLoading && (
-                    <View style={styles.aiBubble}>
-                        <Text style={styles.aiLabel}>🤖 AI</Text>
+                    <View style={[styles.bubble, styles.aiBubble, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                        <Text style={[styles.aiLabel, { color: theme.textMuted }]}>🤖 AI</Text>
                         <View style={styles.typingRow}>
-                            <ActivityIndicator size="small" color={Colors.primary} />
-                            <Text style={styles.typingText}>думает...</Text>
+                            <ActivityIndicator size="small" color={theme.primary} />
+                            <Text style={[styles.typingText, { color: theme.textSecondary }]}>думает...</Text>
                         </View>
                     </View>
                 )}
             </ScrollView>
 
             {/* Поле ввода */}
-            <View style={styles.inputRow}>
+            <View style={[styles.inputRow, { borderTopColor: theme.border, backgroundColor: theme.bg }]}>
                 <TextInput
-                    style={styles.input}
+                    style={[styles.input, { backgroundColor: theme.surface, color: theme.textPrimary, borderColor: theme.border }]}
                     value={input}
                     onChangeText={setInput}
                     placeholder="Спроси AI..."
-                    placeholderTextColor={Colors.textMuted}
+                    placeholderTextColor={theme.textMuted}
                     multiline
                     maxLength={500}
                 />
                 <TouchableOpacity
-                    style={[styles.sendBtn, (!input.trim() || isLoading) && styles.sendBtnDisabled]}
+                    style={[styles.sendBtn, { backgroundColor: theme.primary }, (!input.trim() || isLoading) && styles.sendBtnDisabled]}
                     onPress={sendMessage}
                     disabled={!input.trim() || isLoading}
                 >
-                    <Ionicons name="send" size={18} color={Colors.white} />
+                    <Ionicons name="send" size={18} color="#ffffff" />
                 </TouchableOpacity>
             </View>
         </KeyboardAvoidingView>
@@ -141,7 +144,6 @@ export const AIChat: React.FC<AIChatProps> = ({ challengeId }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: Colors.background,
     },
     messages: { flex: 1 },
     messagesContent: { padding: 16, gap: 10 },
@@ -153,23 +155,20 @@ const styles = StyleSheet.create({
     },
     userBubble: {
         alignSelf: 'flex-end',
-        backgroundColor: Colors.primary,
         borderBottomRightRadius: 4,
     },
     aiBubble: {
         alignSelf: 'flex-start',
-        backgroundColor: Colors.surface,
         borderBottomLeftRadius: 4,
         borderWidth: 1,
-        borderColor: Colors.border,
     },
-    aiLabel: { fontSize: 10, color: Colors.textMuted, marginBottom: 4 },
+    aiLabel: { fontSize: 10, marginBottom: 4 },
     bubbleText: { fontSize: 14, lineHeight: 20 },
-    userText: { color: Colors.white },
-    aiText: { color: Colors.textPrimary },
+    userText: { color: '#ffffff' },
+    aiText: {},
 
     typingRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    typingText: { color: Colors.textSecondary, fontSize: 13 },
+    typingText: { fontSize: 13 },
 
     inputRow: {
         flexDirection: 'row',
@@ -177,23 +176,17 @@ const styles = StyleSheet.create({
         padding: 12,
         gap: 8,
         borderTopWidth: 1,
-        borderTopColor: Colors.border,
-        backgroundColor: Colors.background,
     },
     input: {
         flex: 1,
-        backgroundColor: Colors.surface,
         borderRadius: 20,
         paddingHorizontal: 16,
         paddingVertical: 10,
-        color: Colors.textPrimary,
         fontSize: 14,
         maxHeight: 100,
         borderWidth: 1,
-        borderColor: Colors.border,
     },
     sendBtn: {
-        backgroundColor: Colors.primary,
         borderRadius: 20,
         width: 40,
         height: 40,

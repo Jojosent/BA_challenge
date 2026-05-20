@@ -4,7 +4,6 @@ import { LoadingSpinner } from '@components/shared/LoadingSpinner';
 import { MediaUploader } from '@components/shared/MediaUploader';
 import { SubmissionCard } from '@components/shared/SubmissionCard';
 import { Card } from '@components/ui/Card';
-import { Colors } from '@/constants/colors';
 import { useChallenge } from '@hooks/useChallenge';
 import { submissionService } from '@services/submissionService';
 import { useLocalSearchParams } from 'expo-router';
@@ -18,9 +17,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '@/theme/ThemeContext';
 
 export default function TaskScreen() {
     const { t } = useTranslation();
+    const { theme } = useTheme();
 
     const { taskId, challengeId } = useLocalSearchParams<{
         taskId: string;
@@ -54,7 +55,7 @@ export default function TaskScreen() {
     if (!task) return <LoadingSpinner />;
 
     return (
-        <SafeAreaView style={styles.container} edges={['top']}>
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]} edges={['top']}>
             <Header title={t('taskScreen.headerTitle', { day: task.day })} showBack />
 
             <ScrollView
@@ -63,41 +64,41 @@ export default function TaskScreen() {
                     <RefreshControl
                         refreshing={isLoading}
                         onRefresh={fetchSubmissions}
-                        tintColor={Colors.primary}
+                        tintColor={theme.primary}
                     />
                 }
             >
                 {/* Описание задачи */}
                 <Card style={styles.taskCard}>
                     <View style={styles.taskHeader}>
-                        <View style={styles.dayBadge}>
-                            <Text style={styles.dayText}>
+                        <View style={[styles.dayBadge, { backgroundColor: theme.primary + '22' }]}>
+                            <Text style={[styles.dayText, { color: theme.primary }]}>
                                 {t('taskScreen.taskDay', { day: task.day })}
                             </Text>
                         </View>
 
                         {/* ✅ AI или человек */}
                         {task.isAiGenerated ? (
-                            <View style={styles.aiBadge}>
-                                <Text style={styles.aiText}>
+                            <View style={[styles.aiBadge, { backgroundColor: theme.rose + '22' }]}>
+                                <Text style={[styles.aiText, { color: theme.rose }]}>
                                     🤖 {t('taskScreen.aiTask')}
                                 </Text>
                             </View>
                         ) : (
-                            <View style={styles.humanBadge}>
-                                <Text style={styles.humanText}>
+                            <View style={[styles.humanBadge, { backgroundColor: theme.accent + '22' }]}>
+                                <Text style={[styles.humanText, { color: theme.accent }]}>
                                     👤 {t('taskScreen.manualTask')}
                                 </Text>
                             </View>
                         )}
                     </View>
 
-                    <Text style={styles.taskTitle}>{task.title}</Text>
-                    <Text style={styles.taskDesc}>{task.description}</Text>
+                    <Text style={[styles.taskTitle, { color: theme.textPrimary }]}>{task.title}</Text>
+                    <Text style={[styles.taskDesc, { color: theme.textSecondary }]}>{task.description}</Text>
                 </Card>
 
                 {/* Загрузка доказательства */}
-                <Text style={styles.sectionTitle}>
+                <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>
                     {t('taskScreen.uploadProof')}
                 </Text>
                 <View style={styles.uploaderWrapper}>
@@ -105,7 +106,7 @@ export default function TaskScreen() {
                 </View>
 
                 {/* Список сабмишенов */}
-                <Text style={styles.sectionTitle}>
+                <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>
                     {t('taskScreen.proofsCount', { count: submissions.length })}
                 </Text>
 
@@ -113,7 +114,7 @@ export default function TaskScreen() {
                     <LoadingSpinner />
                 ) : submissions.length === 0 ? (
                     <Card style={styles.emptyCard}>
-                        <Text style={styles.emptyText}>
+                        <Text style={[styles.emptyText, { color: theme.textMuted }]}>
                             {t('taskScreen.noProofs')}
                         </Text>
                     </Card>
@@ -134,52 +135,44 @@ export default function TaskScreen() {
 }
 
 const styles = StyleSheet.create({
-    // В StyleSheet.create добавь:
     humanBadge: {
-        backgroundColor: Colors.accent + '22',
         paddingHorizontal: 8,
         paddingVertical: 3,
         borderRadius: 6,
     },
     humanText: {
-        color: Colors.accent,
         fontSize: 11,
         fontWeight: '600',
     },
-    container: { flex: 1, backgroundColor: Colors.background },
+    container: { flex: 1 },
 
     taskCard: { margin: 20, marginBottom: 8 },
     taskHeader: { flexDirection: 'row', gap: 8, marginBottom: 10 },
     dayBadge: {
-        backgroundColor: Colors.primary + '22',
         paddingHorizontal: 10,
         paddingVertical: 4,
         borderRadius: 8,
     },
-    dayText: { color: Colors.primary, fontSize: 12, fontWeight: '600' },
+    dayText: { fontSize: 12, fontWeight: '600' },
     aiBadge: {
-        backgroundColor: Colors.secondary + '22',
         paddingHorizontal: 10,
         paddingVertical: 4,
         borderRadius: 8,
     },
-    aiText: { color: Colors.secondary, fontSize: 12, fontWeight: '600' },
+    aiText: { fontSize: 12, fontWeight: '600' },
     taskTitle: {
         fontSize: 18,
         fontWeight: '700',
-        color: Colors.textPrimary,
         marginBottom: 8,
     },
     taskDesc: {
         fontSize: 14,
-        color: Colors.textSecondary,
         lineHeight: 20,
     },
 
     sectionTitle: {
         fontSize: 18,
         fontWeight: '700',
-        color: Colors.textPrimary,
         paddingHorizontal: 20,
         marginTop: 16,
         marginBottom: 12,
@@ -192,5 +185,5 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 24,
     },
-    emptyText: { color: Colors.textMuted, fontSize: 14 },
+    emptyText: { fontSize: 14 },
 });
