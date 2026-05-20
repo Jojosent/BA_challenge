@@ -16,11 +16,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '@/constants/colors';
 import { Config } from '@constants/config';
 import { Header } from '@components/shared/Header';
 import { chatService, ChatMessage, ChatRoomType } from '@services/chatService';
 import { useAuthStore } from '@store/authStore';
+import { useTheme } from '@/theme/ThemeContext';
 
 const POLL_INTERVAL = 4000;
 
@@ -32,6 +32,7 @@ export default function ChatScreen() {
   }>();
 
   const { user } = useAuthStore();
+  const { theme } = useTheme();
   const flatListRef = useRef<FlatList>(null);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -144,7 +145,7 @@ export default function ChatScreen() {
         style={[styles.msgRow, isMe && styles.msgRowMe]}
       >
         {!isMe && (
-          <View style={[styles.avatar, !showMeta && styles.avatarHidden]}>
+          <View style={[styles.avatar, !showMeta && styles.avatarHidden, { backgroundColor: theme.primary }]}>
             {showMeta && (
               item.user.avatarUrl ? (
                 <Image 
@@ -162,16 +163,23 @@ export default function ChatScreen() {
 
         <View style={[styles.msgCol, isMe && styles.msgColMe]}>
           {!isMe && showMeta && (
-            <Text style={styles.senderName}>{item.user.username}</Text>
+            <Text style={[styles.senderName, { color: theme.textMuted }]}>{item.user.username}</Text>
           )}
 
-          <View style={[styles.bubble, isMe ? styles.bubbleMe : styles.bubbleThem]}>
-            <Text style={[styles.bubbleText, isMe && styles.bubbleTextMe]}>
+          <View
+            style={[
+              styles.bubble,
+              isMe
+                ? [styles.bubbleMe, { backgroundColor: theme.primary }]
+                : [styles.bubbleThem, { backgroundColor: theme.surface, borderColor: theme.border }],
+            ]}
+          >
+            <Text style={[styles.bubbleText, isMe ? { color: '#ffffff' } : { color: theme.textPrimary }]}>
               {item.text}
             </Text>
           </View>
 
-          <Text style={[styles.time, isMe && styles.timeMe]}>
+          <Text style={[styles.time, isMe && styles.timeMe, { color: theme.textMuted }]}>
             {formatTime(item.createdAt)}
           </Text>
         </View>
@@ -181,9 +189,9 @@ export default function ChatScreen() {
 
   const renderDateSeparator = (dateStr: string) => (
     <View style={styles.dateSep}>
-      <View style={styles.dateLine} />
-      <Text style={styles.dateText}>{dateStr}</Text>
-      <View style={styles.dateLine} />
+      <View style={[styles.dateLine, { backgroundColor: theme.border }]} />
+      <Text style={[styles.dateText, { color: theme.textMuted }]}>{dateStr}</Text>
+      <View style={[styles.dateLine, { backgroundColor: theme.border }]} />
     </View>
   );
 
@@ -211,8 +219,8 @@ export default function ChatScreen() {
       <Text style={styles.emptyIcon}>
         {rType === 'family' ? '👨‍👩‍👧‍👦' : '🏆'}
       </Text>
-      <Text style={styles.emptyTitle}>Чат пустой</Text>
-      <Text style={styles.emptyText}>
+      <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Чат пустой</Text>
+      <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
         {rType === 'family'
           ? 'Напиши первое сообщение своей семье!'
           : 'Обсудите детали челленджа здесь!'}
@@ -221,7 +229,7 @@ export default function ChatScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]} edges={['top']}>
       <Header title={decodeURIComponent(title || 'Чат')} showBack />
 
       <KeyboardAvoidingView
@@ -231,7 +239,7 @@ export default function ChatScreen() {
       >
         {isLoading ? (
           <View style={styles.loadingBox}>
-            <ActivityIndicator size="large" color={Colors.primary} />
+            <ActivityIndicator size="large" color={theme.primary} />
           </View>
         ) : (
           <FlatList
@@ -242,33 +250,44 @@ export default function ChatScreen() {
             contentContainerStyle={[styles.listContent, messages.length === 0 && styles.listContentEmpty]}
             showsVerticalScrollIndicator={false}
             refreshControl={
-              <RefreshControl refreshing={isRefreshing} onRefresh={() => { setIsRefreshing(true); fetchMessages(); }} tintColor={Colors.primary} />
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={() => {
+                  setIsRefreshing(true);
+                  fetchMessages();
+                }}
+                tintColor={theme.primary}
+              />
             }
             ListEmptyComponent={<EmptyState />}
             onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
           />
         )}
 
-        <View style={styles.inputBar}>
+        <View style={[styles.inputBar, { borderTopColor: theme.border, backgroundColor: theme.bg }]}>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: theme.surface, color: theme.textPrimary, borderColor: theme.border }]}
             value={text}
             onChangeText={setText}
             placeholder="Написать сообщение..."
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={theme.textMuted}
             multiline
             maxLength={2000}
             returnKeyType="default"
           />
           <TouchableOpacity
-            style={[styles.sendBtn, (!text.trim() || isSending) && styles.sendBtnDisabled]}
+            style={[
+              styles.sendBtn,
+              { backgroundColor: theme.primary },
+              (!text.trim() || isSending) && styles.sendBtnDisabled,
+            ]}
             onPress={handleSend}
             disabled={!text.trim() || isSending}
           >
             {isSending ? (
-              <ActivityIndicator size="small" color={Colors.white} />
+              <ActivityIndicator size="small" color="#ffffff" />
             ) : (
-              <Ionicons name="send" size={18} color={Colors.white} />
+              <Ionicons name="send" size={18} color="#ffffff" />
             )}
           </TouchableOpacity>
         </View>
@@ -278,7 +297,7 @@ export default function ChatScreen() {
 }
 
 const styles = StyleSheet.create({
-  container:  { flex: 1, backgroundColor: Colors.background },
+  container:  { flex: 1 },
   flex:       { flex: 1 },
   loadingBox: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
@@ -287,36 +306,35 @@ const styles = StyleSheet.create({
 
   empty:      { alignItems: 'center', paddingVertical: 32 },
   emptyIcon:  { fontSize: 52, marginBottom: 12 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary, marginBottom: 6 },
-  emptyText:  { fontSize: 14, color: Colors.textSecondary, textAlign: 'center', lineHeight: 20 },
+  emptyTitle: { fontSize: 18, fontWeight: '700', marginBottom: 6 },
+  emptyText:  { fontSize: 14, textAlign: 'center', lineHeight: 20 },
 
   dateSep:  { flexDirection: 'row', alignItems: 'center', marginVertical: 16, gap: 8 },
-  dateLine: { flex: 1, height: 1, backgroundColor: Colors.border },
-  dateText: { fontSize: 11, color: Colors.textMuted, fontWeight: '500' },
+  dateLine: { flex: 1, height: 1 },
+  dateText: { fontSize: 11, fontWeight: '500' },
 
   msgRow: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 4, gap: 8 },
   msgRowMe: { flexDirection: 'row-reverse' },
 
-  avatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.primary, justifyContent: 'center', alignItems: 'center' },
+  avatar: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
   avatarHidden: { backgroundColor: 'transparent' },
-  avatarTxt:    { color: Colors.white, fontWeight: '700', fontSize: 13 },
+  avatarTxt:    { color: '#ffffff', fontWeight: '700', fontSize: 13 },
 
   msgCol:   { maxWidth: '75%' },
   msgColMe: { alignItems: 'flex-end' },
 
-  senderName: { fontSize: 11, color: Colors.textMuted, marginBottom: 3, marginLeft: 4, fontWeight: '500' },
+  senderName: { fontSize: 11, marginBottom: 3, marginLeft: 4, fontWeight: '500' },
 
   bubble: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 18 },
-  bubbleThem: { backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border, borderBottomLeftRadius: 4 },
-  bubbleMe: { backgroundColor: Colors.primary, borderBottomRightRadius: 4 },
-  bubbleText:   { fontSize: 15, color: Colors.textPrimary, lineHeight: 21 },
-  bubbleTextMe: { color: Colors.white },
+  bubbleThem: { borderWidth: 1, borderBottomLeftRadius: 4 },
+  bubbleMe: { borderBottomRightRadius: 4 },
+  bubbleText:   { fontSize: 15, lineHeight: 21 },
 
-  time:   { fontSize: 10, color: Colors.textMuted, marginTop: 3, marginLeft: 4 },
+  time:   { fontSize: 10, marginTop: 3, marginLeft: 4 },
   timeMe: { marginLeft: 0, marginRight: 4 },
 
-  inputBar: { flexDirection: 'row', alignItems: 'flex-end', padding: 12, gap: 10, borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.background },
-  input: { flex: 1, minHeight: 42, maxHeight: 120, backgroundColor: Colors.surface, borderRadius: 21, paddingHorizontal: 16, paddingVertical: 10, fontSize: 15, color: Colors.textPrimary, borderWidth: 1, borderColor: Colors.border },
-  sendBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: Colors.primary, justifyContent: 'center', alignItems: 'center' },
+  inputBar: { flexDirection: 'row', alignItems: 'flex-end', padding: 12, gap: 10, borderTopWidth: 1 },
+  input: { flex: 1, minHeight: 42, maxHeight: 120, borderRadius: 21, paddingHorizontal: 16, paddingVertical: 10, fontSize: 15, borderWidth: 1 },
+  sendBtn: { width: 42, height: 42, borderRadius: 21, justifyContent: 'center', alignItems: 'center' },
   sendBtnDisabled: { opacity: 0.4 },
 });

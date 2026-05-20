@@ -1,8 +1,8 @@
-import { Colors } from '@/constants/colors';
 import { UserRole } from '@/types/index';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
+import { useTheme } from '@/theme/ThemeContext';
 
 interface RoleBadgeProps {
   role: UserRole;
@@ -10,28 +10,29 @@ interface RoleBadgeProps {
 
 export const RoleBadge: React.FC<RoleBadgeProps> = ({ role }) => {
   const { t } = useTranslation();
+  const { theme } = useTheme();
 
   const roleConfig = {
     admin: {
       label: t('roleBadge.admin'),
-      color: Colors.secondary,
+      color: theme.rose,
       icon: '👑',
     },
 
     moderator: {
       label: t('roleBadge.moderator'),
-      color: Colors.warning,
+      color: theme.amber,
       icon: '🛡️',
     },
 
     user: {
       label: t('roleBadge.user'),
-      color: Colors.accent,
+      color: theme.primary,
       icon: '⚡',
     },
   };
 
-  const config = roleConfig[role];
+  const config = roleConfig[role] || roleConfig.user;
 
   return (
     <View

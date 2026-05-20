@@ -54,7 +54,7 @@ function SectionLabel({ label }: { label: string }) {
   const { theme } = useTheme();
   return (
     <View style={sec.row}>
-      <Text style={[sec.text, { color: A.violetMid }]}>{label}</Text>
+      <Text style={[sec.text, { color: theme.primary }]}>{label}</Text>
       <View style={[sec.line, { backgroundColor: theme.border }]} />
     </View>
   );
@@ -451,11 +451,11 @@ export default function CreateChallengeScreen() {
               },
             ]}
           >
-            <View style={[s.daysLeft, { backgroundColor: theme.surfaceAlt ?? A.violetSoft }]}>
+            <View style={[s.daysLeft, { backgroundColor: theme.surfaceAlt ?? theme.primaryLight }]}>
               <Text style={[s.daysNum, { color: theme.primary ?? A.violet }]}>
                 {dayCount}
               </Text>
-              <Text style={[s.daysSub, { color: A.violetMid }]}>
+              <Text style={[s.daysSub, { color: theme.textSecondary }]}>
                 {t('createChallenge.days')}
               </Text>
             </View>
@@ -525,8 +525,8 @@ export default function CreateChallengeScreen() {
         <InfoBanner
           icon="diamond-outline"
           text={t('createChallenge.betInfo')}
-          color={theme.primary ?? A.violet}
-          bg={A.violetSoft}
+          color={theme.primary}
+          bg={theme.primaryLight}
         />
 
         <Controller

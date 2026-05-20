@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { Colors } from '@/constants/colors';
 import { Submission } from '@/types/index';
 import { StarRating } from '@components/shared/StarRating';
 import { aiService } from '@services/aiService';
@@ -18,6 +17,7 @@ import { useAuthStore } from '@store/authStore';
 import { useUserStore } from '@/store/userStore';
 import { userService } from '@/services/userService';
 import { voteService } from '@/services/voteService';
+import { useTheme } from '@/theme/ThemeContext';
 
 interface SubmissionCardProps {
   submission: Submission;
@@ -27,6 +27,7 @@ export const SubmissionCard: React.FC<SubmissionCardProps> = ({ submission }) =>
   const { t, i18n } = useTranslation();
   const { user } = useAuthStore();
   const { setProfile } = useUserStore();
+  const { theme } = useTheme();
 
   const [currentScore, setCurrentScore] = useState(submission.score);
   const [aiScore, setAiScore] = useState(submission.aiScore);
@@ -94,7 +95,7 @@ export const SubmissionCard: React.FC<SubmissionCardProps> = ({ submission }) =>
   };
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
       <View style={styles.mediaWrapper}>
         {submission.mediaType === 'photo' ? (
           <Image
@@ -103,9 +104,9 @@ export const SubmissionCard: React.FC<SubmissionCardProps> = ({ submission }) =>
             resizeMode="cover"
           />
         ) : (
-          <View style={styles.videoPlaceholder}>
-            <Ionicons name="play-circle" size={52} color={Colors.white} />
-            <Text style={styles.videoText}>
+          <View style={[styles.videoPlaceholder, { backgroundColor: theme.card }]}>
+            <Ionicons name="play-circle" size={52} color={theme.textPrimary} />
+            <Text style={[styles.videoText, { color: theme.textPrimary }]}>
               {t('submissionCard.videoProof')}
             </Text>
           </View>
@@ -115,14 +116,14 @@ export const SubmissionCard: React.FC<SubmissionCardProps> = ({ submission }) =>
           <Ionicons
             name={submission.mediaType === 'video' ? 'videocam' : 'camera'}
             size={16}
-            color={Colors.white}
+            color="#ffffff"
           />
         </View>
       </View>
 
       <View style={styles.info}>
         <View style={styles.userRow}>
-          <View style={styles.avatar}>
+          <View style={[styles.avatar, { backgroundColor: theme.primary }]}>
             {submission.user?.avatarUrl ? (
               <Image
                 source={{ uri: submission.user.avatarUrl }}
@@ -137,16 +138,16 @@ export const SubmissionCard: React.FC<SubmissionCardProps> = ({ submission }) =>
           </View>
 
           <View style={styles.userInfo}>
-            <Text style={styles.username}>
+            <Text style={[styles.username, { color: theme.textPrimary }]}>
               {submission.user?.username ?? t('submissionCard.userFallback')}
             </Text>
-            <Text style={styles.date}>{date}</Text>
+            <Text style={[styles.date, { color: theme.textMuted }]}>{date}</Text>
           </View>
 
           {currentScore > 0 && (
-            <View style={styles.scoreBadge}>
-              <Ionicons name="star" size={12} color={Colors.rikon} />
-              <Text style={styles.scoreText}>
+            <View style={[styles.scoreBadge, { backgroundColor: theme.amber + '22' }]}>
+              <Ionicons name="star" size={12} color={theme.amber} />
+              <Text style={[styles.scoreText, { color: theme.amber }]}>
                 {typeof currentScore === 'number' && currentScore > 0
                   ? currentScore.toFixed(2)
                   : '—'}
@@ -156,29 +157,29 @@ export const SubmissionCard: React.FC<SubmissionCardProps> = ({ submission }) =>
         </View>
 
         {aiScore !== undefined && aiScore !== null ? (
-          <View style={styles.aiBlock}>
+          <View style={[styles.aiBlock, { backgroundColor: theme.card }]}>
             <View style={styles.aiHeader}>
-              <Text style={styles.aiLabel}>
+              <Text style={[styles.aiLabel, { color: theme.textSecondary }]}>
                 {t('submissionCard.aiScoreLabel')}
               </Text>
-              <Text style={styles.aiScore}>{aiScore}/100</Text>
+              <Text style={[styles.aiScore, { color: theme.secondary }]}>{aiScore}/100</Text>
             </View>
 
             {aiComment && (
-              <Text style={styles.aiComment}>{aiComment}</Text>
+              <Text style={[styles.aiComment, { color: theme.textSecondary }]}>{aiComment}</Text>
             )}
           </View>
         ) : (
           !isOwner && (
             <TouchableOpacity
-              style={styles.aiBtn}
+              style={[styles.aiBtn, { borderColor: theme.secondary }]}
               onPress={handleAIEvaluate}
               disabled={isEvaluating}
             >
               {isEvaluating ? (
-                <ActivityIndicator size="small" color={Colors.secondary} />
+                <ActivityIndicator size="small" color={theme.secondary} />
               ) : (
-                <Text style={styles.aiBtnTxt}>
+                <Text style={[styles.aiBtnTxt, { color: theme.secondary }]}>
                   {t('submissionCard.evaluateWithAi')}
                 </Text>
               )}
@@ -195,10 +196,10 @@ export const SubmissionCard: React.FC<SubmissionCardProps> = ({ submission }) =>
               <Ionicons
                 name={showVoting ? 'chevron-up' : 'chevron-down'}
                 size={16}
-                color={Colors.primary}
+                color={theme.primary}
               />
 
-              <Text style={styles.voteToggleTxt}>
+              <Text style={[styles.voteToggleTxt, { color: theme.primary }]}>
                 {showVoting
                   ? t('submissionCard.hideVoting')
                   : t('submissionCard.vote')}
@@ -220,14 +221,14 @@ export const SubmissionCard: React.FC<SubmissionCardProps> = ({ submission }) =>
 
         {isOwner && (
           <View>
-            <TouchableOpacity style={styles.myVotesBtn} onPress={loadMyVotes}>
+            <TouchableOpacity style={[styles.myVotesBtn, { borderTopColor: theme.border }]} onPress={loadMyVotes}>
               <Ionicons
                 name={showMyVotes ? 'chevron-up' : 'chevron-down'}
                 size={14}
-                color={Colors.primary}
+                color={theme.primary}
               />
 
-              <Text style={styles.myVotesBtnTxt}>
+              <Text style={[styles.myVotesBtnTxt, { color: theme.primary }]}>
                 {showMyVotes
                   ? t('submissionCard.hideScores')
                   : t('submissionCard.whoRatedMe', {
@@ -237,18 +238,19 @@ export const SubmissionCard: React.FC<SubmissionCardProps> = ({ submission }) =>
             </TouchableOpacity>
 
             {showMyVotes && (
-              <View style={styles.receivedList}>
+              <View style={[styles.receivedList, { backgroundColor: theme.card }]}>
                 {receivedVotes.length === 0 ? (
-                  <Text style={styles.noVotesTxt}>
+                  <Text style={[styles.noVotesTxt, { color: theme.textMuted }]}>
                     {t('submissionCard.noVotesYet')}
                   </Text>
                 ) : (
                   receivedVotes.map((v) => (
-                    <View key={v.id} style={styles.receivedRow}>
+                    <View key={v.id} style={[styles.receivedRow, { borderBottomColor: theme.border }]}>
                       <View
                         style={[
                           styles.receivedAvatar,
-                          v.voter.id === null && styles.receivedAvatarAnon,
+                          { backgroundColor: theme.primary },
+                          v.voter.id === null && { backgroundColor: theme.textMuted },
                         ]}
                       >
                         {v.voter.avatarUrl && v.voter.id !== null ? (
@@ -265,12 +267,12 @@ export const SubmissionCard: React.FC<SubmissionCardProps> = ({ submission }) =>
                       </View>
 
                       <View style={styles.receivedInfo}>
-                        <Text style={styles.receivedName}>
+                        <Text style={[styles.receivedName, { color: theme.textPrimary }]}>
                           {v.voter.username}
                         </Text>
 
                         {v.comment && (
-                          <Text style={styles.receivedComment}>
+                          <Text style={[styles.receivedComment, { color: theme.textSecondary }]}>
                             {t('submissionCard.commentPrefix')} {v.comment}
                           </Text>
                         )}
@@ -282,10 +284,10 @@ export const SubmissionCard: React.FC<SubmissionCardProps> = ({ submission }) =>
                             key={s}
                             name={s <= v.score ? 'star' : 'star-outline'}
                             size={13}
-                            color={Colors.rikon}
+                            color={theme.amber}
                           />
                         ))}
-                        <Text style={styles.receivedScore}>{v.score}</Text>
+                        <Text style={[styles.receivedScore, { color: theme.amber }]}>{v.score}</Text>
                       </View>
                     </View>
                   ))
@@ -303,7 +305,6 @@ const styles = StyleSheet.create({
   receivedInfo: { flex: 1 },
   receivedComment: {
     fontSize: 11,
-    color: Colors.textSecondary,
     fontStyle: 'italic',
     marginTop: 2,
     lineHeight: 16,
@@ -314,16 +315,13 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 8,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
     marginTop: 4,
   },
   myVotesBtnTxt: {
-    color: Colors.primary,
     fontSize: 13,
     fontWeight: '600',
   },
   receivedList: {
-    backgroundColor: Colors.card,
     borderRadius: 10,
     overflow: 'hidden',
     marginTop: 4,
@@ -334,57 +332,50 @@ const styles = StyleSheet.create({
     padding: 10,
     gap: 8,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
   },
   receivedAvatar: {
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
   },
-  receivedAvatarAnon: { backgroundColor: Colors.textMuted },
+  receivedAvatarAnon: {},
   receivedAvatarImage: {
     width: 30,
     height: 30,
     borderRadius: 15,
   },
-  receivedAvatarTxt: { color: Colors.white, fontWeight: '700', fontSize: 12 },
-  receivedName: { fontSize: 13, color: Colors.textPrimary },
+  receivedAvatarTxt: { color: '#ffffff', fontWeight: '700', fontSize: 12 },
+  receivedName: { fontSize: 13 },
   receivedStars: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   receivedScore: {
     fontSize: 13,
     fontWeight: '700',
-    color: Colors.rikon,
     marginLeft: 3,
   },
   noVotesTxt: {
-    color: Colors.textMuted,
     fontSize: 13,
     textAlign: 'center',
     padding: 12,
   },
   card: {
-    backgroundColor: Colors.surface,
     borderRadius: 16,
     overflow: 'hidden',
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
   },
   mediaWrapper: { position: 'relative' },
   media: { width: '100%', height: 200 },
   videoPlaceholder: {
     width: '100%',
     height: 200,
-    backgroundColor: Colors.card,
     justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
   },
-  videoText: { color: Colors.white, fontSize: 14 },
+  videoText: { fontSize: 14 },
   typeBadge: {
     position: 'absolute',
     top: 10,
@@ -404,7 +395,6 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
@@ -414,22 +404,20 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
   },
-  avatarTxt: { color: Colors.white, fontWeight: '700', fontSize: 14 },
+  avatarTxt: { color: '#ffffff', fontWeight: '700', fontSize: 14 },
   userInfo: { flex: 1 },
-  username: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary },
-  date: { fontSize: 11, color: Colors.textMuted },
+  username: { fontSize: 14, fontWeight: '600' },
+  date: { fontSize: 11 },
   scoreBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: Colors.rikon + '22',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
   },
-  scoreText: { color: Colors.rikon, fontWeight: '700', fontSize: 13 },
+  scoreText: { fontWeight: '700', fontSize: 13 },
   aiBlock: {
-    backgroundColor: Colors.card,
     borderRadius: 10,
     padding: 10,
     marginBottom: 10,
@@ -439,11 +427,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 4,
   },
-  aiLabel: { fontSize: 12, color: Colors.textSecondary },
-  aiScore: { fontSize: 13, fontWeight: '700', color: Colors.secondary },
+  aiLabel: { fontSize: 12 },
+  aiScore: { fontSize: 13, fontWeight: '700' },
   aiComment: {
     fontSize: 12,
-    color: Colors.textSecondary,
     fontStyle: 'italic',
     lineHeight: 17,
   },
@@ -452,16 +439,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: Colors.secondary,
     alignSelf: 'flex-start',
     marginBottom: 10,
   },
-  aiBtnTxt: { color: Colors.secondary, fontSize: 12, fontWeight: '600' },
+  aiBtnTxt: { fontSize: 12, fontWeight: '600' },
   voteToggle: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     paddingVertical: 8,
   },
-  voteToggleTxt: { color: Colors.primary, fontSize: 13, fontWeight: '600' },
+  voteToggleTxt: { fontSize: 13, fontWeight: '600' },
 });

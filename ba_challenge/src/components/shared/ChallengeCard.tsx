@@ -1,9 +1,10 @@
-import { Colors } from '@/constants/colors';
 import { Ionicons } from '@expo/vector-icons';
 import { Challenge } from '@/types/index';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '@/theme/ThemeContext';
+import { Colors } from '@constants/colors';
 import {
     StyleSheet,
     Text,
@@ -19,26 +20,27 @@ interface ChallengeCardProps {
 export const ChallengeCard: React.FC<ChallengeCardProps> = ({ challenge }) => {
     const router = useRouter();
     const { t } = useTranslation();
+    const { theme } = useTheme();
 
     const statusConfig = {
         active: {
             label: t('challengeCard.active'),
-            color: Colors.accent,
+            color: theme.accent,
             icon: '🔥',
         },
         pending: {
             label: t('challengeCard.pending'),
-            color: Colors.warning,
+            color: theme.amber,
             icon: '⏳',
         },
         completed: {
             label: t('challengeCard.completed'),
-            color: Colors.primary,
+            color: theme.primary,
             icon: '🏆',
         },
         cancelled: {
             label: t('challengeCard.cancelled'),
-            color: Colors.error,
+            color: theme.rose,
             icon: '❌',
         },
     };
@@ -49,7 +51,7 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({ challenge }) => {
         public: '🌍',
     };
 
-    const status = statusConfig[challenge.status];
+    const status = statusConfig[challenge.status] || statusConfig.active;
 
     const daysLeft = () => {
         const end = new Date(challenge.endDate);
@@ -73,7 +75,7 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({ challenge }) => {
 
     return (
         <TouchableOpacity
-            style={styles.card}
+            style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}
             onPress={() =>
                 router.push(`/challenge/${challenge.id}`)
             }
@@ -116,14 +118,14 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({ challenge }) => {
 
             {/* Название */}
             <Text
-                style={styles.title}
+                style={[styles.title, { color: theme.textPrimary }]}
                 numberOfLines={2}
             >
                 {challenge.title}
             </Text>
 
             <Text
-                style={styles.description}
+                style={[styles.description, { color: theme.textSecondary }]}
                 numberOfLines={2}
             >
                 {challenge.description}
@@ -134,7 +136,7 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({ challenge }) => {
                 {challenge.creator && (
                     <View style={styles.creatorRow}>
                         {/* Аватар создателя */}
-                        <View style={styles.creatorAvatar}>
+                        <View style={[styles.creatorAvatar, { backgroundColor: theme.primary }]}>
                             {(challenge.creator as any)
                                 .avatarUrl ? (
                                 <Image
@@ -161,7 +163,7 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({ challenge }) => {
                             )}
                         </View>
 
-                        <Text style={styles.infoText}>
+                        <Text style={[styles.infoText, { color: theme.textSecondary }]}>
                             {challenge.creator.username}
                         </Text>
                     </View>
@@ -171,10 +173,10 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({ challenge }) => {
                     <Ionicons
                         name="people-outline"
                         size={14}
-                        color={Colors.textSecondary}
+                        color={theme.textSecondary}
                     />
 
-                    <Text style={styles.infoText}>
+                    <Text style={[styles.infoText, { color: theme.textSecondary }]}>
                         {t(
                             'challengeCard.participants',
                             {
@@ -190,21 +192,21 @@ export const ChallengeCard: React.FC<ChallengeCardProps> = ({ challenge }) => {
                     <Ionicons
                         name="time-outline"
                         size={14}
-                        color={Colors.textSecondary}
+                        color={theme.textSecondary}
                     />
 
-                    <Text style={styles.infoText}>
+                    <Text style={[styles.infoText, { color: theme.textSecondary }]}>
                         {daysLeft()}
                     </Text>
                 </View>
 
                 {challenge.betAmount > 0 && (
-                    <View style={styles.prizeItem}>
+                    <View style={[styles.prizeItem, { backgroundColor: theme.amber + '18', borderColor: theme.amber + '40' }]}>
                         <Text style={styles.prizeCoin}>
                             🏆
                         </Text>
 
-                        <Text style={styles.prizeText}>
+                        <Text style={[styles.prizeText, { color: theme.amber }]}>
                             {prizePool} 🪙
                         </Text>
                     </View>

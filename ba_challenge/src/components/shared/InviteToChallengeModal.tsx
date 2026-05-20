@@ -13,8 +13,8 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '@/constants/colors';
 import api from '@services/api';
+import { useTheme } from '@/theme/ThemeContext';
 
 interface InviteToChallengeModalProps {
   visible: boolean;
@@ -30,6 +30,7 @@ export const InviteToChallengeModal: React.FC<InviteToChallengeModalProps> = ({
   const [searching, setSearching] = useState(false);
   const [sending, setSending]   = useState<number | null>(null);
   const [invited, setInvited]   = useState<number[]>([]);
+  const { theme } = useTheme();
 
   const handleSearch = async (text: string) => {
     setQuery(text);
@@ -71,29 +72,29 @@ export const InviteToChallengeModal: React.FC<InviteToChallengeModalProps> = ({
         style={styles.overlay}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View style={styles.sheet}>
+        <View style={[styles.sheet, { backgroundColor: theme.surface }]}>
           <View style={styles.header}>
-            <Text style={styles.title}>🔒 Пригласить участника</Text>
+            <Text style={[styles.title, { color: theme.textPrimary }]}>🔒 Пригласить участника</Text>
             <TouchableOpacity onPress={handleClose}>
-              <Ionicons name="close" size={22} color={Colors.textMuted} />
+              <Ionicons name="close" size={22} color={theme.textMuted} />
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.subtitle}>
+          <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
             Найди пользователя — он получит приглашение
           </Text>
 
-          <View style={styles.searchRow}>
-            <Ionicons name="search-outline" size={18} color={Colors.textMuted} />
+          <View style={[styles.searchRow, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <Ionicons name="search-outline" size={18} color={theme.textMuted} />
             <TextInput
-              style={styles.searchInput}
+              style={[styles.searchInput, { color: theme.textPrimary }]}
               value={query}
               onChangeText={handleSearch}
               placeholder="Имя пользователя..."
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={theme.textMuted}
               autoFocus
             />
-            {searching && <ActivityIndicator size="small" color={Colors.primary} />}
+            {searching && <ActivityIndicator size="small" color={theme.primary} />}
           </View>
 
           <FlatList
@@ -102,7 +103,7 @@ export const InviteToChallengeModal: React.FC<InviteToChallengeModalProps> = ({
             style={styles.list}
             ListEmptyComponent={
               query.length >= 2 && !searching ? (
-                <Text style={styles.noResults}>Пользователи не найдены</Text>
+                <Text style={[styles.noResults, { color: theme.textMuted }]}>Пользователи не найдены</Text>
               ) : null
             }
             renderItem={({ item }) => {
@@ -110,26 +111,27 @@ export const InviteToChallengeModal: React.FC<InviteToChallengeModalProps> = ({
               const isSending = sending === item.id;
 
               return (
-                <View style={styles.userRow}>
-                  <View style={styles.avatar}>
+                <View style={[styles.userRow, { borderBottomColor: theme.border }]}>
+                  <View style={[styles.avatar, { backgroundColor: theme.primary }]}>
                     <Text style={styles.avatarTxt}>
                       {item.username.charAt(0).toUpperCase()}
                     </Text>
                   </View>
-                  <View style={styles.userInfo}>
-                    <Text style={styles.username}>{item.username}</Text>
-                    <Text style={styles.rating}>⭐ {item.rating}</Text>
+                  <View style={s.userInfo || styles.userInfo}>
+                    <Text style={[styles.username, { color: theme.textPrimary }]}>{item.username}</Text>
+                    <Text style={[styles.rating, { color: theme.textMuted }]}>⭐ {item.rating}</Text>
                   </View>
                   <TouchableOpacity
                     style={[
                       styles.inviteBtn,
-                      isInvited && styles.invitedBtn,
+                      { backgroundColor: theme.primary },
+                      isInvited && { backgroundColor: theme.accent },
                     ]}
                     onPress={() => !isInvited && handleInvite(item.id, item.username)}
                     disabled={isInvited || isSending}
                   >
                     {isSending
-                      ? <ActivityIndicator size="small" color={Colors.white} />
+                      ? <ActivityIndicator size="small" color="#ffffff" />
                       : <Text style={styles.inviteBtnTxt}>
                           {isInvited ? '✓ Отправлено' : 'Пригласить'}
                         </Text>
@@ -148,7 +150,6 @@ export const InviteToChallengeModal: React.FC<InviteToChallengeModalProps> = ({
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
   sheet: {
-    backgroundColor: Colors.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
@@ -156,39 +157,37 @@ const styles = StyleSheet.create({
     maxHeight: '80%',
   },
   header:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  title:    { fontSize: 18, fontWeight: '700', color: Colors.textPrimary },
-  subtitle: { fontSize: 13, color: Colors.textSecondary, marginBottom: 16 },
+  title:    { fontSize: 18, fontWeight: '700' },
+  subtitle: { fontSize: 13, marginBottom: 16 },
 
   searchRow: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: Colors.card, borderRadius: 12,
-    borderWidth: 1, borderColor: Colors.border,
+    borderRadius: 12,
+    borderWidth: 1,
     paddingHorizontal: 12, gap: 8, marginBottom: 12,
   },
-  searchInput: { flex: 1, paddingVertical: 12, fontSize: 15, color: Colors.textPrimary },
+  searchInput: { flex: 1, paddingVertical: 12, fontSize: 15 },
   list:        { maxHeight: 350 },
-  noResults:   { color: Colors.textMuted, textAlign: 'center', padding: 20 },
+  noResults:   { textAlign: 'center', padding: 20 },
 
   userRow: {
     flexDirection: 'row', alignItems: 'center',
     padding: 12, gap: 12,
-    borderBottomWidth: 1, borderBottomColor: Colors.border,
+    borderBottomWidth: 1,
   },
   avatar: {
     width: 40, height: 40, borderRadius: 20,
-    backgroundColor: Colors.primary,
     justifyContent: 'center', alignItems: 'center',
   },
-  avatarTxt:  { color: Colors.white, fontWeight: '700', fontSize: 16 },
+  avatarTxt:  { color: '#ffffff', fontWeight: '700', fontSize: 16 },
   userInfo:   { flex: 1 },
-  username:   { fontSize: 15, fontWeight: '600', color: Colors.textPrimary },
-  rating:     { fontSize: 12, color: Colors.textMuted, marginTop: 2 },
+  username:   { fontSize: 15, fontWeight: '600' },
+  rating:     { fontSize: 12, marginTop: 2 },
 
   inviteBtn: {
-    backgroundColor: Colors.primary,
     paddingHorizontal: 14, paddingVertical: 8,
     borderRadius: 10, minWidth: 90, alignItems: 'center',
   },
-  invitedBtn:    { backgroundColor: Colors.accent },
-  inviteBtnTxt:  { color: Colors.white, fontWeight: '600', fontSize: 13 },
+  invitedBtn:    {},
+  inviteBtnTxt:  { color: '#ffffff', fontWeight: '600', fontSize: 13 },
 });

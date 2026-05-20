@@ -9,6 +9,7 @@ import { useEffect, useRef } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
 import { ThemeProvider, useTheme } from '../src/theme/ThemeContext';
+import { THEMES } from '../src/theme/themes';
 
 const POLL_INTERVAL = 30000;
 
@@ -80,9 +81,9 @@ export default function RootLayout() {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#0B0F19',
+        backgroundColor: THEMES.violet.bg,
       }}>
-        <ActivityIndicator size="large" color="#6366F1" />
+        <ActivityIndicator size="large" color={THEMES.violet.primary} />
       </View>
     );
   }

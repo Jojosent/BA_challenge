@@ -1,6 +1,6 @@
 import { LoadingSpinner } from '@components/shared/LoadingSpinner';
-import { Colors } from '@/constants/colors';
 import { Config } from '@constants/config';
+import { Colors } from '@constants/colors';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -15,10 +15,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { adminService } from '../../src/services/adminService';
+import { useTheme } from '@/theme/ThemeContext';
 
 export default function AdminChallengeDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const { theme } = useTheme();
   const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -83,10 +85,10 @@ export default function AdminChallengeDetailScreen() {
 
   if (isLoading || !data) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]}>
+        <View style={[styles.header, { borderBottomColor: theme.border }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
+            <Ionicons name="arrow-back" size={24} color={theme.textPrimary} />
           </TouchableOpacity>
         </View>
         <LoadingSpinner />
@@ -97,54 +99,54 @@ export default function AdminChallengeDetailScreen() {
   const isCompleted = data.status === 'completed';
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]} edges={['top']}>
+      <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={theme.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Челлендж: #{data.id}</Text>
+        <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>Челлендж: #{data.id}</Text>
         <View style={{ width: 24 }} />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <View style={styles.rowBetween}>
-            <Text style={styles.title}>{data.title}</Text>
-            <Text style={[styles.status, isCompleted && styles.statusCompleted]}>
+            <Text style={[styles.title, { color: theme.textPrimary }]}>{data.title}</Text>
+            <Text style={[styles.status, { color: theme.amber }, isCompleted && { color: theme.emerald }]}>
               {data.status}
             </Text>
           </View>
-          <Text style={styles.description}>{data.description}</Text>
+          <Text style={[styles.description, { color: theme.textSecondary }]}>{data.description}</Text>
           
-          <View style={styles.infoGrid}>
+          <View style={[styles.infoGrid, { borderTopColor: theme.border }]}>
             <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Приватность</Text>
-              <Text style={styles.infoValue}>{data.visibility}</Text>
+              <Text style={[styles.infoLabel, { color: theme.textMuted }]}>Приватность</Text>
+              <Text style={[styles.infoValue, { color: theme.textPrimary }]}>{data.visibility}</Text>
             </View>
             <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Создатель</Text>
-              <Text style={styles.infoValue}>{data.creator?.username}</Text>
+              <Text style={[styles.infoLabel, { color: theme.textMuted }]}>Создатель</Text>
+              <Text style={[styles.infoValue, { color: theme.textPrimary }]}>{data.creator?.username}</Text>
             </View>
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Участники ({data.participants?.length || 0})</Text>
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Участники ({data.participants?.length || 0})</Text>
         {data.participants?.map((p: any) => (
-          <View key={p.id} style={styles.participantCard}>
+          <View key={p.id} style={[styles.participantCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <View style={styles.participantInfo}>
-              <View style={styles.avatar}>
+              <View style={[styles.avatar, { backgroundColor: theme.primary }]}>
                 {p.user.avatarUrl ? (
                   <Image 
                     source={{ uri: getAvatarUrl(p.user.avatarUrl)! }} 
                     style={{ width: '100%', height: '100%', borderRadius: 20 }} 
                   />
                 ) : (
-                  <Text style={styles.avatarText}>{p.user.username.charAt(0).toUpperCase()}</Text>
+                  <Text style={[styles.avatarText, { color: '#ffffff' }]}>{p.user.username.charAt(0).toUpperCase()}</Text>
                 )}
               </View>
               <View>
-                <Text style={styles.participantName}>{p.user.username}</Text>
-                <Text style={styles.participantScore}>Рейтинг: {p.user.rating}</Text>
+                <Text style={[styles.participantName, { color: theme.textPrimary }]}>{p.user.username}</Text>
+                <Text style={[styles.participantScore, { color: theme.textSecondary }]}>Рейтинг: {p.user.rating}</Text>
               </View>
             </View>
           </View>
@@ -152,15 +154,15 @@ export default function AdminChallengeDetailScreen() {
 
         <View style={styles.actionsContainer}>
           {!isCompleted && (
-            <TouchableOpacity style={[styles.actionBtn, styles.completeBtn]} onPress={handleComplete}>
-              <Ionicons name="checkmark-circle-outline" size={20} color={Colors.white} />
-              <Text style={styles.actionBtnText}>Завершить принудительно</Text>
+            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: theme.primary }]} onPress={handleComplete}>
+              <Ionicons name="checkmark-circle-outline" size={20} color="#ffffff" />
+              <Text style={[styles.actionBtnText, { color: '#ffffff' }]}>Завершить принудительно</Text>
             </TouchableOpacity>
           )}
           
-          <TouchableOpacity style={[styles.actionBtn, styles.deleteBtn]} onPress={handleDelete}>
-            <Ionicons name="trash-outline" size={20} color={Colors.white} />
-            <Text style={styles.actionBtnText}>Удалить и вернуть средства</Text>
+          <TouchableOpacity style={[styles.actionBtn, { backgroundColor: theme.rose }]} onPress={handleDelete}>
+            <Ionicons name="trash-outline" size={20} color="#ffffff" />
+            <Text style={[styles.actionBtnText, { color: '#ffffff' }]}>Удалить и вернуть средства</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

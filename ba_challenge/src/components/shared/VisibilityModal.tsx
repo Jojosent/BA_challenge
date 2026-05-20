@@ -14,8 +14,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { Colors } from '@/constants/colors';
 import { privacyService } from '@services/privacyService';
+import { useTheme } from '@/theme/ThemeContext';
 
 type Visibility = 'secret' | 'protected' | 'public';
 
@@ -35,6 +35,7 @@ export const VisibilityModal: React.FC<VisibilityModalProps> = ({
   onUpdated,
 }) => {
   const { t } = useTranslation();
+  const { theme } = useTheme();
 
   const [selected, setSelected] = useState<Visibility>(currentVisibility);
   const [password, setPassword] = useState('');
@@ -55,21 +56,21 @@ export const VisibilityModal: React.FC<VisibilityModalProps> = ({
       icon: 'earth-outline',
       label: t('visibilityModal.public'),
       desc: t('visibilityModal.publicDesc'),
-      color: Colors.accent,
+      color: theme.accent,
     },
     {
       key: 'protected' as Visibility,
       icon: 'lock-closed-outline',
       label: t('visibilityModal.protected'),
       desc: t('visibilityModal.protectedDesc'),
-      color: Colors.warning,
+      color: theme.amber,
     },
     {
       key: 'secret' as Visibility,
       icon: 'eye-off-outline',
       label: t('visibilityModal.secret'),
       desc: t('visibilityModal.secretDesc'),
-      color: Colors.error,
+      color: theme.rose,
     },
   ];
 
@@ -124,18 +125,18 @@ export const VisibilityModal: React.FC<VisibilityModalProps> = ({
         style={styles.overlay}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View style={styles.sheet}>
+        <View style={[styles.sheet, { backgroundColor: theme.surface }]}>
           <View style={styles.header}>
-            <Text style={styles.title}>
+            <Text style={[styles.title, { color: theme.textPrimary }]}>
               {t('visibilityModal.title')}
             </Text>
 
             <TouchableOpacity onPress={handleClose}>
-              <Ionicons name="close" size={22} color={Colors.textMuted} />
+              <Ionicons name="close" size={22} color={theme.textMuted} />
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.subtitle}>
+          <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
             {t('visibilityModal.subtitle')}
           </Text>
 
@@ -148,6 +149,7 @@ export const VisibilityModal: React.FC<VisibilityModalProps> = ({
                   key={opt.key}
                   style={[
                     styles.optionCard,
+                    { backgroundColor: theme.surface, borderColor: theme.border },
                     isActive && {
                       borderColor: opt.color,
                       backgroundColor: opt.color + '12',
@@ -170,13 +172,14 @@ export const VisibilityModal: React.FC<VisibilityModalProps> = ({
                       <Text
                         style={[
                           styles.optionLabel,
+                          { color: theme.textPrimary },
                           isActive && { color: opt.color },
                         ]}
                       >
                         {opt.label}
                       </Text>
 
-                      <Text style={styles.optionDesc}>
+                      <Text style={[styles.optionDesc, { color: theme.textSecondary }]}>
                         {opt.desc}
                       </Text>
                     </View>
@@ -185,6 +188,7 @@ export const VisibilityModal: React.FC<VisibilityModalProps> = ({
                   <View
                     style={[
                       styles.radioOuter,
+                      { borderColor: theme.border },
                       isActive && { borderColor: opt.color },
                     ]}
                   >
@@ -202,18 +206,18 @@ export const VisibilityModal: React.FC<VisibilityModalProps> = ({
             })}
 
             {selected === 'protected' && (
-              <View style={styles.passwordSection}>
-                <Text style={styles.passwordLabel}>
+              <View style={[styles.passwordSection, { backgroundColor: theme.amber + '12', borderColor: theme.amber + '40' }]}>
+                <Text style={[styles.passwordLabel, { color: theme.amber }]}>
                   {t('visibilityModal.passwordLabel')}
                 </Text>
 
-                <View style={styles.passwordRow}>
+                <View style={[styles.passwordRow, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                   <TextInput
-                    style={styles.passwordInput}
+                    style={[styles.passwordInput, { color: theme.textPrimary }]}
                     value={password}
                     onChangeText={setPassword}
                     placeholder={t('visibilityModal.passwordPlaceholder')}
-                    placeholderTextColor={Colors.textMuted}
+                    placeholderTextColor={theme.textMuted}
                     secureTextEntry={!showPass}
                     autoCapitalize="none"
                   />
@@ -225,24 +229,24 @@ export const VisibilityModal: React.FC<VisibilityModalProps> = ({
                     <Ionicons
                       name={showPass ? 'eye-off' : 'eye'}
                       size={18}
-                      color={Colors.textMuted}
+                      color={theme.textMuted}
                     />
                   </TouchableOpacity>
                 </View>
 
-                <Text style={styles.passwordHint}>
+                <Text style={[styles.passwordHint, { color: theme.textSecondary }]}>
                   {t('visibilityModal.passwordHint')}
                 </Text>
               </View>
             )}
 
             <View style={styles.currentStatus}>
-              <Text style={styles.currentStatusLabel}>
+              <Text style={[styles.currentStatusLabel, { color: theme.textMuted }]}>
                 {t('visibilityModal.currentVisibility')}
               </Text>
 
-              <View style={styles.currentStatusBadge}>
-                <Text style={styles.currentStatusText}>
+              <View style={[styles.currentStatusBadge, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                <Text style={[styles.currentStatusText, { color: theme.textSecondary }]}>
                   {currentOption?.label}
                 </Text>
               </View>
@@ -250,8 +254,8 @@ export const VisibilityModal: React.FC<VisibilityModalProps> = ({
           </ScrollView>
 
           <View style={styles.btns}>
-            <TouchableOpacity style={styles.cancelBtn} onPress={handleClose}>
-              <Text style={styles.cancelTxt}>
+            <TouchableOpacity style={[styles.cancelBtn, { borderColor: theme.border }]} onPress={handleClose}>
+              <Text style={[styles.cancelTxt, { color: theme.textSecondary }]}>
                 {t('visibilityModal.cancel')}
               </Text>
             </TouchableOpacity>
@@ -260,12 +264,13 @@ export const VisibilityModal: React.FC<VisibilityModalProps> = ({
               style={[
                 styles.saveBtn,
                 (!changed || isLoading) && styles.saveBtnDisabled,
+                { backgroundColor: theme.primary },
               ]}
               onPress={handleSave}
               disabled={!changed || isLoading}
             >
               {isLoading ? (
-                <ActivityIndicator size="small" color={Colors.white} />
+                <ActivityIndicator size="small" color="#ffffff" />
               ) : (
                 <Text style={styles.saveTxt}>
                   {t('visibilityModal.save')}
@@ -286,7 +291,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: Colors.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
@@ -302,11 +306,9 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: Colors.textPrimary,
   },
   subtitle: {
     fontSize: 13,
-    color: Colors.textSecondary,
     marginBottom: 20,
     lineHeight: 18,
   },
@@ -314,10 +316,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.card,
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: Colors.border,
     padding: 14,
     marginBottom: 10,
   },
@@ -340,12 +340,10 @@ const styles = StyleSheet.create({
   optionLabel: {
     fontSize: 15,
     fontWeight: '700',
-    color: Colors.textPrimary,
     marginBottom: 2,
   },
   optionDesc: {
     fontSize: 12,
-    color: Colors.textSecondary,
     lineHeight: 16,
   },
   radioOuter: {
@@ -353,7 +351,6 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 11,
     borderWidth: 2,
-    borderColor: Colors.border,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -363,26 +360,21 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   passwordSection: {
-    backgroundColor: Colors.warning + '12',
     borderRadius: 12,
     padding: 14,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: Colors.warning + '40',
   },
   passwordLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.warning,
     marginBottom: 10,
   },
   passwordRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.card,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: Colors.border,
     paddingHorizontal: 12,
     marginBottom: 8,
   },
@@ -390,14 +382,12 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     fontSize: 15,
-    color: Colors.textPrimary,
   },
   eyeBtn: {
     padding: 8,
   },
   passwordHint: {
     fontSize: 11,
-    color: Colors.textSecondary,
     lineHeight: 15,
   },
   currentStatus: {
@@ -409,19 +399,15 @@ const styles = StyleSheet.create({
   },
   currentStatusLabel: {
     fontSize: 12,
-    color: Colors.textMuted,
   },
   currentStatusBadge: {
-    backgroundColor: Colors.card,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderWidth: 1,
-    borderColor: Colors.border,
   },
   currentStatusText: {
     fontSize: 12,
-    color: Colors.textSecondary,
     fontWeight: '500',
   },
   btns: {
@@ -434,25 +420,22 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
     alignItems: 'center',
   },
   cancelTxt: {
-    color: Colors.textSecondary,
     fontWeight: '600',
   },
   saveBtn: {
     flex: 1,
     padding: 14,
     borderRadius: 12,
-    backgroundColor: Colors.primary,
     alignItems: 'center',
   },
   saveBtnDisabled: {
     opacity: 0.4,
   },
   saveTxt: {
-    color: Colors.white,
+    color: '#ffffff',
     fontWeight: '700',
     fontSize: 15,
   },

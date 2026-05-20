@@ -1,5 +1,4 @@
 import { LoadingSpinner } from '@components/shared/LoadingSpinner';
-import { Colors } from '@/constants/colors';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -15,9 +14,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { adminService } from '../../src/services/adminService';
+import { useTheme } from '@/theme/ThemeContext';
+import { Colors } from '@constants/colors';
 
 export default function AdminPanelScreen() {
   const router = useRouter();
+  const { theme } = useTheme();
   const [search, setSearch] = useState('');
   const [challenges, setChallenges] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -46,10 +48,14 @@ export default function AdminPanelScreen() {
 
   const renderFilterButton = (label: string, active: boolean, onPress: () => void) => (
     <TouchableOpacity
-      style={[styles.filterBtn, active && styles.filterBtnActive]}
+      style={[
+        styles.filterBtn,
+        { backgroundColor: theme.surface, borderColor: theme.border },
+        active && { backgroundColor: theme.primary, borderColor: theme.primary },
+      ]}
       onPress={onPress}
     >
-      <Text style={[styles.filterBtnText, active && styles.filterBtnTextActive]}>
+      <Text style={[styles.filterBtnText, { color: theme.textSecondary }, active && { color: '#ffffff' }]}>
         {label}
       </Text>
     </TouchableOpacity>
@@ -57,46 +63,46 @@ export default function AdminPanelScreen() {
 
   const renderItem = ({ item }: { item: any }) => (
     <TouchableOpacity
-      style={styles.card}
+      style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}
       activeOpacity={0.7}
       onPress={() => router.push(`/admin/${item.id}`)}
     >
       <View style={styles.cardHeader}>
-        <Text style={styles.title} numberOfLines={1}>
+        <Text style={[styles.title, { color: theme.textPrimary }]} numberOfLines={1}>
           {item.title}
         </Text>
-        <Text style={[styles.status, item.status === 'completed' && styles.statusCompleted]}>
+        <Text style={[styles.status, { color: theme.amber }, item.status === 'completed' && { color: theme.emerald }]}>
           {item.status}
         </Text>
       </View>
-      <Text style={styles.description} numberOfLines={2}>
+      <Text style={[styles.description, { color: theme.textSecondary }]} numberOfLines={2}>
         {item.description}
       </Text>
 
       <View style={styles.infoRow}>
-        <Ionicons name="eye-outline" size={14} color={Colors.textSecondary} />
-        <Text style={styles.infoText}>{item.visibility}</Text>
+        <Ionicons name="eye-outline" size={14} color={theme.textSecondary} />
+        <Text style={[styles.infoText, { color: theme.textSecondary }]}>{item.visibility}</Text>
         {/* Ставка убрана, так как она относилась к спорам */}
       </View>
     </TouchableOpacity>
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]} edges={['top']}>
+      <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={theme.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Админ-панель</Text>
+        <Text style={[styles.headerTitle, { color: theme.textPrimary }]}>Админ-панель</Text>
         <View style={{ width: 24 }} />
       </View>
 
-      <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color={Colors.textSecondary} style={styles.searchIcon} />
+      <View style={[styles.searchContainer, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        <Ionicons name="search" size={20} color={theme.textSecondary} style={styles.searchIcon} />
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, { color: theme.textPrimary }]}
           placeholder="Поиск челленджей..."
-          placeholderTextColor={Colors.textSecondary}
+          placeholderTextColor={theme.textSecondary}
           value={search}
           onChangeText={setSearch}
           onSubmitEditing={fetchChallenges}
@@ -123,7 +129,7 @@ export default function AdminPanelScreen() {
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
-            <Text style={styles.emptyText}>Ничего не найдено</Text>
+            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>Ничего не найдено</Text>
           }
         />
       )}

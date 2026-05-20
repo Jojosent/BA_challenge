@@ -1,4 +1,3 @@
-import { Colors } from '@/constants/colors';
 import { aiService } from '@services/aiService';
 import React, { useState } from 'react';
 import {
@@ -12,6 +11,7 @@ TouchableOpacity,
 View,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '@/theme/ThemeContext';
 
 interface AITaskGeneratorProps {
 challengeId: number;
@@ -26,6 +26,7 @@ onGenerated,
 }) => {
 
 const { t } = useTranslation();
+const { theme } = useTheme();
 
 const [isLoading, setIsLoading] = useState(false);
 const [showModal, setShowModal] = useState(false);
@@ -92,13 +93,13 @@ return (
     <>
         {/* Кнопка */}
         <TouchableOpacity
-            style={[styles.btn, isLoading && styles.btnDisabled]}
+            style={[styles.btn, { backgroundColor: theme.primary }, isLoading && styles.btnDisabled]}
             onPress={() => setShowModal(true)}
             disabled={isLoading}
         >
             {isLoading ? (
                 <View style={styles.row}>
-                    <ActivityIndicator color={Colors.white} size="small" />
+                    <ActivityIndicator color="#ffffff" size="small" />
                     <Text style={styles.btnText}>
                         {t('aiTaskGenerator.aiThinking')}
                     </Text>
@@ -128,18 +129,18 @@ return (
             onRequestClose={() => setShowModal(false)}
         >
             <View style={styles.overlay}>
-                <View style={styles.modal}>
+                <View style={[styles.modal, { backgroundColor: theme.surface }]}>
 
-                    <Text style={styles.modalTitle}>
+                    <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>
                         🤖 {t('aiTaskGenerator.modalTitle')}
                     </Text>
 
-                    <View style={styles.infoRow}>
-                        <Text style={styles.infoText}>
+                    <View style={[styles.infoRow, { backgroundColor: theme.surfaceAlt }]}>
+                        <Text style={[styles.infoText, { color: theme.textSecondary }]}>
                             📅 {t('aiTaskGenerator.challengeDuration')}
                         </Text>
 
-                        <Text style={styles.infoValue}>
+                        <Text style={[styles.infoValue, { color: theme.primary }]}>
                             {t('aiTaskGenerator.daysCount', {
                                 count: totalDays,
                             })}
@@ -147,12 +148,16 @@ return (
                     </View>
 
                     {/* Выбор числа */}
-                    <Text style={styles.inputLabel}>
+                    <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>
                         {t('aiTaskGenerator.taskCount')}
                     </Text>
 
                     <TextInput
-                        style={[styles.input, countError ? styles.inputError : null]}
+                        style={[
+                            styles.input,
+                            { backgroundColor: theme.surfaceAlt, borderColor: theme.border, color: theme.textPrimary },
+                            countError ? { borderColor: theme.rose } : null
+                        ]}
                         value={taskCount}
                         onChangeText={(v) => {
                             setTaskCount(v);
@@ -160,54 +165,59 @@ return (
                         }}
                         keyboardType="numeric"
                         placeholder={t('aiTaskGenerator.placeholder')}
-                        placeholderTextColor={Colors.textMuted}
+                        placeholderTextColor={theme.textMuted}
                         maxLength={2}
                     />
 
                     {countError ? (
-                        <Text style={styles.error}>
+                        <Text style={[styles.error, { color: theme.rose }]}>
                             {countError}
                         </Text>
                     ) : null}
 
                     {/* Быстрые кнопки */}
                     <View style={styles.quickRow}>
-                        {[3, 5, 7, 10].map((n) => (
-                            <TouchableOpacity
-                                key={n}
-                                style={[
-                                    styles.quickBtn,
-                                    taskCount === String(n) && styles.quickBtnActive,
-                                ]}
-                                onPress={() => {
-                                    setTaskCount(String(n));
-                                    setCountError('');
-                                }}
-                            >
-                                <Text
+                        {[3, 5, 7, 10].map((n) => {
+                            const isActive = taskCount === String(n);
+                            return (
+                                <TouchableOpacity
+                                    key={n}
                                     style={[
-                                        styles.quickTxt,
-                                        taskCount === String(n) && styles.quickTxtActive,
+                                        styles.quickBtn,
+                                        { backgroundColor: theme.surfaceAlt, borderColor: theme.border },
+                                        isActive && { borderColor: theme.primary, backgroundColor: theme.primary + '20' },
                                     ]}
+                                    onPress={() => {
+                                        setTaskCount(String(n));
+                                        setCountError('');
+                                    }}
                                 >
-                                    {n}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
+                                    <Text
+                                        style={[
+                                            styles.quickTxt,
+                                            { color: theme.textSecondary },
+                                            isActive && { color: theme.primary },
+                                        ]}
+                                    >
+                                        {n}
+                                    </Text>
+                                </TouchableOpacity>
+                            );
+                        })}
                     </View>
 
                     {/* Предпросмотр интервала */}
                     {count > 0 && count <= totalDays && (
-                        <View style={styles.preview}>
+                        <View style={[styles.preview, { backgroundColor: theme.surfaceAlt }]}>
 
-                            <Text style={styles.previewTitle}>
+                            <Text style={[styles.previewTitle, { color: theme.textSecondary }]}>
                                 📋 {t('aiTaskGenerator.preview')}
                             </Text>
 
-                            <Text style={styles.previewText}>
+                            <Text style={[styles.previewText, { color: theme.textSecondary }]}>
                                 {t('aiTaskGenerator.taskEvery')}{' '}
 
-                                <Text style={styles.previewHighlight}>
+                                <Text style={[styles.previewHighlight, { color: theme.primary }]}>
                                     {t('aiTaskGenerator.daysInterval', {
                                         count: interval,
                                     })}
@@ -217,9 +227,9 @@ return (
                             <View style={styles.timeline}>
                                 {Array.from({ length: Math.min(count, 6) }).map((_, i) => (
                                     <View key={i} style={styles.timelineItem}>
-                                        <View style={styles.timelineDot} />
+                                        <View style={[styles.timelineDot, { backgroundColor: theme.primary }]} />
 
-                                        <Text style={styles.timelineDay}>
+                                        <Text style={[styles.timelineDay, { color: theme.textMuted }]}>
                                             {t('aiTaskGenerator.dayNumber', {
                                                 day: (i + 1) * interval,
                                             })}
@@ -228,7 +238,7 @@ return (
                                 ))}
 
                                 {count > 6 && (
-                                    <Text style={styles.timelineMore}>
+                                    <Text style={[styles.timelineMore, { color: theme.textMuted }]}>
                                         {t('aiTaskGenerator.moreItems', {
                                             count: count - 6,
                                         })}
@@ -242,16 +252,16 @@ return (
                     <View style={styles.modalBtns}>
 
                         <TouchableOpacity
-                            style={styles.cancelBtn}
+                            style={[styles.cancelBtn, { borderColor: theme.border }]}
                             onPress={() => setShowModal(false)}
                         >
-                            <Text style={styles.cancelTxt}>
+                            <Text style={[styles.cancelTxt, { color: theme.textSecondary }]}>
                                 {t('common.cancel')}
                             </Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                            style={styles.generateBtn}
+                            style={[styles.generateBtn, { backgroundColor: theme.primary }]}
                             onPress={handleGenerate}
                         >
                             <Text style={styles.generateTxt}>
@@ -270,7 +280,6 @@ return (
 
 const styles = StyleSheet.create({
 btn: {
-backgroundColor: Colors.secondary,
 borderRadius: 14,
 padding: 16,
 },
@@ -288,7 +297,7 @@ fontSize: 28
 },
 
 btnText: {
-color: Colors.white,
+color: '#ffffff',
 fontWeight: '700',
 fontSize: 15
 },
@@ -306,7 +315,6 @@ justifyContent: 'flex-end',
 },
 
 modal: {
-backgroundColor: Colors.surface,
 borderTopLeftRadius: 24,
 borderTopRightRadius: 24,
 padding: 24,
@@ -316,54 +324,43 @@ paddingBottom: 40,
 modalTitle: {
 fontSize: 20,
 fontWeight: '700',
-color: Colors.textPrimary,
 marginBottom: 16,
 },
 
 infoRow: {
 flexDirection: 'row',
 justifyContent: 'space-between',
-backgroundColor: Colors.card,
 padding: 12,
 borderRadius: 10,
 marginBottom: 16,
 },
 
 infoText: {
-color: Colors.textSecondary,
 fontSize: 13
 },
 
 infoValue: {
-color: Colors.primary,
 fontWeight: '700',
 fontSize: 13
 },
 
 inputLabel: {
 fontSize: 13,
-color: Colors.textSecondary,
 marginBottom: 8,
 },
 
 input: {
-backgroundColor: Colors.card,
 borderRadius: 12,
 padding: 14,
 fontSize: 20,
 fontWeight: '700',
-color: Colors.textPrimary,
 borderWidth: 1,
-borderColor: Colors.border,
 textAlign: 'center',
 },
 
-inputError: {
-borderColor: Colors.error
-},
+inputError: {},
 
 error: {
-color: Colors.error,
 fontSize: 12,
 marginTop: 4,
 textAlign: 'center'
@@ -378,31 +375,22 @@ marginBottom: 16,
 
 quickBtn: {
 flex: 1,
-backgroundColor: Colors.card,
 borderRadius: 10,
 paddingVertical: 10,
 alignItems: 'center',
 borderWidth: 1,
-borderColor: Colors.border,
 },
 
-quickBtnActive: {
-borderColor: Colors.primary,
-backgroundColor: Colors.primary + '20',
-},
+quickBtnActive: {},
 
 quickTxt: {
-color: Colors.textSecondary,
 fontWeight: '600',
 fontSize: 16
 },
 
-quickTxtActive: {
-color: Colors.primary
-},
+quickTxtActive: {},
 
 preview: {
-backgroundColor: Colors.card,
 borderRadius: 12,
 padding: 14,
 marginBottom: 20,
@@ -411,20 +399,15 @@ marginBottom: 20,
 previewTitle: {
 fontSize: 13,
 fontWeight: '600',
-color: Colors.textSecondary,
 marginBottom: 6,
 },
 
 previewText: {
 fontSize: 13,
-color: Colors.textSecondary,
 marginBottom: 10
 },
 
-previewHighlight: {
-color: Colors.primary,
-fontWeight: '700'
-},
+previewHighlight: {},
 
 timeline: {
 flexDirection: 'row',
@@ -441,17 +424,14 @@ timelineDot: {
 width: 8,
 height: 8,
 borderRadius: 4,
-backgroundColor: Colors.primary,
 },
 
 timelineDay: {
 fontSize: 10,
-color: Colors.textMuted
 },
 
 timelineMore: {
 fontSize: 10,
-color: Colors.textMuted,
 alignSelf: 'center'
 },
 
@@ -465,12 +445,10 @@ flex: 1,
 padding: 14,
 borderRadius: 12,
 borderWidth: 1,
-borderColor: Colors.border,
 alignItems: 'center',
 },
 
 cancelTxt: {
-color: Colors.textSecondary,
 fontWeight: '600'
 },
 
@@ -478,12 +456,11 @@ generateBtn: {
 flex: 1,
 padding: 14,
 borderRadius: 12,
-backgroundColor: Colors.secondary,
 alignItems: 'center',
 },
 
 generateTxt: {
-color: Colors.white,
+color: '#ffffff',
 fontWeight: '700'
 },
 
