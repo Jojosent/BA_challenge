@@ -9,6 +9,7 @@ import {
     View,
 } from 'react-native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import { useTranslation } from 'react-i18next';
 
 interface DatePickerProps {
     label: string;
@@ -26,14 +27,22 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     error,
 }) => {
     const [isVisible, setIsVisible] = useState(false);
+    const { t, i18n } = useTranslation();
+
+    const locale =
+        i18n.language === 'kz'
+            ? 'kk-KZ'
+            : i18n.language === 'en'
+                ? 'en-US'
+                : 'ru-RU';
 
     const displayDate = value
-        ? new Date(value).toLocaleDateString('ru-RU', {
+        ? new Date(value).toLocaleDateString(locale, {
             day: 'numeric',
             month: 'long',
             year: 'numeric',
         })
-        : 'Выбери дату';
+        : t('datePicker.selectDate');
 
     const handleConfirm = (date: Date) => {
         setIsVisible(false);
@@ -69,7 +78,6 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                 onCancel={() => setIsVisible(false)}
                 minimumDate={minimumDate || new Date()}
                 date={value ? new Date(value) : new Date()}
-                // Стили под тёмную тему
                 isDarkModeEnabled={true}
                 display={Platform.OS === 'ios' ? 'inline' : 'default'}
             />

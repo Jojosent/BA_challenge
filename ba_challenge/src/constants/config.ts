@@ -8,4 +8,4 @@ export const Config = {
     USER_KEY: 'ba_challenge_user',
     PAGE_SIZE: 10,
     REQUEST_TIMEOUT: 10000,
-} as const; 
+} as const;
