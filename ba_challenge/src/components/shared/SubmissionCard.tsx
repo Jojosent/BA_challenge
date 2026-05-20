@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { Colors } from '@/constants/colors';
 import { Submission } from '@/types/index';
 import { StarRating } from '@components/shared/StarRating';
@@ -22,10 +23,11 @@ interface SubmissionCardProps {
   submission: Submission;
 }
 
-export const SubmissionCard: React.FC<SubmissionCardProps> = ({
-  submission,
-}) => {
+export const SubmissionCard: React.FC<SubmissionCardProps> = ({ submission }) => {
+  const { t, i18n } = useTranslation();
   const { user } = useAuthStore();
+  const { setProfile } = useUserStore();
+
   const [currentScore, setCurrentScore] = useState(submission.score);
   const [aiScore, setAiScore] = useState(submission.aiScore);
   const [aiComment, setAiComment] = useState(submission.aiComment);
@@ -36,51 +38,63 @@ export const SubmissionCard: React.FC<SubmissionCardProps> = ({
   const [votesLoaded, setVotesLoaded] = useState(false);
   const [showMyVotes, setShowMyVotes] = useState(false);
 
+  const isOwner = user?.id === submission.userId;
+
+  const locale =
+    i18n.language === 'kz'
+      ? 'kk-KZ'
+      : i18n.language === 'en'
+        ? 'en-US'
+        : 'ru-RU';
+
+  const date = new Date(submission.createdAt).toLocaleDateString(locale, {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
   const loadMyVotes = async () => {
     if (votesLoaded) {
       setShowMyVotes(!showMyVotes);
       return;
     }
+
     try {
       const data = await voteService.getVotesBySubmission(submission.id);
       setReceivedVotes(data.votes);
       setVotesLoaded(true);
       setShowMyVotes(true);
     } catch (e) {
-      console.log('Ошибка загрузки голосов:', e);
+      console.log('Votes loading error:', e);
     }
   };
-
-  const isOwner = user?.id === submission.userId;
-
-  const date = new Date(submission.createdAt).toLocaleDateString('ru-RU', {
-    day: 'numeric', month: 'short',
-    hour: '2-digit', minute: '2-digit',
-  });
 
   const handleAIEvaluate = async () => {
     try {
       setIsEvaluating(true);
+
       const result = await aiService.evaluateSubmission(submission.id);
+
       setAiScore(result.score);
       setAiComment(result.comment);
+
       Alert.alert(
-        '🤖 AI оценил!',
-        `Оценка: ${result.score}/100\n\n${result.comment}`
+        t('submissionCard.aiEvaluatedTitle'),
+        t('submissionCard.aiEvaluatedMessage', {
+          score: result.score,
+          comment: result.comment,
+        })
       );
     } catch (e: any) {
-      Alert.alert('Ошибка', e.message);
+      Alert.alert(t('submissionCard.error'), e.message);
     } finally {
       setIsEvaluating(false);
     }
   };
 
-  const { setProfile } = useUserStore();
-
   return (
     <View style={styles.card}>
-
-      {/* Медиа */}
       <View style={styles.mediaWrapper}>
         {submission.mediaType === 'photo' ? (
           <Image
@@ -91,23 +105,23 @@ export const SubmissionCard: React.FC<SubmissionCardProps> = ({
         ) : (
           <View style={styles.videoPlaceholder}>
             <Ionicons name="play-circle" size={52} color={Colors.white} />
-            <Text style={styles.videoText}>Видео доказательство</Text>
+            <Text style={styles.videoText}>
+              {t('submissionCard.videoProof')}
+            </Text>
           </View>
         )}
 
         <View style={styles.typeBadge}>
-          <Text style={styles.typeTxt}>
-            {submission.mediaType === 'video' ? '🎥' : '📷'}
-          </Text>
+          <Ionicons
+            name={submission.mediaType === 'video' ? 'videocam' : 'camera'}
+            size={16}
+            color={Colors.white}
+          />
         </View>
       </View>
 
-      {/* Инфо */}
       <View style={styles.info}>
-
-        {/* Пользователь */}
         <View style={styles.userRow}>
-          {/* Аватар */}
           <View style={styles.avatar}>
             {submission.user?.avatarUrl ? (
               <Image
@@ -124,7 +138,7 @@ export const SubmissionCard: React.FC<SubmissionCardProps> = ({
 
           <View style={styles.userInfo}>
             <Text style={styles.username}>
-              {submission.user?.username ?? 'Пользователь'}
+              {submission.user?.username ?? t('submissionCard.userFallback')}
             </Text>
             <Text style={styles.date}>{date}</Text>
           </View>
@@ -141,13 +155,15 @@ export const SubmissionCard: React.FC<SubmissionCardProps> = ({
           )}
         </View>
 
-        {/* AI оценка */}
         {aiScore !== undefined && aiScore !== null ? (
           <View style={styles.aiBlock}>
             <View style={styles.aiHeader}>
-              <Text style={styles.aiLabel}>🤖 AI оценка:</Text>
+              <Text style={styles.aiLabel}>
+                {t('submissionCard.aiScoreLabel')}
+              </Text>
               <Text style={styles.aiScore}>{aiScore}/100</Text>
             </View>
+
             {aiComment && (
               <Text style={styles.aiComment}>{aiComment}</Text>
             )}
@@ -162,13 +178,14 @@ export const SubmissionCard: React.FC<SubmissionCardProps> = ({
               {isEvaluating ? (
                 <ActivityIndicator size="small" color={Colors.secondary} />
               ) : (
-                <Text style={styles.aiBtnTxt}>🤖 Оценить через AI</Text>
+                <Text style={styles.aiBtnTxt}>
+                  {t('submissionCard.evaluateWithAi')}
+                </Text>
               )}
             </TouchableOpacity>
           )
         )}
 
-        {/* Голосование — только не за своё */}
         {!isOwner && (
           <>
             <TouchableOpacity
@@ -180,8 +197,11 @@ export const SubmissionCard: React.FC<SubmissionCardProps> = ({
                 size={16}
                 color={Colors.primary}
               />
+
               <Text style={styles.voteToggleTxt}>
-                {showVoting ? 'Скрыть голосование' : '⭐ Проголосовать'}
+                {showVoting
+                  ? t('submissionCard.hideVoting')
+                  : t('submissionCard.vote')}
               </Text>
             </TouchableOpacity>
 
@@ -191,14 +211,14 @@ export const SubmissionCard: React.FC<SubmissionCardProps> = ({
                 onVoted={(newScore) => {
                   setCurrentScore(newScore);
                   setShowVoting(false);
-                  userService.getProfile().then((p) => setProfile(p)).catch(() => { });
+                  userService.getProfile().then((p) => setProfile(p)).catch(() => {});
                 }}
               />
             )}
           </>
         )}
 
-        {isOwner ? (
+        {isOwner && (
           <View>
             <TouchableOpacity style={styles.myVotesBtn} onPress={loadMyVotes}>
               <Ionicons
@@ -206,25 +226,31 @@ export const SubmissionCard: React.FC<SubmissionCardProps> = ({
                 size={14}
                 color={Colors.primary}
               />
+
               <Text style={styles.myVotesBtnTxt}>
                 {showMyVotes
-                  ? 'Скрыть оценки'
-                  : `👥 Кто меня оценил (${currentScore > 0 ? currentScore.toFixed(2) : '—'} ⭐)`}
+                  ? t('submissionCard.hideScores')
+                  : t('submissionCard.whoRatedMe', {
+                      score: currentScore > 0 ? currentScore.toFixed(2) : '—',
+                    })}
               </Text>
             </TouchableOpacity>
 
             {showMyVotes && (
               <View style={styles.receivedList}>
                 {receivedVotes.length === 0 ? (
-                  <Text style={styles.noVotesTxt}>Пока никто не оценил</Text>
+                  <Text style={styles.noVotesTxt}>
+                    {t('submissionCard.noVotesYet')}
+                  </Text>
                 ) : (
                   receivedVotes.map((v) => (
                     <View key={v.id} style={styles.receivedRow}>
-                      {/* Аватар оценщика */}
-                      <View style={[
-                        styles.receivedAvatar,
-                        v.voter.id === null && styles.receivedAvatarAnon,
-                      ]}>
+                      <View
+                        style={[
+                          styles.receivedAvatar,
+                          v.voter.id === null && styles.receivedAvatarAnon,
+                        ]}
+                      >
                         {v.voter.avatarUrl && v.voter.id !== null ? (
                           <Image
                             source={{ uri: v.voter.avatarUrl }}
@@ -239,9 +265,14 @@ export const SubmissionCard: React.FC<SubmissionCardProps> = ({
                       </View>
 
                       <View style={styles.receivedInfo}>
-                        <Text style={styles.receivedName}>{v.voter.username}</Text>
+                        <Text style={styles.receivedName}>
+                          {v.voter.username}
+                        </Text>
+
                         {v.comment && (
-                          <Text style={styles.receivedComment}>💬 {v.comment}</Text>
+                          <Text style={styles.receivedComment}>
+                            {t('submissionCard.commentPrefix')} {v.comment}
+                          </Text>
                         )}
                       </View>
 
@@ -262,7 +293,7 @@ export const SubmissionCard: React.FC<SubmissionCardProps> = ({
               </View>
             )}
           </View>
-        ) : null}
+        )}
       </View>
     </View>
   );
@@ -335,7 +366,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     padding: 12,
   },
-
   card: {
     backgroundColor: Colors.surface,
     borderRadius: 16,
@@ -363,10 +393,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 4,
   },
-  typeTxt: { fontSize: 16 },
-
   info: { padding: 14 },
-
   userRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -401,7 +428,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   scoreText: { color: Colors.rikon, fontWeight: '700', fontSize: 13 },
-
   aiBlock: {
     backgroundColor: Colors.card,
     borderRadius: 10,
@@ -421,7 +447,6 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     lineHeight: 17,
   },
-
   aiBtn: {
     paddingVertical: 8,
     paddingHorizontal: 12,
@@ -432,7 +457,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   aiBtnTxt: { color: Colors.secondary, fontSize: 12, fontWeight: '600' },
-
   voteToggle: {
     flexDirection: 'row',
     alignItems: 'center',

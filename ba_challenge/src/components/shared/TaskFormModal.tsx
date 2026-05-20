@@ -10,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Colors } from '@/constants/colors';
 import { Task } from '@/types/index';
 
@@ -17,7 +18,7 @@ interface TaskFormModalProps {
   visible: boolean;
   onClose: () => void;
   onSave: (title: string, description: string) => Promise<void>;
-  editTask?: Task | null;   // если передана — режим редактирования
+  editTask?: Task | null;
   isLoading?: boolean;
 }
 
@@ -28,10 +29,11 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
   editTask,
   isLoading,
 }) => {
-  const [title, setTitle]       = useState('');
-  const [description, setDesc]  = useState('');
+  const { t } = useTranslation();
 
-  // Заполняем поля если редактируем
+  const [title, setTitle] = useState('');
+  const [description, setDesc] = useState('');
+
   useEffect(() => {
     if (editTask) {
       setTitle(editTask.title);
@@ -62,26 +64,34 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
       >
         <View style={styles.sheet}>
           <Text style={styles.title}>
-            {isEdit ? '✏️ Изменить задачу' : '➕ Новая задача'}
+            {isEdit
+              ? t('taskFormModal.editTitle')
+              : t('taskFormModal.newTitle')}
           </Text>
 
-          <Text style={styles.label}>Название задачи *</Text>
+          <Text style={styles.label}>
+            {t('taskFormModal.taskTitleLabel')}
+          </Text>
+
           <TextInput
             style={styles.input}
             value={title}
             onChangeText={setTitle}
-            placeholder="Например: Пробежать 5 км"
+            placeholder={t('taskFormModal.taskTitlePlaceholder')}
             placeholderTextColor={Colors.textMuted}
             maxLength={200}
             autoFocus
           />
 
-          <Text style={styles.label}>Описание</Text>
+          <Text style={styles.label}>
+            {t('taskFormModal.descriptionLabel')}
+          </Text>
+
           <TextInput
             style={[styles.input, styles.inputMulti]}
             value={description}
             onChangeText={setDesc}
-            placeholder="Подробное описание что нужно сделать..."
+            placeholder={t('taskFormModal.descriptionPlaceholder')}
             placeholderTextColor={Colors.textMuted}
             multiline
             numberOfLines={4}
@@ -91,7 +101,9 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
 
           <View style={styles.btns}>
             <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
-              <Text style={styles.cancelTxt}>Отмена</Text>
+              <Text style={styles.cancelTxt}>
+                {t('taskFormModal.cancel')}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -102,12 +114,15 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
               onPress={handleSave}
               disabled={!title.trim() || isLoading}
             >
-              {isLoading
-                ? <ActivityIndicator size="small" color={Colors.white} />
-                : <Text style={styles.saveTxt}>
-                    {isEdit ? 'Сохранить' : 'Добавить'}
-                  </Text>
-              }
+              {isLoading ? (
+                <ActivityIndicator size="small" color={Colors.white} />
+              ) : (
+                <Text style={styles.saveTxt}>
+                  {isEdit
+                    ? t('taskFormModal.save')
+                    : t('taskFormModal.add')}
+                </Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -151,9 +166,15 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     marginBottom: 16,
   },
-  inputMulti: { minHeight: 100, textAlignVertical: 'top' },
-
-  btns:      { flexDirection: 'row', gap: 12, marginTop: 4 },
+  inputMulti: {
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  btns: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 4,
+  },
   cancelBtn: {
     flex: 1,
     padding: 14,
@@ -162,7 +183,10 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     alignItems: 'center',
   },
-  cancelTxt: { color: Colors.textSecondary, fontWeight: '600' },
+  cancelTxt: {
+    color: Colors.textSecondary,
+    fontWeight: '600',
+  },
   saveBtn: {
     flex: 1,
     padding: 14,
@@ -170,6 +194,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     alignItems: 'center',
   },
-  saveBtnDisabled: { opacity: 0.45 },
-  saveTxt: { color: Colors.white, fontWeight: '700', fontSize: 15 },
+  saveBtnDisabled: {
+    opacity: 0.45,
+  },
+  saveTxt: {
+    color: Colors.white,
+    fontWeight: '700',
+    fontSize: 15,
+  },
 });

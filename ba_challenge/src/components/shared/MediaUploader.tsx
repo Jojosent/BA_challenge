@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { submissionService } from '@services/submissionService';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     ActivityIndicator,
     Alert,
@@ -23,44 +24,53 @@ interface MediaItem {
 interface MediaUploaderProps {
     taskId: number;
     onSuccess: () => void;
-    // ✅ Уже загруженных медиа нет — загрузчик только для новых файлов
 }
 
 export const MediaUploader: React.FC<MediaUploaderProps> = ({
     taskId,
     onSuccess,
 }) => {
+    const { t } = useTranslation();
+
     const [selectedMedia, setSelectedMedia] = useState<MediaItem[]>([]);
     const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
     const [isUploading, setIsUploading] = useState(false);
 
-    // Запрос разрешений
     const requestGalleryPermission = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
         if (status !== 'granted') {
-            Alert.alert('Нет доступа', 'Разреши доступ к галерее в настройках');
+            Alert.alert(
+                t('mediaUploader.noAccess'),
+                t('mediaUploader.galleryPermission')
+            );
             return false;
         }
+
         return true;
     };
 
     const requestCameraPermission = async () => {
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
+
         if (status !== 'granted') {
-            Alert.alert('Нет доступа', 'Разреши доступ к камере');
+            Alert.alert(
+                t('mediaUploader.noAccess'),
+                t('mediaUploader.cameraPermission')
+            );
             return false;
         }
+
         return true;
     };
 
-    // ✅ Выбор из галереи — можно выбрать несколько
     const pickFromGallery = async () => {
         const hasPermission = await requestGalleryPermission();
         if (!hasPermission) return;
 
         const result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.All,
-            allowsMultipleSelection: true,   // ✅ Множественный выбор
+            allowsMultipleSelection: true,
             quality: 0.8,
             videoMaxDuration: 60,
         });
@@ -72,12 +82,10 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
                 mimeType: asset.type === 'video' ? 'video/mp4' : 'image/jpeg',
             }));
 
-            // ✅ Добавляем к уже выбранным (не заменяем)
             setSelectedMedia((prev) => [...prev, ...newItems]);
         }
     };
 
-    // ✅ Съёмка через камеру
     const takePhoto = async () => {
         const hasPermission = await requestCameraPermission();
         if (!hasPermission) return;
@@ -90,21 +98,21 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
 
         if (!result.canceled && result.assets[0]) {
             const asset = result.assets[0];
+
             const newItem: MediaItem = {
                 uri: asset.uri,
                 type: asset.type === 'video' ? 'video' : 'photo',
                 mimeType: asset.type === 'video' ? 'video/mp4' : 'image/jpeg',
             };
+
             setSelectedMedia((prev) => [...prev, newItem]);
         }
     };
 
-    // ✅ Удалить из выбранных (до загрузки)
     const removeSelected = (index: number) => {
         setSelectedMedia((prev) => prev.filter((_, i) => i !== index));
     };
 
-    // ✅ Загрузить все выбранные файлы по одному
     const handleUploadAll = async () => {
         if (selectedMedia.length === 0) return;
 
@@ -117,18 +125,21 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
                 await submissionService.upload(taskId, item.uri, item.mimeType);
             }
 
+            const uploadedCount = selectedMedia.length;
+
             setSelectedMedia([]);
             setUploadingIndex(null);
+
             Alert.alert(
-                '🎉 Загружено!',
-                `${selectedMedia.length > 1
-                    ? `${selectedMedia.length} файлов загружено!`
-                    : 'Твоё доказательство отправлено!'
-                }`
+                t('mediaUploader.uploadedTitle'),
+                uploadedCount > 1
+                    ? t('mediaUploader.filesUploaded', { count: uploadedCount })
+                    : t('mediaUploader.proofUploaded')
             );
+
             onSuccess();
         } catch (e: any) {
-            Alert.alert('Ошибка', e.message);
+            Alert.alert(t('mediaUploader.error'), e.message);
         } finally {
             setIsUploading(false);
             setUploadingIndex(null);
@@ -137,13 +148,14 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
 
     return (
         <View style={styles.container}>
-
-            {/* ✅ Горизонтальный скролл выбранных медиа */}
             {selectedMedia.length > 0 && (
                 <View style={styles.previewSection}>
                     <Text style={styles.previewLabel}>
-                        Выбрано: {selectedMedia.length} файл(ов)
+                        {t('mediaUploader.selectedFiles', {
+                            count: selectedMedia.length,
+                        })}
                     </Text>
+
                     <ScrollView
                         horizontal
                         showsHorizontalScrollIndicator={false}
@@ -160,25 +172,26 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
                                 ) : (
                                     <View style={styles.previewVideo}>
                                         <Ionicons name="play-circle" size={36} color={Colors.white} />
-                                        <Text style={styles.previewVideoTxt}>Видео</Text>
+                                        <Text style={styles.previewVideoTxt}>
+                                            {t('mediaUploader.video')}
+                                        </Text>
                                     </View>
                                 )}
 
-                                {/* Бейдж типа */}
                                 <View style={styles.typeBadge}>
-                                    <Text style={styles.typeBadgeTxt}>
-                                        {item.type === 'video' ? '🎥' : '📷'}
-                                    </Text>
+                                    <Ionicons
+                                        name={item.type === 'video' ? 'videocam' : 'camera'}
+                                        size={14}
+                                        color={Colors.white}
+                                    />
                                 </View>
 
-                                {/* Статус загрузки */}
                                 {isUploading && uploadingIndex === index && (
                                     <View style={styles.uploadingOverlay}>
                                         <ActivityIndicator size="small" color={Colors.white} />
                                     </View>
                                 )}
 
-                                {/* Кнопка удалить */}
                                 {!isUploading && (
                                     <TouchableOpacity
                                         style={styles.removeBtn}
@@ -190,37 +203,42 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
                             </View>
                         ))}
 
-                        {/* ✅ Кнопка добавить ещё */}
                         {!isUploading && (
                             <TouchableOpacity
                                 style={styles.addMoreBtn}
                                 onPress={pickFromGallery}
                             >
                                 <Ionicons name="add" size={28} color={Colors.primary} />
-                                <Text style={styles.addMoreTxt}>Ещё</Text>
+                                <Text style={styles.addMoreTxt}>
+                                    {t('mediaUploader.addMore')}
+                                </Text>
                             </TouchableOpacity>
                         )}
                     </ScrollView>
                 </View>
             )}
 
-            {/* Кнопки выбора — показываем если ничего не выбрано */}
             {selectedMedia.length === 0 && (
                 <View style={styles.pickersRow}>
                     <TouchableOpacity style={styles.pickerBtn} onPress={takePhoto}>
                         <Ionicons name="camera" size={28} color={Colors.primary} />
-                        <Text style={styles.pickerLabel}>Камера</Text>
+                        <Text style={styles.pickerLabel}>
+                            {t('mediaUploader.camera')}
+                        </Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity style={styles.pickerBtn} onPress={pickFromGallery}>
                         <Ionicons name="images" size={28} color={Colors.accent} />
-                        <Text style={styles.pickerLabel}>Галерея</Text>
-                        <Text style={styles.pickerSub}>Можно несколько</Text>
+                        <Text style={styles.pickerLabel}>
+                            {t('mediaUploader.gallery')}
+                        </Text>
+                        <Text style={styles.pickerSub}>
+                            {t('mediaUploader.multipleAllowed')}
+                        </Text>
                     </TouchableOpacity>
                 </View>
             )}
 
-            {/* ✅ Кнопка загрузить все */}
             {selectedMedia.length > 0 && (
                 <TouchableOpacity
                     style={[styles.uploadBtn, isUploading && styles.uploadBtnDisabled]}
@@ -231,7 +249,10 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
                         <View style={styles.uploadingRow}>
                             <ActivityIndicator color={Colors.white} size="small" />
                             <Text style={styles.uploadBtnText}>
-                                Загружается {(uploadingIndex ?? 0) + 1} из {selectedMedia.length}...
+                                {t('mediaUploader.uploadingProgress', {
+                                    current: (uploadingIndex ?? 0) + 1,
+                                    total: selectedMedia.length,
+                                })}
                             </Text>
                         </View>
                     ) : (
@@ -239,9 +260,10 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
                             <Ionicons name="cloud-upload" size={20} color={Colors.white} />
                             <Text style={styles.uploadBtnText}>
                                 {selectedMedia.length > 1
-                                    ? `Загрузить ${selectedMedia.length} файла`
-                                    : 'Отправить как доказательство'
-                                }
+                                    ? t('mediaUploader.uploadFiles', {
+                                        count: selectedMedia.length,
+                                    })
+                                    : t('mediaUploader.sendProof')}
                             </Text>
                         </View>
                     )}
@@ -254,7 +276,6 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
 const styles = StyleSheet.create({
     container: { width: '100%' },
 
-    // Превью выбранных
     previewSection: { marginBottom: 12 },
     previewLabel: {
         fontSize: 13,
@@ -301,7 +322,6 @@ const styles = StyleSheet.create({
         borderRadius: 6,
         padding: 3,
     },
-    typeBadgeTxt: { fontSize: 12 },
 
     uploadingOverlay: {
         ...StyleSheet.absoluteFillObject,
@@ -315,7 +335,6 @@ const styles = StyleSheet.create({
         right: 4,
     },
 
-    // Кнопка добавить ещё
     addMoreBtn: {
         width: 110,
         height: 110,
@@ -334,7 +353,6 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
 
-    // Кнопки выбора
     pickersRow: {
         flexDirection: 'row',
         gap: 12,
@@ -360,7 +378,6 @@ const styles = StyleSheet.create({
         fontSize: 10,
     },
 
-    // Кнопка загрузить
     uploadBtn: {
         backgroundColor: Colors.primary,
         borderRadius: 12,
