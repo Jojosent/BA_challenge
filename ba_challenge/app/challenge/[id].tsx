@@ -14,7 +14,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '@/constants/colors';
 import { useChallenge } from '@hooks/useChallenge';
 import { useAuthStore } from '@store/authStore';
 import { Header } from '@components/shared/Header';
@@ -28,6 +27,8 @@ import { taskService } from '@services/taskService';
 import { Task } from '@/types/index';
 import { InviteToChallengeModal } from '@components/shared/InviteToChallengeModal';
 import { challengeService } from '@services/challengeService';
+import { useTheme } from '@/theme/ThemeContext';
+import { Colors } from '@constants/colors';
 
 export default function ChallengeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -35,6 +36,7 @@ export default function ChallengeDetailScreen() {
   const { t, i18n } = useTranslation();
   const locale = i18n.language || 'ru';
   const { user } = useAuthStore();
+  const { theme } = useTheme();
 
   const {
     currentChallenge,
@@ -69,8 +71,8 @@ export default function ChallengeDetailScreen() {
 
   if (!currentChallenge) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.errorText}>
+      <View style={[styles.centered, { backgroundColor: theme.bg }]}>
+        <Text style={[styles.errorText, { color: theme.textSecondary }]}>
           {t('challengeDetails.notFound')}
         </Text>
       </View>
@@ -237,16 +239,15 @@ export default function ChallengeDetailScreen() {
       Alert.alert(t('common.error'), e.message);
     }
   };
-
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.bg }]} edges={['top']}>
       <Header
         title={t('challengeDetails.title')}
         showBack
         rightElement={
           canEdit ? (
             <TouchableOpacity onPress={() => {}}>
-              <Ionicons name="settings-outline" size={22} color={Colors.textPrimary} />
+              <Ionicons name="settings-outline" size={22} color={theme.textPrimary} />
             </TouchableOpacity>
           ) : undefined
         }
@@ -254,37 +255,37 @@ export default function ChallengeDetailScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.heroSection}>
-          <Text style={styles.challengeTitle}>{c.title}</Text>
-          <Text style={styles.challengeDesc}>{c.description}</Text>
+          <Text style={[styles.challengeTitle, { color: theme.textPrimary }]}>{c.title}</Text>
+          <Text style={[styles.challengeDesc, { color: theme.textSecondary }]}>{c.description}</Text>
 
           <View style={styles.metaRow}>
             <View style={styles.metaItem}>
-              <Ionicons name="calendar-outline" size={14} color={Colors.textSecondary} />
-              <Text style={styles.metaText}>
+              <Ionicons name="calendar-outline" size={14} color={theme.textSecondary} />
+              <Text style={[styles.metaText, { color: theme.textSecondary }]}>
                 {new Date(c.startDate).toLocaleDateString(locale)} —{' '}
                 {new Date(c.endDate).toLocaleDateString(locale)}
               </Text>
             </View>
 
             <View style={styles.metaItem}>
-              <Ionicons name="time-outline" size={14} color={Colors.textSecondary} />
-              <Text style={styles.metaText}>
+              <Ionicons name="time-outline" size={14} color={theme.textSecondary} />
+              <Text style={[styles.metaText, { color: theme.textSecondary }]}>
                 {t('challengeDetails.daysCount', { count: totalDays })}
               </Text>
             </View>
 
             {c.betAmount > 0 && (
               <View style={styles.metaItem}>
-                <Text style={styles.metaText}>
+                <Text style={[styles.metaText, { color: theme.textSecondary }]}>
                   {t('challengeDetails.betAmount', { amount: c.betAmount })}
                 </Text>
               </View>
             )}
 
             {isProtected && (
-              <View style={styles.protectedBadge}>
-                <Ionicons name="shield-checkmark" size={12} color={Colors.warning} />
-                <Text style={styles.protectedBadgeText}>
+              <View style={[styles.protectedBadge, { backgroundColor: theme.amber + '20', borderColor: theme.amber + '50' }]}>
+                <Ionicons name="shield-checkmark" size={12} color={theme.amber} />
+                <Text style={[styles.protectedBadgeText, { color: theme.amber }]}>
                   {t('challengeDetails.protected')}
                 </Text>
               </View>
@@ -293,15 +294,15 @@ export default function ChallengeDetailScreen() {
         </View>
 
         {c.betAmount > 0 && (
-          <View style={styles.prizeSection}>
-            <View style={styles.prizeHeader}>
+          <View style={[styles.prizeSection, { backgroundColor: theme.surface, borderColor: theme.amber + '40' }]}>
+            <View style={[styles.prizeHeader, { backgroundColor: theme.amber + '12', borderBottomColor: theme.amber + '25' }]}>
               <Text style={styles.prizeHeaderIcon}>🏆</Text>
 
               <View style={styles.prizeHeaderTexts}>
-                <Text style={styles.prizeHeaderTitle}>
+                <Text style={[styles.prizeHeaderTitle, { color: theme.textPrimary }]}>
                   {t('challengeDetails.prizePool')}
                 </Text>
-                <Text style={styles.prizeHeaderSub}>
+                <Text style={[styles.prizeHeaderSub, { color: theme.textSecondary }]}>
                   {t('challengeDetails.poolFormula', {
                     amount: c.betAmount,
                     count: participantCount,
@@ -309,24 +310,24 @@ export default function ChallengeDetailScreen() {
                 </Text>
               </View>
 
-              <Text style={styles.prizeTotal}>{prizePool} 🪙</Text>
+              <Text style={[styles.prizeTotal, { color: theme.amber }]}>{prizePool} 🪙</Text>
             </View>
 
             {prizeInfo && prizeInfo.prizes.length > 0 ? (
               <View style={styles.prizeTiers}>
                 {prizeInfo.prizes.map((tier) => (
-                  <View key={tier.place} style={styles.prizeTierRow}>
-                    <Text style={styles.prizeTierLabel}>{tier.label}</Text>
+                  <View key={tier.place} style={[styles.prizeTierRow, { borderBottomColor: theme.border }]}>
+                    <Text style={[styles.prizeTierLabel, { color: theme.textPrimary }]}>{tier.label}</Text>
                     <View style={styles.prizeTierRight}>
-                      <Text style={styles.prizeTierPercent}>{tier.percent}%</Text>
-                      <Text style={styles.prizeTierAmount}>{tier.amount} 🪙</Text>
+                      <Text style={[styles.prizeTierPercent, { color: theme.textMuted }]}>{tier.percent}%</Text>
+                      <Text style={[styles.prizeTierAmount, { color: theme.amber }]}>{tier.amount} 🪙</Text>
                     </View>
                   </View>
                 ))}
 
                 {participantCount > 3 && (
                   <View style={styles.prizeLosers}>
-                    <Text style={styles.prizeLosersText}>
+                    <Text style={[styles.prizeLosersText, { color: theme.textMuted }]}>
                       {t('challengeDetails.noCoinsForFourthPlace')}
                     </Text>
                   </View>
@@ -334,37 +335,37 @@ export default function ChallengeDetailScreen() {
               </View>
             ) : (
               <View style={styles.prizeTiers}>
-                <View style={styles.prizeTierRow}>
-                  <Text style={styles.prizeTierLabel}>
+                <View style={[styles.prizeTierRow, { borderBottomColor: theme.border }]}>
+                  <Text style={[styles.prizeTierLabel, { color: theme.textPrimary }]}>
                     {t('challengeDetails.firstPlace')}
                   </Text>
                   <View style={styles.prizeTierRight}>
-                    <Text style={styles.prizeTierPercent}>50%</Text>
-                    <Text style={styles.prizeTierAmount}>
+                    <Text style={[styles.prizeTierPercent, { color: theme.textMuted }]}>50%</Text>
+                    <Text style={[styles.prizeTierAmount, { color: theme.amber }]}>
                       {Math.floor(prizePool * 0.5)} 🪙
                     </Text>
                   </View>
                 </View>
 
-                <View style={styles.prizeTierRow}>
-                  <Text style={styles.prizeTierLabel}>
+                <View style={[styles.prizeTierRow, { borderBottomColor: theme.border }]}>
+                  <Text style={[styles.prizeTierLabel, { color: theme.textPrimary }]}>
                     {t('challengeDetails.secondPlace')}
                   </Text>
                   <View style={styles.prizeTierRight}>
-                    <Text style={styles.prizeTierPercent}>30%</Text>
-                    <Text style={styles.prizeTierAmount}>
+                    <Text style={[styles.prizeTierPercent, { color: theme.textMuted }]}>30%</Text>
+                    <Text style={[styles.prizeTierAmount, { color: theme.amber }]}>
                       {Math.floor(prizePool * 0.3)} 🪙
                     </Text>
                   </View>
                 </View>
 
-                <View style={styles.prizeTierRow}>
-                  <Text style={styles.prizeTierLabel}>
+                <View style={[styles.prizeTierRow, { borderBottomColor: theme.border }]}>
+                  <Text style={[styles.prizeTierLabel, { color: theme.textPrimary }]}>
                     {t('challengeDetails.thirdPlace')}
                   </Text>
                   <View style={styles.prizeTierRight}>
-                    <Text style={styles.prizeTierPercent}>20%</Text>
-                    <Text style={styles.prizeTierAmount}>
+                    <Text style={[styles.prizeTierPercent, { color: theme.textMuted }]}>20%</Text>
+                    <Text style={[styles.prizeTierAmount, { color: theme.amber }]}>
                       {Math.floor(prizePool * 0.2)} 🪙
                     </Text>
                   </View>
@@ -372,7 +373,7 @@ export default function ChallengeDetailScreen() {
 
                 {participantCount > 3 && (
                   <View style={styles.prizeLosers}>
-                    <Text style={styles.prizeLosersText}>
+                    <Text style={[styles.prizeLosersText, { color: theme.textMuted }]}>
                       {t('challengeDetails.noCoinsForFourthPlace')}
                     </Text>
                   </View>
@@ -416,15 +417,15 @@ export default function ChallengeDetailScreen() {
               isLoading={isUpdatingStatus}
               variant="outline"
             />
-            <Text style={styles.activateHint}>
+            <Text style={[styles.activateHint, { color: theme.textMuted }]}>
               {t('challengeDetails.autoStartHint')}
             </Text>
           </View>
         )}
 
         {isParticipant && !canEdit && (
-          <View style={styles.joinedBadge}>
-            <Text style={styles.joinedText}>
+          <View style={[styles.joinedBadge, { backgroundColor: theme.accent + '22', borderColor: theme.accent }]}>
+            <Text style={[styles.joinedText, { color: theme.accent }]}>
               {t('challengeDetails.youParticipate')}
             </Text>
           </View>
@@ -443,26 +444,32 @@ export default function ChallengeDetailScreen() {
         {/* ── AI чат ── */}
         {(canEdit || isParticipant) && (
           <TouchableOpacity
-            style={styles.aiChatBtn}
+            style={[styles.aiChatBtn, { backgroundColor: theme.surface, borderColor: theme.primary + '44' }]}
             onPress={() => router.push(`/challenge/ai-chat/${id}`)}
           >
             <Text style={styles.aiChatIcon}>🤖</Text>
             <View style={styles.aiChatTexts}>
-              <Text style={styles.aiChatTitle}>
+              <Text style={[styles.aiChatTitle, { color: theme.textPrimary }]}>
                 {t('challengeDetails.aiAssistant')}
               </Text>
-              <Text style={styles.aiChatSub}>
+              <Text style={[styles.aiChatSub, { color: theme.textSecondary }]}>
                 {t('challengeDetails.aiAssistantSub')}
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={Colors.primary} />
+            <Ionicons name="chevron-forward" size={20} color={theme.primary} />
           </TouchableOpacity>
         )}
 
         {/* ── Чат участников ── */}
         {(canEdit || isParticipant) && (
           <TouchableOpacity
-            style={chatBtnChallStyle}
+            style={[
+              styles.chatBtnChall,
+              {
+                backgroundColor: theme.surface,
+                borderColor: theme.accent + '44',
+              },
+            ]}
             onPress={() =>
               router.push(
                 `/chat?roomType=challenge&roomId=${id}&title=${encodeURIComponent(
@@ -473,20 +480,20 @@ export default function ChallengeDetailScreen() {
           >
             <Text style={{ fontSize: 22 }}>💬</Text>
             <View style={{ flex: 1 }}>
-              <Text style={chatTitleStyle}>{t('challengeDetails.chat')}</Text>
-              <Text style={chatSubStyle}>{t('challengeDetails.chatSub')}</Text>
+              <Text style={[styles.chatTitle, { color: theme.textPrimary }]}>{t('challengeDetails.chat')}</Text>
+              <Text style={[styles.chatSub, { color: theme.textSecondary }]}>{t('challengeDetails.chatSub')}</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={Colors.accent} />
+            <Ionicons name="chevron-forward" size={20} color={theme.accent} />
           </TouchableOpacity>
         )}
 
         {/* ── Кнопка пригласить ── */}
         {canEdit && c.visibility === 'secret' && !isFamilyChallenge && (
           <TouchableOpacity
-            style={styles.inviteBtn}
+            style={[styles.inviteBtn, { backgroundColor: theme.rose }]}
             onPress={() => setInviteModalVisible(true)}
           >
-            <Ionicons name="person-add-outline" size={18} color={Colors.white} />
+            <Ionicons name="person-add-outline" size={18} color="#ffffff" />
             <Text style={styles.inviteBtnTxt}>
               {t('challengeDetails.inviteParticipant')}
             </Text>
@@ -495,19 +502,19 @@ export default function ChallengeDetailScreen() {
 
         {/* ── Задачи ── */}
         <View style={styles.tasksTitleRow}>
-          <Text style={styles.sectionTitle}>
+          <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>
             {t('challengeDetails.tasks')} ({currentTasks.length})
           </Text>
 
           {canEdit && (
             <TouchableOpacity
-              style={styles.addTaskBtn}
+              style={[styles.addTaskBtn, { backgroundColor: theme.primary }]}
               onPress={() => {
                 setEditingTask(null);
                 setTaskModalVisible(true);
               }}
             >
-              <Ionicons name="add" size={18} color={Colors.white} />
+              <Ionicons name="add" size={18} color="#ffffff" />
               <Text style={styles.addTaskTxt}>{t('common.create')}</Text>
             </TouchableOpacity>
           )}
@@ -526,10 +533,10 @@ export default function ChallengeDetailScreen() {
               const isLast = index === currentTasks.length - 1;
 
               return (
-                <Card key={task.id} style={[styles.taskCard, isExpired && styles.taskExpired]}>
+                <Card key={task.id} style={[styles.taskCard, isExpired && styles.taskExpired, { borderColor: theme.border }]}>
                   <View style={styles.taskInner}>
                     {canEdit && (
-                      <View style={styles.reorderCol}>
+                      <View style={[styles.reorderCol, { borderRightColor: theme.border }]}>
                         <TouchableOpacity
                           style={[styles.arrowBtn, (isFirst || isExpired) && styles.arrowBtnDisabled]}
                           onPress={() => !isFirst && !isExpired && handleReorder(task, 'up')}
@@ -538,7 +545,7 @@ export default function ChallengeDetailScreen() {
                           <Ionicons
                             name="chevron-up"
                             size={18}
-                            color={(isFirst || isExpired) ? Colors.textMuted : Colors.primary}
+                            color={(isFirst || isExpired) ? theme.textMuted : theme.primary}
                           />
                         </TouchableOpacity>
 
@@ -550,7 +557,7 @@ export default function ChallengeDetailScreen() {
                           <Ionicons
                             name="chevron-down"
                             size={18}
-                            color={(isLast || isExpired) ? Colors.textMuted : Colors.primary}
+                            color={(isLast || isExpired) ? theme.textMuted : theme.primary}
                           />
                         </TouchableOpacity>
                       </View>
@@ -577,39 +584,39 @@ export default function ChallengeDetailScreen() {
                       activeOpacity={isExpired ? 0.6 : 0.8}
                     >
                       <View style={styles.taskHeader}>
-                        <View style={styles.dayBadge}>
-                          <Text style={styles.dayText}>
+                        <View style={[styles.dayBadge, { backgroundColor: theme.primary + '22' }]}>
+                          <Text style={[styles.dayText, { color: theme.primary }]}>
                             {t('challengeDetails.taskDay', { day: task.day })}
                           </Text>
                         </View>
 
                         {task.isAiGenerated ? (
-                          <View style={styles.aiBadge}>
-                            <Text style={styles.aiText}>🤖 AI</Text>
+                          <View style={[styles.aiBadge, { backgroundColor: theme.rose + '22' }]}>
+                            <Text style={[styles.aiText, { color: theme.rose }]}>🤖 AI</Text>
                           </View>
                         ) : (
-                          <View style={styles.humanBadge}>
-                            <Text style={styles.humanText}>
+                          <View style={[styles.humanBadge, { backgroundColor: theme.accent + '22' }]}>
+                            <Text style={[styles.humanText, { color: theme.accent }]}>
                               {t('challengeDetails.manual')}
                             </Text>
                           </View>
                         )}
 
                         {isExpired ? (
-                          <View style={styles.expiredBadge}>
-                            <Text style={styles.expiredText}>
+                          <View style={[styles.expiredBadge, { backgroundColor: theme.rose + '22' }]}>
+                            <Text style={[styles.expiredText, { color: theme.rose }]}>
                               {t('challengeDetails.expired')}
                             </Text>
                           </View>
                         ) : daysLeft !== null && daysLeft <= 2 ? (
-                          <View style={styles.urgentBadge}>
-                            <Text style={styles.urgentText}>
+                          <View style={[styles.urgentBadge, { backgroundColor: theme.amber + '22' }]}>
+                            <Text style={[styles.urgentText, { color: theme.amber }]}>
                               🔥 {t('challengeDetails.daysLeftShort', { count: daysLeft })}
                             </Text>
                           </View>
                         ) : deadline ? (
-                          <View style={styles.deadlineBadge}>
-                            <Text style={styles.deadlineText}>
+                          <View style={[styles.deadlineBadge, { backgroundColor: theme.accent + '22' }]}>
+                            <Text style={[styles.deadlineText, { color: theme.accent }]}>
                               {t('challengeDetails.until')}{' '}
                               {deadline.toLocaleDateString(locale, {
                                 day: 'numeric',
@@ -620,45 +627,45 @@ export default function ChallengeDetailScreen() {
                         ) : null}
                       </View>
 
-                      <Text style={[styles.taskTitle, isExpired && styles.textExpired]}>
+                      <Text style={[styles.taskTitle, { color: isExpired ? theme.textMuted : theme.textPrimary }]}>
                         {task.title}
                       </Text>
 
                       <Text
-                        style={[styles.taskDesc, isExpired && styles.textExpired]}
+                        style={[styles.taskDesc, { color: isExpired ? theme.textMuted : theme.textSecondary }]}
                         numberOfLines={2}
                       >
                         {task.description}
                       </Text>
 
                       {isExpired ? (
-                        <Text style={styles.expiredHint}>
+                        <Text style={[styles.expiredHint, { color: theme.rose }]}>
                           🔒 {t('challengeDetails.deadlinePassed')}
                         </Text>
                       ) : (isParticipant || canEdit) ? (
-                        <Text style={styles.tapHint}>
+                        <Text style={[styles.tapHint, { color: theme.primary }]}>
                           {t('challengeDetails.uploadProof')}
                         </Text>
                       ) : null}
                     </TouchableOpacity>
 
                     {canEdit && !isExpired && (
-                      <View style={styles.taskActions}>
+                      <View style={[styles.taskActions, { borderLeftColor: theme.border }]}>
                         <TouchableOpacity
-                          style={styles.editTaskBtn}
+                          style={[styles.editTaskBtn, { backgroundColor: theme.primary + '15', borderColor: theme.primary + '30' }]}
                           onPress={() => {
                             setEditingTask(task);
                             setTaskModalVisible(true);
                           }}
                         >
-                          <Ionicons name="pencil" size={15} color={Colors.primary} />
+                          <Ionicons name="pencil" size={15} color={theme.primary} />
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                          style={styles.deleteTaskBtn}
+                          style={[styles.deleteTaskBtn, { backgroundColor: theme.rose + '15', borderColor: theme.rose + '30' }]}
                           onPress={() => handleDeleteTask(task)}
                         >
-                          <Ionicons name="trash-outline" size={15} color={Colors.error} />
+                          <Ionicons name="trash-outline" size={15} color={theme.rose} />
                         </TouchableOpacity>
                       </View>
                     )}
@@ -671,16 +678,16 @@ export default function ChallengeDetailScreen() {
           <Card style={styles.emptyCard}>
             <Text style={styles.emptyIcon}>📋</Text>
 
-            <Text style={styles.emptyTitle}>
+            <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>
               {t('challengeDetails.noTasks')}
             </Text>
 
             {canEdit ? (
-              <Text style={styles.emptyText}>
+              <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
                 {t('challengeDetails.noTasksCreator')}
               </Text>
             ) : (
-              <Text style={styles.emptyText}>
+              <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
                 {t('challengeDetails.noTasksParticipant')}
               </Text>
             )}
@@ -688,7 +695,7 @@ export default function ChallengeDetailScreen() {
         )}
 
         {/* ── Участники ── */}
-        <Text style={[styles.sectionTitle, styles.sectionTitlePadded]}>
+        <Text style={[styles.sectionTitle, styles.sectionTitlePadded, { color: theme.textPrimary }]}>
           {t('challengeDetails.participants')} ({c.participants?.length ?? 0})
         </Text>
 
@@ -724,41 +731,42 @@ export default function ChallengeDetailScreen() {
           onRequestClose={() => setPasswordModal(false)}
         >
           <View style={styles.modalOverlay}>
-            <View style={styles.modalSheet}>
+            <View style={[styles.modalSheet, { backgroundColor: theme.surface }]}>
               <View style={styles.modalHeader}>
                 <View style={styles.modalTitleRow}>
-                  <Ionicons name="shield-checkmark" size={22} color={Colors.warning} />
-                  <Text style={styles.modalTitle}>
+                  <Ionicons name="shield-checkmark" size={22} color={theme.amber} />
+                  <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>
                     {t('challengeDetails.protectedModalTitle')}
                   </Text>
                 </View>
 
                 <TouchableOpacity onPress={() => setPasswordModal(false)}>
-                  <Ionicons name="close" size={22} color={Colors.textMuted} />
+                  <Ionicons name="close" size={22} color={theme.textMuted} />
                 </TouchableOpacity>
               </View>
 
-              <Text style={styles.modalSubtitle}>
+              <Text style={[styles.modalSubtitle, { color: theme.textSecondary }]}>
                 {t('challengeDetails.protectedModalSubtitle')}
               </Text>
 
               <View
                 style={[
                   styles.passwordInputWrapper,
-                  passwordError ? styles.passwordInputError : null,
+                  { backgroundColor: theme.surface, borderColor: theme.border },
+                  passwordError ? { borderColor: theme.rose } : null,
                 ]}
               >
-                <Ionicons name="lock-closed-outline" size={18} color={Colors.textMuted} />
+                <Ionicons name="lock-closed-outline" size={18} color={theme.textMuted} />
 
                 <TextInput
-                  style={styles.passwordInput}
+                  style={[styles.passwordInput, { color: theme.textPrimary }]}
                   value={passwordInput}
                   onChangeText={(value) => {
                     setPasswordInput(value);
                     setPasswordError('');
                   }}
                   placeholder={t('challengeDetails.passwordPlaceholder')}
-                  placeholderTextColor={Colors.textMuted}
+                  placeholderTextColor={theme.textMuted}
                   secureTextEntry={!passwordVisible}
                   autoFocus
                   autoCapitalize="none"
@@ -770,33 +778,34 @@ export default function ChallengeDetailScreen() {
                   <Ionicons
                     name={passwordVisible ? 'eye-off-outline' : 'eye-outline'}
                     size={18}
-                    color={Colors.textMuted}
+                    color={theme.textMuted}
                   />
                 </TouchableOpacity>
               </View>
 
               {passwordError ? (
-                <Text style={styles.passwordErrorText}>{passwordError}</Text>
+                <Text style={[styles.passwordErrorText, { color: theme.rose }]}>{passwordError}</Text>
               ) : null}
 
               <View style={styles.modalBtns}>
                 <TouchableOpacity
-                  style={styles.modalCancelBtn}
+                  style={[styles.modalCancelBtn, { borderColor: theme.border }]}
                   onPress={() => setPasswordModal(false)}
                 >
-                  <Text style={styles.modalCancelTxt}>{t('common.cancel')}</Text>
+                  <Text style={[styles.modalCancelTxt, { color: theme.textSecondary }]}>{t('common.cancel')}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   style={[
                     styles.passwordSubmitBtn,
                     (!passwordInput.trim() || isLoading) && styles.passwordSubmitBtnDisabled,
+                    { backgroundColor: theme.primary },
                   ]}
                   onPress={handlePasswordSubmit}
                   disabled={!passwordInput.trim() || isLoading}
                 >
                   {isLoading ? (
-                    <ActivityIndicator size="small" color={Colors.white} />
+                    <ActivityIndicator size="small" color="#ffffff" />
                   ) : (
                     <Text style={styles.passwordSubmitTxt}>
                       {t('challengeDetails.joinProtected')}
@@ -825,36 +834,11 @@ export default function ChallengeDetailScreen() {
           onClose={() => setInviteModalVisible(false)}
           challengeId={Number(id)}
         />
-        </SafeAreaView>
-        );
-        }
+      </SafeAreaView>
+  );
+}
 
-        const chatBtnChallStyle = {
-          flexDirection: 'row' as const,
-          alignItems: 'center' as const,
-          backgroundColor: Colors.surface,
-          marginHorizontal: 20,
-          marginBottom: 16,
-          borderRadius: 14,
-          padding: 16,
-          borderWidth: 1,
-          borderColor: Colors.accent + '44',
-          gap: 12,
-        };
-
-        const chatTitleStyle = {
-          fontSize: 15,
-          fontWeight: '700' as const,
-          color: Colors.textPrimary,
-        };
-
-        const chatSubStyle = {
-          fontSize: 12,
-          color: Colors.textSecondary,
-          marginTop: 2,
-        };
-
-        const styles = StyleSheet.create({
+const styles = StyleSheet.create({
           activateHint: {
             fontSize: 12,
             color: Colors.textMuted,

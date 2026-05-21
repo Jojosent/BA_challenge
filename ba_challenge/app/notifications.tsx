@@ -56,7 +56,6 @@ const NOTIF_ICONS: Record<string, any> = {
   challenge_invite: Trophy,
 };
 
-const ERROR_COLOR = '#E11D48';
 
 const formatTime = (iso: string, t: any, locale: string): string => {
   const d = new Date(iso);
@@ -191,7 +190,7 @@ export default function NotificationsScreen() {
 
   const renderInAppNotif = (notif: AppNotification) => {
     const accentColor =
-      A[notif.type as keyof typeof A]?.color ?? (theme.primary ?? '#5E4BDB');
+      A[notif.type as keyof typeof A]?.color ?? theme.primary;
     const Icon = NOTIF_ICONS[notif.type] ?? Bell;
 
     return (
@@ -201,8 +200,8 @@ export default function NotificationsScreen() {
           s.notifCard,
           { backgroundColor: theme.surface, borderColor: theme.border },
           !notif.isRead && {
-            borderColor: (theme.primary ?? '#5E4BDB') + '50',
-            backgroundColor: (theme.primary ?? '#5E4BDB') + '08',
+          borderColor: theme.primary + '50',
+            backgroundColor: theme.primary + '08',
           },
         ]}
         onPress={() => handleNotifPress(notif)}
@@ -257,7 +256,7 @@ export default function NotificationsScreen() {
     const isFamily = type === 'family';
     const id = invite.id;
     const loadKey = isFamily ? `f-${id}` : `c-${id}`;
-    const iconColor = isFamily ? '#7B61FF' : '#FFB800';
+    const iconColor = isFamily ? theme.accent : theme.warning;
 
     return (
       <View
@@ -298,20 +297,20 @@ export default function NotificationsScreen() {
 
         <View style={s.inviteBtns}>
           <TouchableOpacity
-            style={[s.rejectBtn, { borderColor: ERROR_COLOR }]}
+            style={[s.rejectBtn, { borderColor: theme.rose }]}
             onPress={() =>
               isFamily ? handleFamilyRespond(id, false) : handleChallengeRespond(id, false)
             }
             disabled={loadingId === loadKey}
           >
             {loadingId === loadKey
-              ? <ActivityIndicator size="small" color={ERROR_COLOR} />
-              : <Text style={[s.rejectTxt, { color: ERROR_COLOR }]}>✗</Text>
+              ? <ActivityIndicator size="small" color={theme.rose} />
+              : <Text style={[s.rejectTxt, { color: theme.rose }]}>✗</Text>
             }
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[s.acceptBtn, { backgroundColor: theme.primary ?? '#5E4BDB' }]}
+            style={[s.acceptBtn, { backgroundColor: theme.primary }]}
             onPress={() =>
               isFamily ? handleFamilyRespond(id, true) : handleChallengeRespond(id, true)
             }
@@ -386,7 +385,7 @@ export default function NotificationsScreen() {
               <Text style={[s.section, { color: theme.textPrimary, marginBottom: 0, marginTop: 0 }]}>
                 {t('notifications.title')}
                 {unreadCount > 0 && (
-                  <Text style={[s.unreadBadge, { color: theme.primary ?? '#5E4BDB' }]}>
+                  <Text style={[s.unreadBadge, { color: theme.primary }]}>
                     {' '}{t('notifications.newCount', { count: unreadCount })}
                   </Text>
                 )}
@@ -399,12 +398,12 @@ export default function NotificationsScreen() {
                     style={[
                       s.actionBtn,
                       {
-                        backgroundColor: (theme.primary ?? '#5E4BDB') + '18',
-                        borderColor: (theme.primary ?? '#5E4BDB') + '40',
+                        backgroundColor: theme.primary + '18',
+                        borderColor: theme.primary + '40',
                       },
                     ]}
                   >
-                    <Text style={[s.actionBtnTxt, { color: theme.primary ?? '#5E4BDB' }]}>
+                    <Text style={[s.actionBtnTxt, { color: theme.primary }]}>
                       {t('notifications.markAllRead')}
                     </Text>
                   </TouchableOpacity>
@@ -415,12 +414,12 @@ export default function NotificationsScreen() {
                   style={[
                     s.clearBtn,
                     {
-                      backgroundColor: ERROR_COLOR + '15',
-                      borderColor: ERROR_COLOR + '30',
+                      backgroundColor: theme.roseError + '15',
+                      borderColor: theme.roseError + '30',
                     },
                   ]}
                 >
-                  <Ionicons name="trash-outline" size={15} color={ERROR_COLOR} />
+                  <Ionicons name="trash-outline" size={15} color={theme.roseError} />
                 </TouchableOpacity>
               </View>
             </View>

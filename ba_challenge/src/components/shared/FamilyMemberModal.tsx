@@ -12,12 +12,12 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Colors } from '@/constants/colors';
 import {
   FamilyMember,
   Relation,
   RELATION_LABELS,
 } from '@types/index';
+import { useTheme } from '@/theme/ThemeContext';
 
 interface FamilyMemberModalProps {
   visible: boolean;
@@ -45,6 +45,7 @@ export const FamilyMemberModal: React.FC<FamilyMemberModalProps> = ({
   isLoading,
 }) => {
   const { t } = useTranslation();
+  const { theme } = useTheme();
 
   const [name, setName] = useState('');
   const [relation, setRelation] = useState<Relation>('other');
@@ -91,8 +92,8 @@ export const FamilyMemberModal: React.FC<FamilyMemberModalProps> = ({
         style={styles.overlay}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View style={styles.sheet}>
-          <Text style={styles.title}>
+        <View style={[styles.sheet, { backgroundColor: theme.surface }]}>
+          <Text style={[styles.title, { color: theme.textPrimary }]}>
             {editMember
               ? t('familyMemberModal.editTitle')
               : t('familyMemberModal.addTitle')}
@@ -100,21 +101,21 @@ export const FamilyMemberModal: React.FC<FamilyMemberModalProps> = ({
 
           <ScrollView showsVerticalScrollIndicator={false}>
             {/* Имя */}
-            <Text style={styles.label}>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>
               {t('familyMemberModal.nameLabel')}
             </Text>
 
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.card, borderColor: theme.border, color: theme.textPrimary }]}
               value={name}
               onChangeText={setName}
               placeholder={t('familyMemberModal.namePlaceholder')}
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={theme.textMuted}
               autoFocus
             />
 
             {/* Родство */}
-            <Text style={styles.label}>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>
               {t('familyMemberModal.relationLabel')}
             </Text>
 
@@ -128,15 +129,16 @@ export const FamilyMemberModal: React.FC<FamilyMemberModalProps> = ({
                   key={r}
                   style={[
                     styles.relationChip,
-                    relation === r && styles.relationChipActive,
+                    { backgroundColor: theme.card, borderColor: theme.border },
+                    relation === r && { backgroundColor: theme.primary, borderColor: theme.primary },
                   ]}
                   onPress={() => setRelation(r)}
                 >
                   <Text
                     style={[
                       styles.relationChipTxt,
-                      relation === r &&
-                        styles.relationChipTxtActive,
+                      { color: theme.textSecondary },
+                      relation === r && { color: '#ffffff', fontWeight: '600' },
                     ]}
                   >
                     {RELATION_LABELS[r]}
@@ -146,16 +148,16 @@ export const FamilyMemberModal: React.FC<FamilyMemberModalProps> = ({
             </ScrollView>
 
             {/* Год рождения */}
-            <Text style={styles.label}>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>
               {t('familyMemberModal.birthYearLabel')}
             </Text>
 
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.card, borderColor: theme.border, color: theme.textPrimary }]}
               value={birthYear}
               onChangeText={setBirthYear}
               placeholder={t('familyMemberModal.birthYearPlaceholder')}
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={theme.textMuted}
               keyboardType="numeric"
               maxLength={4}
             />
@@ -163,7 +165,7 @@ export const FamilyMemberModal: React.FC<FamilyMemberModalProps> = ({
             {/* Родитель в дереве */}
             {members.length > 0 && !editMember && (
               <>
-                <Text style={styles.label}>
+                <Text style={[styles.label, { color: theme.textSecondary }]}>
                   {t('familyMemberModal.parentLabel')}
                 </Text>
 
@@ -175,15 +177,16 @@ export const FamilyMemberModal: React.FC<FamilyMemberModalProps> = ({
                   <TouchableOpacity
                     style={[
                       styles.relationChip,
-                      !parentId && styles.relationChipActive,
+                      { backgroundColor: theme.card, borderColor: theme.border },
+                      !parentId && { backgroundColor: theme.primary, borderColor: theme.primary },
                     ]}
                     onPress={() => setParentId(undefined)}
                   >
                     <Text
                       style={[
                         styles.relationChipTxt,
-                        !parentId &&
-                          styles.relationChipTxtActive,
+                        { color: theme.textSecondary },
+                        !parentId && { color: '#ffffff', fontWeight: '600' },
                       ]}
                     >
                       {t('familyMemberModal.none')}
@@ -195,16 +198,16 @@ export const FamilyMemberModal: React.FC<FamilyMemberModalProps> = ({
                       key={m.id}
                       style={[
                         styles.relationChip,
-                        parentId === m.id &&
-                          styles.relationChipActive,
+                        { backgroundColor: theme.card, borderColor: theme.border },
+                        parentId === m.id && { backgroundColor: theme.primary, borderColor: theme.primary },
                       ]}
                       onPress={() => setParentId(m.id)}
                     >
                       <Text
                         style={[
                           styles.relationChipTxt,
-                          parentId === m.id &&
-                            styles.relationChipTxtActive,
+                          { color: theme.textSecondary },
+                          parentId === m.id && { color: '#ffffff', fontWeight: '600' },
                         ]}
                       >
                         {m.name}
@@ -216,16 +219,16 @@ export const FamilyMemberModal: React.FC<FamilyMemberModalProps> = ({
             )}
 
             {/* Описание */}
-            <Text style={styles.label}>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>
               {t('familyMemberModal.bioLabel')}
             </Text>
 
             <TextInput
-              style={[styles.input, styles.inputMulti]}
+              style={[styles.input, styles.inputMulti, { backgroundColor: theme.card, borderColor: theme.border, color: theme.textPrimary }]}
               value={bio}
               onChangeText={setBio}
               placeholder={t('familyMemberModal.bioPlaceholder')}
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={theme.textMuted}
               multiline
               numberOfLines={3}
               textAlignVertical="top"
@@ -234,10 +237,10 @@ export const FamilyMemberModal: React.FC<FamilyMemberModalProps> = ({
 
           <View style={styles.btns}>
             <TouchableOpacity
-              style={styles.cancelBtn}
+              style={[styles.cancelBtn, { borderColor: theme.border }]}
               onPress={onClose}
             >
-              <Text style={styles.cancelTxt}>
+              <Text style={[styles.cancelTxt, { color: theme.textSecondary }]}>
                 {t('common.cancel')}
               </Text>
             </TouchableOpacity>
@@ -245,8 +248,8 @@ export const FamilyMemberModal: React.FC<FamilyMemberModalProps> = ({
             <TouchableOpacity
               style={[
                 styles.saveBtn,
-                (!name.trim() || isLoading) &&
-                  styles.saveBtnDisabled,
+                (!name.trim() || isLoading) && styles.saveBtnDisabled,
+                { backgroundColor: theme.primary },
               ]}
               onPress={handleSave}
               disabled={!name.trim() || isLoading}
@@ -254,7 +257,7 @@ export const FamilyMemberModal: React.FC<FamilyMemberModalProps> = ({
               {isLoading ? (
                 <ActivityIndicator
                   size="small"
-                  color={Colors.white}
+                  color="#ffffff"
                 />
               ) : (
                 <Text style={styles.saveTxt}>
@@ -279,7 +282,6 @@ const styles = StyleSheet.create({
   },
 
   sheet: {
-    backgroundColor: Colors.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
@@ -290,25 +292,20 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: Colors.textPrimary,
     marginBottom: 20,
   },
 
   label: {
     fontSize: 13,
-    color: Colors.textSecondary,
     fontWeight: '500',
     marginBottom: 8,
   },
 
   input: {
-    backgroundColor: Colors.card,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
     padding: 14,
     fontSize: 15,
-    color: Colors.textPrimary,
     marginBottom: 16,
   },
 
@@ -324,27 +321,18 @@ const styles = StyleSheet.create({
   relationChip: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: Colors.card,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: Colors.border,
     marginRight: 8,
   },
 
-  relationChipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
+  relationChipActive: {},
 
   relationChipTxt: {
     fontSize: 12,
-    color: Colors.textSecondary,
   },
 
-  relationChipTxtActive: {
-    color: Colors.white,
-    fontWeight: '600',
-  },
+  relationChipTxtActive: {},
 
   btns: {
     flexDirection: 'row',
@@ -357,12 +345,10 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
     alignItems: 'center',
   },
 
   cancelTxt: {
-    color: Colors.textSecondary,
     fontWeight: '600',
   },
 
@@ -370,7 +356,6 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 14,
     borderRadius: 12,
-    backgroundColor: Colors.primary,
     alignItems: 'center',
   },
 
@@ -379,7 +364,7 @@ const styles = StyleSheet.create({
   },
 
   saveTxt: {
-    color: Colors.white,
+    color: '#ffffff',
     fontWeight: '700',
     fontSize: 15,
   },

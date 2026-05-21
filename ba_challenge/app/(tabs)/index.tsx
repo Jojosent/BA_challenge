@@ -9,10 +9,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { userService } from '@services/userService';
+import { notificationService } from '@services/notificationService';
 import { ImageBackground } from 'react-native';
 import { TrendingUp, Zap, Star } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/theme/ThemeContext';
+import { ThemePicker } from '@/theme/ThemePicker';
 import {
   RefreshControl,
   ScrollView,
@@ -32,6 +34,7 @@ export default function HomeScreen() {
 
   const [notifCount, setNotifCount] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [showThemePicker, setShowThemePicker] = useState(false);
 
   const [stats, setStats] = useState({
     avgRating: 0,
@@ -48,15 +51,22 @@ export default function HomeScreen() {
       .getStats()
       .then(setStats)
       .catch((e) => console.log('Stats ошибка:', e.message));
-  }, [displayUser?.id, refreshKey]);
+  }, [refreshKey]);
+
+  useEffect(() => {
+    fetchProfile();
+    notificationService
+      .getCount()
+      .then(setNotifCount)
+      .catch((e) => console.log('Unread count error:', e));
+  }, [refreshKey]);
 
   if (isLoading && !displayUser) return <LoadingSpinner />;
 
   const greeting = () => {
-    const hour = new Date().getHours();
-
-    if (hour < 12) return t('home.morningGreeting');
-    if (hour < 18) return t('home.afternoonGreeting');
+    const hrs = new Date().getHours();
+    if (hrs < 12) return t('home.morningGreeting');
+    if (hrs < 18) return t('home.afternoonGreeting');
     return t('home.eveningGreeting');
   };
 
@@ -65,6 +75,7 @@ export default function HomeScreen() {
       style={[styles.container, { backgroundColor: theme.bg }]}
       edges={['top']}
     >
+      <ThemePicker visible={showThemePicker} onClose={() => setShowThemePicker(false)} />
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -90,27 +101,44 @@ export default function HomeScreen() {
             </Text>
           </View>
 
-          <TouchableOpacity
-            style={[
-              styles.notifBtn,
-              { backgroundColor: theme.surface, borderColor: theme.border },
-            ]}
-            onPress={() => router.push('/notifications')}
-          >
-            <Ionicons
-              name="notifications-outline"
-              size={24}
-              color={theme.textPrimary}
-            />
+          <View style={styles.headerButtonsRow}>
+            <TouchableOpacity
+              style={[
+                styles.themeBtn,
+                { backgroundColor: theme.surface, borderColor: theme.border },
+              ]}
+              onPress={() => setShowThemePicker(true)}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name="color-palette-outline"
+                size={22}
+                color={theme.primary}
+              />
+            </TouchableOpacity>
 
-            {notifCount > 0 && (
-              <View style={[styles.notifBadge, { backgroundColor: theme.rose }]}>
-                <Text style={styles.notifBadgeTxt}>
-                  {notifCount > 9 ? '9+' : notifCount}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.notifBtn,
+                { backgroundColor: theme.surface, borderColor: theme.border },
+              ]}
+              onPress={() => router.push('/notifications')}
+            >
+              <Ionicons
+                name="notifications-outline"
+                size={24}
+                color={theme.textPrimary}
+              />
+
+              {notifCount > 0 && (
+                <View style={[styles.notifBadge, { backgroundColor: theme.rose }]}>
+                  <Text style={styles.notifBadgeTxt}>
+                    {notifCount > 9 ? '9+' : notifCount}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* BALANCE */}
@@ -291,6 +319,18 @@ const styles = StyleSheet.create({
   greetingTitle: { fontSize: 28, fontWeight: '900' },
 
   greetingSubtitle: { fontSize: 15, marginTop: 4 },
+
+  headerButtonsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+
+  themeBtn: {
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
 
   notifBtn: {
     padding: 10,

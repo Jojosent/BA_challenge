@@ -1,4 +1,3 @@
-import { Colors } from '@/constants/colors';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
@@ -9,6 +8,8 @@ import {
     View,
 } from 'react-native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import { useTranslation } from 'react-i18next';
+import { useTheme } from '@/theme/ThemeContext';
 
 interface DatePickerProps {
     label: string;
@@ -26,14 +27,23 @@ export const DatePicker: React.FC<DatePickerProps> = ({
     error,
 }) => {
     const [isVisible, setIsVisible] = useState(false);
+    const { t, i18n } = useTranslation();
+    const { theme } = useTheme();
+
+    const locale =
+        i18n.language === 'kz'
+            ? 'kk-KZ'
+            : i18n.language === 'en'
+                ? 'en-US'
+                : 'ru-RU';
 
     const displayDate = value
-        ? new Date(value).toLocaleDateString('ru-RU', {
+        ? new Date(value).toLocaleDateString(locale, {
             day: 'numeric',
             month: 'long',
             year: 'numeric',
         })
-        : 'Выбери дату';
+        : t('datePicker.selectDate');
 
     const handleConfirm = (date: Date) => {
         setIsVisible(false);
@@ -42,25 +52,25 @@ export const DatePicker: React.FC<DatePickerProps> = ({
 
     return (
         <View style={styles.container}>
-            <Text style={styles.label}>{label}</Text>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>{label}</Text>
 
             <TouchableOpacity
-                style={[styles.btn, error ? styles.btnError : null]}
+                style={[styles.btn, { backgroundColor: theme.surface, borderColor: theme.border }, error ? { borderColor: theme.rose } : null]}
                 onPress={() => setIsVisible(true)}
                 activeOpacity={0.8}
             >
                 <Ionicons
                     name="calendar"
                     size={20}
-                    color={value ? Colors.primary : Colors.textMuted}
+                    color={value ? theme.primary : theme.textMuted}
                 />
-                <Text style={[styles.dateText, !value && styles.placeholder]}>
+                <Text style={[styles.dateText, { color: theme.textPrimary }, !value && { color: theme.textMuted }]}>
                     {displayDate}
                 </Text>
-                <Ionicons name="chevron-down" size={16} color={Colors.textMuted} />
+                <Ionicons name="chevron-down" size={16} color={theme.textMuted} />
             </TouchableOpacity>
 
-            {error && <Text style={styles.error}>{error}</Text>}
+            {error && <Text style={[styles.error, { color: theme.rose }]}>{error}</Text>}
 
             <DateTimePickerModal
                 isVisible={isVisible}
@@ -69,8 +79,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({
                 onCancel={() => setIsVisible(false)}
                 minimumDate={minimumDate || new Date()}
                 date={value ? new Date(value) : new Date()}
-                // Стили под тёмную тему
-                isDarkModeEnabled={true}
+                isDarkModeEnabled={theme.dark}
                 display={Platform.OS === 'ios' ? 'inline' : 'default'}
             />
         </View>
@@ -81,27 +90,23 @@ const styles = StyleSheet.create({
     container: { marginBottom: 16 },
     label: {
         fontSize: 14,
-        color: Colors.textSecondary,
         fontWeight: '500',
         marginBottom: 8,
     },
     btn: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: Colors.surface,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: Colors.border,
         paddingHorizontal: 16,
         paddingVertical: 14,
         gap: 10,
     },
-    btnError: { borderColor: Colors.error },
+    btnError: {},
     dateText: {
         flex: 1,
         fontSize: 16,
-        color: Colors.textPrimary,
     },
-    placeholder: { color: Colors.textMuted },
-    error: { color: Colors.error, fontSize: 12, marginTop: 4 },
+    placeholder: {},
+    error: { fontSize: 12, marginTop: 4 },
 });

@@ -1,4 +1,3 @@
-import { Colors } from '@constants/colors';
 import { Ionicons } from '@expo/vector-icons';
 import { useNotificationStore } from '@hooks/useNotifications';
 import { Tabs } from 'expo-router';
@@ -10,18 +9,18 @@ const TabIcon = ({
   name,
   color,
   focused,
-  isDark,
+  theme,
 }: {
   name: any;
   color: string;
   focused: boolean;
-  isDark: boolean;
+  theme: any;
 }) => (
   <View
     style={[
       styles.iconWrapper,
       focused && {
-        backgroundColor: isDark ? '#2A1F4A' : '#F1EEFF',
+        backgroundColor: theme.primaryLight,
       },
     ]}
   >
@@ -32,11 +31,11 @@ const TabIcon = ({
 const HomeTabIcon = ({
   color,
   focused,
-  isDark,
+  theme,
 }: {
   color: string;
   focused: boolean;
-  isDark: boolean;
+  theme: any;
 }) => {
   const count = useNotificationStore((state) => state.count);
 
@@ -45,7 +44,7 @@ const HomeTabIcon = ({
       style={[
         styles.iconWrapper,
         focused && {
-          backgroundColor: isDark ? '#2A1F4A' : '#F1EEFF',
+          backgroundColor: theme.primaryLight,
         },
       ]}
     >
@@ -56,7 +55,7 @@ const HomeTabIcon = ({
       />
 
       {count > 0 && (
-        <View style={styles.badge}>
+        <View style={[styles.badge, { backgroundColor: theme.rose, borderColor: theme.bg }]}>
           <Text style={styles.badgeTxt}>{count > 9 ? '9+' : count}</Text>
         </View>
       )}
@@ -68,7 +67,7 @@ export default function TabsLayout() {
   const { t } = useTranslation();
   const { theme } = useTheme();
 
-  const isDark = theme.bg === '#000' || theme.bg === '#121212';
+  const isDark = theme.key === 'midnight';
 
   return (
     <Tabs
@@ -105,7 +104,7 @@ export default function TabsLayout() {
         options={{
           title: t('tabs.home'),
           tabBarIcon: ({ color, focused }) => (
-            <HomeTabIcon color={color} focused={focused} isDark={isDark} />
+            <HomeTabIcon color={color} focused={focused} theme={theme} />
           ),
         }}
       />
@@ -119,7 +118,7 @@ export default function TabsLayout() {
               name={focused ? 'trophy' : 'trophy-outline'}
               color={color}
               focused={focused}
-              isDark={isDark}
+              theme={theme}
             />
           ),
         }}
@@ -134,7 +133,7 @@ export default function TabsLayout() {
               name={focused ? 'sparkles' : 'sparkles-outline'}
               color={color}
               focused={focused}
-              isDark={isDark}
+              theme={theme}
             />
           ),
         }}
@@ -149,7 +148,7 @@ export default function TabsLayout() {
               name={focused ? 'person' : 'person-outline'}
               color={color}
               focused={focused}
-              isDark={isDark}
+              theme={theme}
             />
           ),
         }}
@@ -171,7 +170,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -5,
     right: -7,
-    backgroundColor: '#FF4D6D',
     borderRadius: 10,
     minWidth: 18,
     height: 18,
@@ -179,7 +177,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 4,
     borderWidth: 2,
-    borderColor: '#fff',
   },
 
   badgeTxt: {

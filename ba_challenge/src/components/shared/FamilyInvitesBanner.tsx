@@ -8,12 +8,13 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Colors } from '@/constants/colors';
 import { familyService } from '@services/familyService';
 import { RELATION_LABELS } from '@/types/index';
+import { useTheme } from '@/theme/ThemeContext';
 
 export const FamilyInvitesBanner: React.FC<{ onAccepted: () => void }> = ({ onAccepted }) => {
     const { t } = useTranslation();
+    const { theme } = useTheme();
 
     const [invites, setInvites] = useState<any[]>([]);
     const [loading, setLoading] = useState<number | null>(null);
@@ -49,20 +50,20 @@ export const FamilyInvitesBanner: React.FC<{ onAccepted: () => void }> = ({ onAc
 
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>
+            <Text style={[styles.title, { color: theme.textPrimary }]}>
                 🔔 {t('familyInvitesBanner.title', { count: invites.length })}
             </Text>
 
             {invites.map((invite) => (
-                <View key={invite.id} style={styles.card}>
+                <View key={invite.id} style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.primary + '40' }]}>
                     <View style={styles.info}>
-                        <Text style={styles.from}>
+                        <Text style={[styles.from, { color: theme.textPrimary }]}>
                             👤 {invite.sender?.username ?? t('familyInvitesBanner.userFallback')}
                         </Text>
 
-                        <Text style={styles.detail}>
+                        <Text style={[styles.detail, { color: theme.textSecondary }]}>
                             {t('familyInvitesBanner.invitesAs')}{' '}
-                            <Text style={styles.role}>
+                            <Text style={[styles.role, { color: theme.primary }]}>
                                 {RELATION_LABELS[
                                     invite.relation as keyof typeof RELATION_LABELS
                                 ] ?? invite.relation}
@@ -77,26 +78,26 @@ export const FamilyInvitesBanner: React.FC<{ onAccepted: () => void }> = ({ onAc
 
                     <View style={styles.btns}>
                         <TouchableOpacity
-                            style={styles.rejectBtn}
+                            style={[styles.rejectBtn, { borderColor: theme.rose }]}
                             onPress={() => handleRespond(invite.id, false)}
                             disabled={loading === invite.id}
                         >
                             {loading === invite.id ? (
-                                <ActivityIndicator size="small" color={Colors.error} />
+                                <ActivityIndicator size="small" color={theme.rose} />
                             ) : (
-                                <Text style={styles.rejectTxt}>
+                                <Text style={[styles.rejectTxt, { color: theme.rose }]}>
                                     {t('familyInvitesBanner.decline')}
                                 </Text>
                             )}
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                            style={styles.acceptBtn}
+                            style={[styles.acceptBtn, { backgroundColor: theme.primary }]}
                             onPress={() => handleRespond(invite.id, true)}
                             disabled={loading === invite.id}
                         >
                             {loading === invite.id ? (
-                                <ActivityIndicator size="small" color={Colors.white} />
+                                <ActivityIndicator size="small" color="#ffffff" />
                             ) : (
                                 <Text style={styles.acceptTxt}>
                                     {t('familyInvitesBanner.accept')}
@@ -116,17 +117,14 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 15,
         fontWeight: '700',
-        color: Colors.textPrimary,
         marginBottom: 10,
     },
 
     card: {
-        backgroundColor: Colors.surface,
         borderRadius: 14,
         padding: 14,
         marginBottom: 8,
         borderWidth: 1,
-        borderColor: Colors.primary + '40',
     },
 
     info: { marginBottom: 12 },
@@ -134,17 +132,14 @@ const styles = StyleSheet.create({
     from: {
         fontSize: 15,
         fontWeight: '700',
-        color: Colors.textPrimary,
         marginBottom: 4,
     },
 
     detail: {
         fontSize: 13,
-        color: Colors.textSecondary,
     },
 
     role: {
-        color: Colors.primary,
         fontWeight: '600',
     },
 
@@ -158,12 +153,10 @@ const styles = StyleSheet.create({
         padding: 10,
         borderRadius: 10,
         borderWidth: 1,
-        borderColor: Colors.error,
         alignItems: 'center',
     },
 
     rejectTxt: {
-        color: Colors.error,
         fontWeight: '600',
         fontSize: 13,
     },
@@ -172,12 +165,11 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: 10,
         borderRadius: 10,
-        backgroundColor: Colors.primary,
         alignItems: 'center',
     },
 
     acceptTxt: {
-        color: Colors.white,
+        color: '#ffffff',
         fontWeight: '700',
         fontSize: 13,
     },

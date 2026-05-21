@@ -1,8 +1,8 @@
-import { Colors } from '@/constants/colors';
 import { Ionicons } from '@expo/vector-icons';
 import { submissionService } from '@services/submissionService';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     ActivityIndicator,
     Alert,
@@ -13,6 +13,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useTheme } from '@/theme/ThemeContext';
 
 interface MediaItem {
     uri: string;
@@ -23,44 +24,54 @@ interface MediaItem {
 interface MediaUploaderProps {
     taskId: number;
     onSuccess: () => void;
-    // ✅ Уже загруженных медиа нет — загрузчик только для новых файлов
 }
 
 export const MediaUploader: React.FC<MediaUploaderProps> = ({
     taskId,
     onSuccess,
 }) => {
+    const { t } = useTranslation();
+    const { theme } = useTheme();
+
     const [selectedMedia, setSelectedMedia] = useState<MediaItem[]>([]);
     const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
     const [isUploading, setIsUploading] = useState(false);
 
-    // Запрос разрешений
     const requestGalleryPermission = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
         if (status !== 'granted') {
-            Alert.alert('Нет доступа', 'Разреши доступ к галерее в настройках');
+            Alert.alert(
+                t('mediaUploader.noAccess'),
+                t('mediaUploader.galleryPermission')
+            );
             return false;
         }
+
         return true;
     };
 
     const requestCameraPermission = async () => {
         const { status } = await ImagePicker.requestCameraPermissionsAsync();
+
         if (status !== 'granted') {
-            Alert.alert('Нет доступа', 'Разреши доступ к камере');
+            Alert.alert(
+                t('mediaUploader.noAccess'),
+                t('mediaUploader.cameraPermission')
+            );
             return false;
         }
+
         return true;
     };
 
-    // ✅ Выбор из галереи — можно выбрать несколько
     const pickFromGallery = async () => {
         const hasPermission = await requestGalleryPermission();
         if (!hasPermission) return;
 
         const result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.All,
-            allowsMultipleSelection: true,   // ✅ Множественный выбор
+            allowsMultipleSelection: true,
             quality: 0.8,
             videoMaxDuration: 60,
         });
@@ -72,12 +83,10 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
                 mimeType: asset.type === 'video' ? 'video/mp4' : 'image/jpeg',
             }));
 
-            // ✅ Добавляем к уже выбранным (не заменяем)
             setSelectedMedia((prev) => [...prev, ...newItems]);
         }
     };
 
-    // ✅ Съёмка через камеру
     const takePhoto = async () => {
         const hasPermission = await requestCameraPermission();
         if (!hasPermission) return;
@@ -90,21 +99,21 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
 
         if (!result.canceled && result.assets[0]) {
             const asset = result.assets[0];
+
             const newItem: MediaItem = {
                 uri: asset.uri,
                 type: asset.type === 'video' ? 'video' : 'photo',
                 mimeType: asset.type === 'video' ? 'video/mp4' : 'image/jpeg',
             };
+
             setSelectedMedia((prev) => [...prev, newItem]);
         }
     };
 
-    // ✅ Удалить из выбранных (до загрузки)
     const removeSelected = (index: number) => {
         setSelectedMedia((prev) => prev.filter((_, i) => i !== index));
     };
 
-    // ✅ Загрузить все выбранные файлы по одному
     const handleUploadAll = async () => {
         if (selectedMedia.length === 0) return;
 
@@ -117,18 +126,21 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
                 await submissionService.upload(taskId, item.uri, item.mimeType);
             }
 
+            const uploadedCount = selectedMedia.length;
+
             setSelectedMedia([]);
             setUploadingIndex(null);
+
             Alert.alert(
-                '🎉 Загружено!',
-                `${selectedMedia.length > 1
-                    ? `${selectedMedia.length} файлов загружено!`
-                    : 'Твоё доказательство отправлено!'
-                }`
+                t('mediaUploader.uploadedTitle'),
+                uploadedCount > 1
+                    ? t('mediaUploader.filesUploaded', { count: uploadedCount })
+                    : t('mediaUploader.proofUploaded')
             );
+
             onSuccess();
         } catch (e: any) {
-            Alert.alert('Ошибка', e.message);
+            Alert.alert(t('mediaUploader.error'), e.message);
         } finally {
             setIsUploading(false);
             setUploadingIndex(null);
@@ -137,20 +149,21 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
 
     return (
         <View style={styles.container}>
-
-            {/* ✅ Горизонтальный скролл выбранных медиа */}
             {selectedMedia.length > 0 && (
                 <View style={styles.previewSection}>
-                    <Text style={styles.previewLabel}>
-                        Выбрано: {selectedMedia.length} файл(ов)
+                    <Text style={[styles.previewLabel, { color: theme.textSecondary }]}>
+                        {t('mediaUploader.selectedFiles', {
+                            count: selectedMedia.length,
+                        })}
                     </Text>
+
                     <ScrollView
                         horizontal
                         showsHorizontalScrollIndicator={false}
                         contentContainerStyle={styles.previewScroll}
                     >
                         {selectedMedia.map((item, index) => (
-                            <View key={index} style={styles.previewItem}>
+                            <View key={index} style={[styles.previewItem, { backgroundColor: theme.card, borderColor: theme.border }]}>
                                 {item.type === 'photo' ? (
                                     <Image
                                         source={{ uri: item.uri }}
@@ -158,90 +171,100 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
                                         resizeMode="cover"
                                     />
                                 ) : (
-                                    <View style={styles.previewVideo}>
-                                        <Ionicons name="play-circle" size={36} color={Colors.white} />
-                                        <Text style={styles.previewVideoTxt}>Видео</Text>
+                                    <View style={[styles.previewVideo, { backgroundColor: theme.card }]}>
+                                        <Ionicons name="play-circle" size={36} color="#ffffff" />
+                                        <Text style={styles.previewVideoTxt}>
+                                            {t('mediaUploader.video')}
+                                        </Text>
                                     </View>
                                 )}
 
-                                {/* Бейдж типа */}
                                 <View style={styles.typeBadge}>
-                                    <Text style={styles.typeBadgeTxt}>
-                                        {item.type === 'video' ? '🎥' : '📷'}
-                                    </Text>
+                                    <Ionicons
+                                        name={item.type === 'video' ? 'videocam' : 'camera'}
+                                        size={14}
+                                        color="#ffffff"
+                                    />
                                 </View>
 
-                                {/* Статус загрузки */}
                                 {isUploading && uploadingIndex === index && (
                                     <View style={styles.uploadingOverlay}>
-                                        <ActivityIndicator size="small" color={Colors.white} />
+                                        <ActivityIndicator size="small" color="#ffffff" />
                                     </View>
                                 )}
 
-                                {/* Кнопка удалить */}
                                 {!isUploading && (
                                     <TouchableOpacity
                                         style={styles.removeBtn}
                                         onPress={() => removeSelected(index)}
                                     >
-                                        <Ionicons name="close-circle" size={22} color={Colors.error} />
+                                        <Ionicons name="close-circle" size={22} color={theme.rose} />
                                     </TouchableOpacity>
                                 )}
                             </View>
                         ))}
 
-                        {/* ✅ Кнопка добавить ещё */}
                         {!isUploading && (
                             <TouchableOpacity
-                                style={styles.addMoreBtn}
+                                style={[styles.addMoreBtn, { backgroundColor: theme.surface, borderColor: theme.primary + '60' }]}
                                 onPress={pickFromGallery}
                             >
-                                <Ionicons name="add" size={28} color={Colors.primary} />
-                                <Text style={styles.addMoreTxt}>Ещё</Text>
+                                <Ionicons name="add" size={28} color={theme.primary} />
+                                <Text style={[styles.addMoreTxt, { color: theme.primary }]}>
+                                    {t('mediaUploader.addMore')}
+                                </Text>
                             </TouchableOpacity>
                         )}
                     </ScrollView>
                 </View>
             )}
 
-            {/* Кнопки выбора — показываем если ничего не выбрано */}
             {selectedMedia.length === 0 && (
                 <View style={styles.pickersRow}>
-                    <TouchableOpacity style={styles.pickerBtn} onPress={takePhoto}>
-                        <Ionicons name="camera" size={28} color={Colors.primary} />
-                        <Text style={styles.pickerLabel}>Камера</Text>
+                    <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={takePhoto}>
+                        <Ionicons name="camera" size={28} color={theme.primary} />
+                        <Text style={[styles.pickerLabel, { color: theme.textSecondary }]}>
+                            {t('mediaUploader.camera')}
+                        </Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.pickerBtn} onPress={pickFromGallery}>
-                        <Ionicons name="images" size={28} color={Colors.accent} />
-                        <Text style={styles.pickerLabel}>Галерея</Text>
-                        <Text style={styles.pickerSub}>Можно несколько</Text>
+                    <TouchableOpacity style={[styles.pickerBtn, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={pickFromGallery}>
+                        <Ionicons name="images" size={28} color={theme.accent} />
+                        <Text style={[styles.pickerLabel, { color: theme.textSecondary }]}>
+                            {t('mediaUploader.gallery')}
+                        </Text>
+                        <Text style={[styles.pickerSub, { color: theme.textMuted }]}>
+                            {t('mediaUploader.multipleAllowed')}
+                        </Text>
                     </TouchableOpacity>
                 </View>
             )}
 
-            {/* ✅ Кнопка загрузить все */}
             {selectedMedia.length > 0 && (
                 <TouchableOpacity
-                    style={[styles.uploadBtn, isUploading && styles.uploadBtnDisabled]}
+                    style={[styles.uploadBtn, isUploading && styles.uploadBtnDisabled, { backgroundColor: theme.primary }]}
                     onPress={handleUploadAll}
                     disabled={isUploading}
                 >
                     {isUploading ? (
                         <View style={styles.uploadingRow}>
-                            <ActivityIndicator color={Colors.white} size="small" />
+                            <ActivityIndicator color="#ffffff" size="small" />
                             <Text style={styles.uploadBtnText}>
-                                Загружается {(uploadingIndex ?? 0) + 1} из {selectedMedia.length}...
+                                {t('mediaUploader.uploadingProgress', {
+                                    current: (uploadingIndex ?? 0) + 1,
+                                    total: selectedMedia.length,
+                                })}
                             </Text>
                         </View>
                     ) : (
                         <View style={styles.uploadingRow}>
-                            <Ionicons name="cloud-upload" size={20} color={Colors.white} />
+                            <Ionicons name="cloud-upload" size={20} color="#ffffff" />
                             <Text style={styles.uploadBtnText}>
                                 {selectedMedia.length > 1
-                                    ? `Загрузить ${selectedMedia.length} файла`
-                                    : 'Отправить как доказательство'
-                                }
+                                    ? t('mediaUploader.uploadFiles', {
+                                        count: selectedMedia.length,
+                                    })
+                                    : t('mediaUploader.sendProof')}
                             </Text>
                         </View>
                     )}
@@ -254,11 +277,9 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({
 const styles = StyleSheet.create({
     container: { width: '100%' },
 
-    // Превью выбранных
     previewSection: { marginBottom: 12 },
     previewLabel: {
         fontSize: 13,
-        color: Colors.textSecondary,
         marginBottom: 8,
         fontWeight: '500',
     },
@@ -272,9 +293,7 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         overflow: 'hidden',
         position: 'relative',
-        backgroundColor: Colors.card,
         borderWidth: 1,
-        borderColor: Colors.border,
     },
     previewImage: {
         width: '100%',
@@ -285,11 +304,10 @@ const styles = StyleSheet.create({
         height: '100%',
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: Colors.card,
         gap: 4,
     },
     previewVideoTxt: {
-        color: Colors.white,
+        color: '#ffffff',
         fontSize: 11,
         fontWeight: '600',
     },
@@ -301,7 +319,6 @@ const styles = StyleSheet.create({
         borderRadius: 6,
         padding: 3,
     },
-    typeBadgeTxt: { fontSize: 12 },
 
     uploadingOverlay: {
         ...StyleSheet.absoluteFillObject,
@@ -315,54 +332,43 @@ const styles = StyleSheet.create({
         right: 4,
     },
 
-    // Кнопка добавить ещё
     addMoreBtn: {
         width: 110,
         height: 110,
         borderRadius: 12,
-        backgroundColor: Colors.surface,
         borderWidth: 1.5,
-        borderColor: Colors.primary + '60',
         borderStyle: 'dashed',
         justifyContent: 'center',
         alignItems: 'center',
         gap: 4,
     },
     addMoreTxt: {
-        color: Colors.primary,
         fontSize: 12,
         fontWeight: '600',
     },
 
-    // Кнопки выбора
     pickersRow: {
         flexDirection: 'row',
         gap: 12,
     },
     pickerBtn: {
         flex: 1,
-        backgroundColor: Colors.surface,
         borderRadius: 14,
         paddingVertical: 20,
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: Colors.border,
         borderStyle: 'dashed',
         gap: 6,
     },
     pickerLabel: {
-        color: Colors.textSecondary,
         fontSize: 13,
         fontWeight: '600',
     },
     pickerSub: {
-        color: Colors.textMuted,
         fontSize: 10,
     },
 
-    // Кнопка загрузить
     uploadBtn: {
-        backgroundColor: Colors.primary,
         borderRadius: 12,
         paddingVertical: 14,
         alignItems: 'center',
@@ -376,7 +382,7 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     uploadBtnText: {
-        color: Colors.white,
+        color: '#ffffff',
         fontWeight: '700',
         fontSize: 15,
     },

@@ -25,6 +25,10 @@ export interface ThemeTokens {
   textMuted: string;
   white: string;
   avatarRing: string;
+  warning: string;
+  warningLight: string;
+  roseError: string;
+  roseErrorBg: string;
 }
 
 export const THEMES: Record<ThemeKey, ThemeTokens> = {
@@ -39,6 +43,8 @@ export const THEMES: Record<ThemeKey, ThemeTokens> = {
     rose: '#F43F5E', roseLight: '#FFE4E6',
     textPrimary: '#1A1040', textSecondary: '#6B7280', textMuted: '#A0A8BF',
     white: '#FFFFFF', avatarRing: '#7C5CFC',
+    warning: '#F59E0B', warningLight: '#FEF3C7',
+    roseError: '#F43F5E', roseErrorBg: '#FFF1F2',
   },
   midnight: {
     key: 'midnight', name: 'Midnight', label: 'Полночь',
@@ -51,6 +57,8 @@ export const THEMES: Record<ThemeKey, ThemeTokens> = {
     rose: '#FB7185', roseLight: '#4C0519',
     textPrimary: '#F1F5F9', textSecondary: '#94A3B8', textMuted: '#64748B',
     white: '#FFFFFF', avatarRing: '#4F8EF7',
+    warning: '#FBBF24', warningLight: '#451A03',
+    roseError: '#FB7185', roseErrorBg: '#2D0A14',
   },
   forest: {
     key: 'forest', name: 'Forest', label: 'Лесной',
@@ -63,6 +71,8 @@ export const THEMES: Record<ThemeKey, ThemeTokens> = {
     rose: '#E11D48', roseLight: '#FFE4E6',
     textPrimary: '#0A2614', textSecondary: '#4B5563', textMuted: '#86A893',
     white: '#FFFFFF', avatarRing: '#16A34A',
+    warning: '#D97706', warningLight: '#FEF3C7',
+    roseError: '#E11D48', roseErrorBg: '#FFF1F2',
   },
   rose: {
     key: 'rose', name: 'Rose', label: 'Розовый',
@@ -75,6 +85,8 @@ export const THEMES: Record<ThemeKey, ThemeTokens> = {
     rose: '#E11D48', roseLight: '#FFE4E6',
     textPrimary: '#2D0A14', textSecondary: '#6B7280', textMuted: '#C08090',
     white: '#FFFFFF', avatarRing: '#F43F5E',
+    warning: '#F59E0B', warningLight: '#FEF3C7',
+    roseError: '#E11D48', roseErrorBg: '#FFF1F2',
   },
 };
 

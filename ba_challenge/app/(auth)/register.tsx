@@ -1,10 +1,9 @@
 import { Button } from '@components/ui/Button';
 import { Input } from '@components/ui/Input';
-import { Colors } from '@/constants/colors';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '@hooks/useAuth';
 import { Link } from 'expo-router';
-import React from 'react';
+import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import {
@@ -17,10 +16,15 @@ import {
   View,
 } from 'react-native';
 import { z } from 'zod';
+import { useTheme } from '@/theme/ThemeContext';
+import { ThemePicker } from '@/theme/ThemePicker';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function RegisterScreen() {
   const { t } = useTranslation();
   const { register, isLoading, error } = useAuth();
+  const { theme } = useTheme();
+  const [showThemePicker, setShowThemePicker] = useState(false);
 
   const registerSchema = z.object({
     username: z.string().min(3, t('auth.minUsername')),
@@ -44,7 +48,7 @@ export default function RegisterScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: theme.bg }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView
@@ -52,15 +56,37 @@ export default function RegisterScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
-          <Text style={styles.logo}>BA Challenge</Text>
-          <Text style={styles.title}>{t('auth.createAccount')}</Text>
-          <Text style={styles.subtitle}>{t('auth.registerSubtitle')}</Text>
+          <TouchableOpacity
+            style={[
+              styles.themeBtn,
+              {
+                backgroundColor: theme.surface,
+                borderColor: theme.border,
+              },
+            ]}
+            onPress={() => setShowThemePicker(true)}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="color-palette-outline" size={22} color={theme.primary} />
+          </TouchableOpacity>
+
+          <Text style={[styles.logo, { color: theme.primary }]}>BA Challenge</Text>
+          <Text style={[styles.title, { color: theme.textPrimary }]}>{t('auth.createAccount')}</Text>
+          <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{t('auth.registerSubtitle')}</Text>
         </View>
 
         <View style={styles.form}>
           {error && (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorBoxText}>{error}</Text>
+            <View
+              style={[
+                styles.errorBox,
+                {
+                  backgroundColor: theme.key === 'midnight' ? '#3B1820' : '#FFF1F2',
+                  borderColor: theme.key === 'midnight' ? '#5E1B2A' : '#FECDD3',
+                },
+              ]}
+            >
+              <Text style={[styles.errorBoxText, { color: theme.rose }]}>{error}</Text>
             </View>
           )}
 
@@ -131,43 +157,57 @@ export default function RegisterScreen() {
           />
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>{t('auth.haveAccount')}</Text>
+            <Text style={[styles.footerText, { color: theme.textSecondary }]}>{t('auth.haveAccount')}</Text>
             <Link href="/(auth)/login" asChild>
               <TouchableOpacity>
-                <Text style={styles.link}>{t('auth.login')}</Text>
+                <Text style={[styles.link, { color: theme.primary }]}>{t('auth.login')}</Text>
               </TouchableOpacity>
             </Link>
           </View>
         </View>
       </ScrollView>
+
+      <ThemePicker
+        visible={showThemePicker}
+        onClose={() => setShowThemePicker(false)}
+      />
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+  container: { flex: 1 },
   scroll: { flexGrow: 1, justifyContent: 'center', padding: 24 },
-  header: { alignItems: 'center', marginBottom: 40 },
+  header: { alignItems: 'center', marginBottom: 40, position: 'relative', width: '100%' },
+  themeBtn: {
+    position: 'absolute',
+    top: -20,
+    right: 0,
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
   logo: {
     fontSize: 34,
     fontWeight: '900',
-    color: Colors.primary,
     marginBottom: 16,
   },
-  title: { fontSize: 28, fontWeight: '700', color: Colors.textPrimary, marginBottom: 8 },
-  subtitle: { fontSize: 16, color: Colors.textSecondary },
+  title: { fontSize: 28, fontWeight: '700', marginBottom: 8 },
+  subtitle: { fontSize: 16 },
   form: { width: '100%' },
   errorBox: {
-    backgroundColor: '#FFF1F2',
     borderRadius: 16,
     padding: 14,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#FECDD3',
   },
-  errorBoxText: { color: Colors.error, fontSize: 14 },
+  errorBoxText: { fontSize: 14 },
   button: { marginTop: 8 },
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 24 },
-  footerText: { color: Colors.textSecondary, fontSize: 15 },
-  link: { color: Colors.primary, fontSize: 15, fontWeight: '600' },
+  footerText: { fontSize: 15 },
+  link: { fontSize: 15, fontWeight: '600' },
 });

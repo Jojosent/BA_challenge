@@ -65,7 +65,7 @@ const SettingCard: React.FC<SettingCardProps> = ({
       value={value}
       onValueChange={onToggle}
       trackColor={{ false: theme.border, true: accent.color + 'AA' }}
-      thumbColor={value ? accent.color : '#C4BEDD'}
+      thumbColor={value ? accent.color : theme.textMuted}
       ios_backgroundColor={theme.border}
     />
   </View>

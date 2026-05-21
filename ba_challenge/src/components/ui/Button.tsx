@@ -6,7 +6,7 @@ import {
   StyleSheet,
   ViewStyle,
 } from 'react-native';
-import { Colors } from '@/constants/colors';
+import { useTheme } from '@/theme/ThemeContext';
 
 interface ButtonProps {
   title: string;
@@ -25,16 +25,30 @@ export const Button: React.FC<ButtonProps> = ({
   variant = 'primary',
   style,
 }) => {
-  const textColor = variant === 'outline' ? Colors.primary : Colors.white;
+  const { theme } = useTheme();
+  
+  const textColor = variant === 'outline' ? theme.primary : '#ffffff';
+
+  const buttonStyle = [
+    styles.base,
+    {
+      shadowColor: theme.key === 'midnight' ? '#000000' : '#1E293B',
+    },
+    variant === 'primary' && { backgroundColor: theme.primary },
+    variant === 'secondary' && { backgroundColor: theme.accent },
+    variant === 'outline' && {
+      backgroundColor: theme.surface,
+      borderColor: theme.primary,
+      borderWidth: 1.5,
+      shadowOpacity: 0.04,
+    },
+    (disabled || isLoading) && styles.disabled,
+    style,
+  ];
 
   return (
     <TouchableOpacity
-      style={[
-        styles.base,
-        styles[variant],
-        (disabled || isLoading) && styles.disabled,
-        style,
-      ]}
+      style={buttonStyle}
       onPress={onPress}
       disabled={disabled || isLoading}
       activeOpacity={0.85}
@@ -55,23 +69,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 54,
-    shadowColor: Colors.shadow,
     shadowOpacity: 0.12,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 8 },
     elevation: 3,
-  },
-  primary: {
-    backgroundColor: Colors.primary,
-  },
-  secondary: {
-    backgroundColor: Colors.secondary,
-  },
-  outline: {
-    backgroundColor: Colors.white,
-    borderWidth: 1.5,
-    borderColor: Colors.primary,
-    shadowOpacity: 0.04,
   },
   disabled: {
     opacity: 0.55,

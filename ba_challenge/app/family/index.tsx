@@ -281,8 +281,8 @@ export default function FamilyScreen() {
                     style={[
                       s.editMemberBtn,
                       {
-                        backgroundColor: (theme.primary ?? '#5E4BDB') + '15',
-                        borderColor: (theme.primary ?? '#5E4BDB') + '30',
+                      backgroundColor: theme.primary + '15',
+                        borderColor: theme.primary + '30',
                       },
                       !isActiveFamilyOwner && {
                         backgroundColor: theme.surface,
@@ -307,7 +307,7 @@ export default function FamilyScreen() {
                       size={15}
                       color={
                         isActiveFamilyOwner
-                          ? (theme.primary ?? '#5E4BDB')
+                          ? theme.primary
                           : theme.textSecondary
                       }
                     />
@@ -316,6 +316,10 @@ export default function FamilyScreen() {
                   <TouchableOpacity
                     style={[
                       s.deleteMemberBtn,
+                      {
+                        backgroundColor: theme.roseError + '15',
+                        borderColor: theme.roseError + '30',
+                      },
                       !isActiveFamilyOwner && {
                         backgroundColor: theme.surface,
                         borderColor: theme.border,
@@ -328,7 +332,7 @@ export default function FamilyScreen() {
                       name="trash-outline"
                       size={15}
                       color={
-                        isActiveFamilyOwner ? '#E11D48' : theme.textSecondary
+                        isActiveFamilyOwner ? theme.rose : theme.textSecondary
                       }
                     />
                   </TouchableOpacity>
@@ -401,7 +405,7 @@ export default function FamilyScreen() {
                 s.createChallengeBtn,
                 {
                   backgroundColor: theme.surface,
-                  borderColor: (theme.primary ?? '#5E4BDB') + '40',
+                  borderColor: theme.primary + '40',
                 },
               ]}
               onPress={() => router.push('/family/create-challenge')}
@@ -553,7 +557,7 @@ export default function FamilyScreen() {
                       { backgroundColor: theme.bg, borderColor: theme.border },
                       eventEmoji === e && {
                         borderColor: theme.primary,
-                        backgroundColor: (theme.primary ?? '#5E4BDB') + '20',
+                        backgroundColor: theme.primary + '20',
                       },
                     ]}
                     onPress={() => setEventEmoji(e)}
@@ -664,9 +668,7 @@ const s = StyleSheet.create({
   deleteMemberBtn: {
     padding: 8,
     borderRadius: 8,
-    backgroundColor: '#E11D48' + '15',
     borderWidth: 1,
-    borderColor: '#E11D48' + '30',
   },
   readOnlyHint: {
     fontSize: 12,
