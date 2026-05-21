@@ -21,7 +21,8 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#1a1a2e"
       },
-      "package": "com.bachallenge.app"
+      "package": "com.kaiyerik.bachallenge",
+      "versionCode": 1,
     },
     "plugins": [
       "expo-router",
@@ -29,6 +30,12 @@
       "expo-localization",
       "expo-video",
       "@react-native-community/datetimepicker"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "9437549b-8c83-4e7b-8d06-277f3bf75d17"
+      }
+    }
   }
 }
