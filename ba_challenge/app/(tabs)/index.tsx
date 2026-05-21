@@ -246,23 +246,6 @@ export default function HomeScreen() {
 
             <TouchableOpacity
               style={[styles.quickItem, { backgroundColor: theme.surface, borderColor: theme.border }]}
-              onPress={() => router.push('/(tabs)/ai-assistant')}
-            >
-              <ImageBackground
-                source={require('../../assets/images/ai.png')}
-                style={styles.quickBg}
-                imageStyle={styles.quickBgImage}
-              >
-                <View style={styles.quickOverlay}>
-                  <Text style={[styles.quickTitle, { color: theme.textPrimary }]}>
-                    {t('home.aiAssistant')}
-                  </Text>
-                </View>
-              </ImageBackground>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.quickItem, { backgroundColor: theme.surface, borderColor: theme.border }]}
               onPress={() => router.push('/family')}
             >
               <ImageBackground

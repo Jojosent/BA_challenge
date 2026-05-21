@@ -441,25 +441,6 @@ export default function ChallengeDetailScreen() {
           </View>
         )}
 
-        {/* ── AI чат ── */}
-        {(canEdit || isParticipant) && (
-          <TouchableOpacity
-            style={[styles.aiChatBtn, { backgroundColor: theme.surface, borderColor: theme.primary + '44' }]}
-            onPress={() => router.push(`/challenge/ai-chat/${id}`)}
-          >
-            <Text style={styles.aiChatIcon}>🤖</Text>
-            <View style={styles.aiChatTexts}>
-              <Text style={[styles.aiChatTitle, { color: theme.textPrimary }]}>
-                {t('challengeDetails.aiAssistant')}
-              </Text>
-              <Text style={[styles.aiChatSub, { color: theme.textSecondary }]}>
-                {t('challengeDetails.aiAssistantSub')}
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={theme.primary} />
-          </TouchableOpacity>
-        )}
-
         {/* ── Чат участников ── */}
         {(canEdit || isParticipant) && (
           <TouchableOpacity

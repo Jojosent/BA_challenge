@@ -125,21 +125,6 @@ export default function TabsLayout() {
       />
 
       <Tabs.Screen
-        name="ai-assistant"
-        options={{
-          title: t('tabs.ai'),
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon
-              name={focused ? 'sparkles' : 'sparkles-outline'}
-              color={color}
-              focused={focused}
-              theme={theme}
-            />
-          ),
-        }}
-      />
-
-      <Tabs.Screen
         name="profile"
         options={{
           title: t('tabs.profile'),
