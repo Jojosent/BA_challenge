@@ -463,8 +463,7 @@ export default function ChallengeDetailScreen() {
         {/* ── Чат участников ── */}
         {(canEdit || isParticipant) && (
           <TouchableOpacity
-            style={[
-              styles.chatBtnChall,
+            style={[styles.chatBtnChall,
               {
                 backgroundColor: theme.surface,
                 borderColor: theme.accent + '44',
@@ -942,6 +941,23 @@ const styles = StyleSheet.create({
           aiChatTexts: { flex: 1 },
           aiChatTitle: { fontSize: 15, fontWeight: '700', color: Colors.textPrimary },
           aiChatSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
+
+          chatBtnChall: {
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      backgroundColor: Colors.surface,
+                      marginHorizontal: 20,
+                      marginBottom: 16,
+                      borderRadius: 14,
+                      padding: 16,
+                      borderWidth: 1,
+                      borderColor: Colors.primary + '44',
+                      gap: 12,
+                    },
+                    chatIcon: { fontSize: 28 },
+                    chatTexts: { flex: 1 },
+                    chatTitle: { fontSize: 15, fontWeight: '700', color: Colors.textPrimary },
+                    chatSub: { fontSize: 12, color: Colors.textSecondary, marginTop: 2 },
 
           inviteBtn: {
             flexDirection: 'row',

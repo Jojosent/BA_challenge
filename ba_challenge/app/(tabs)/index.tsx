@@ -10,7 +10,7 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { userService } from '@services/userService';
 import { notificationService } from '@services/notificationService';
-import { ImageBackground } from 'react-native';
+import { ImageBackground, Dimensions } from 'react-native';
 import { TrendingUp, Zap, Star } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/theme/ThemeContext';
@@ -24,6 +24,11 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+const { width } = Dimensions.get('window');
+
+const CARD_WIDTH = width - 40;
+const IS_SMALL = width < 380;
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -146,7 +151,7 @@ export default function HomeScreen() {
           source={require('../../assets/images/balance-bg.png')}
           style={styles.balanceCard}
           imageStyle={styles.balanceBgImage}
-          resizeMode="cover"
+          resizeMode="stretch"
         >
           <View style={styles.balanceContent}>
             <View style={styles.balanceMain}>
@@ -350,28 +355,37 @@ const styles = StyleSheet.create({
   notifBadgeTxt: { color: '#fff', fontSize: 10 },
 
   balanceCard: {
-    height: 160,
-    margin: 20,
+    width: CARD_WIDTH,
+    height: IS_SMALL ? 145 : 160,
+    marginHorizontal: 20,
+    marginVertical: 20,
     borderRadius: 30,
     overflow: 'hidden',
   },
 
-  balanceBgImage: { borderRadius: 30 },
+  balanceBgImage: {
+    borderRadius: 30,
+    resizeMode: 'cover',
+  },
 
   balanceContent: {
     flex: 1,
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: 30,
-    paddingLeft: 100,
-    paddingRight: 60,
+    alignItems: 'center',
+    paddingLeft: width * 0.24,
+    paddingRight: width * 0.06,
   },
 
-  balanceMain: { flex: 1 },
+  balanceMain: {
+    width: '60%',
+  },
 
   balanceLabel: { fontSize: 16 },
 
-  balanceAmount: { fontSize: 50, fontWeight: '900' },
+  balanceAmount: {
+    fontSize: IS_SMALL ? 40 : 50,
+    fontWeight: '900',
+  },
 
   coinRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
 
@@ -386,12 +400,13 @@ const styles = StyleSheet.create({
   ratingCount: {},
 
   streakCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: IS_SMALL ? 68 : 80,
+    height: IS_SMALL ? 68 : 80,
+    borderRadius: IS_SMALL ? 34 : 40,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
+    marginLeft: -10,
   },
 
   streakNumber: { fontSize: 24, fontWeight: '900' },
@@ -405,7 +420,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
 
-  statsRow: { flexDirection: 'row', paddingHorizontal: 16 },
+  statsRow: { flexDirection: 'row', paddingHorizontal: 20, marginTop: 10},
 
   quickSection: { paddingHorizontal: 20 },
 
